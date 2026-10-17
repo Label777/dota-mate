@@ -184,29 +184,37 @@ function upstream(url) {
 }
 const cache = new Map();
 const hits = new Map();
-function limited(acc) {
+function limited(acc, max) {
   const now = Date.now(), arr = (hits.get(acc) || []).filter((t) => t > now - 600000);
-  if (arr.length >= 60) { hits.set(acc, arr); return true; }
+  if (arr.length >= (max || 60)) { hits.set(acc, arr); return true; }
   arr.push(now); hits.set(acc, arr); return false;
 }
 async function proxyOD(req, res, url, sess) {
-  let target, ttl;
+  let target, ttl, slim = false;
   let m = /^\/api\/od\/players\/(\d+)\/matches$/.exec(url.pathname);
   if (m) {
     if (m[1] !== sess.acc) return json(res, 403, { error: 'forbidden' });
     const n = Math.min(30, Math.max(1, parseInt(url.searchParams.get('limit'), 10) || 15));
     target = `${OD}/players/${m[1]}/matches?limit=${n}`; ttl = 60000;
+  } else if ((m = /^\/api\/od\/players\/(\d{1,10})$/.exec(url.pathname))) {
+    target = `${OD}/players/${m[1]}`; ttl = 6 * 3600000; slim = true;
   } else if ((m = /^\/api\/od\/matches\/(\d{6,13})$/.exec(url.pathname))) {
     target = `${OD}/matches/${m[1]}`; ttl = 600000;
   } else return json(res, 404, { error: 'not found' });
 
-  if (limited(sess.acc)) return json(res, 429, { error: 'rate' });
+  if (slim ? limited(sess.acc + ':p', 200) : limited(sess.acc)) return json(res, 429, { error: 'rate' });
   const c = cache.get(target);
   if (c && c.t > Date.now()) return send(res, 200, c.body, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
   try {
     const r = await upstream(target);
-    const body = await r.text();
+    let body = await r.text();
     if (r.ok) {
+      if (slim) {
+        try {
+          const j = JSON.parse(body), pr = (j && j.profile) || null;
+          body = JSON.stringify({ profile: pr ? { personaname: pr.personaname, avatarmedium: pr.avatarmedium, avatarfull: pr.avatarfull } : null });
+        } catch (e) { return json(res, 502, { error: 'bad upstream' }); }
+      }
       cache.set(target, { t: Date.now() + ttl, body });
       if (cache.size > 300) cache.delete(cache.keys().next().value);
       return send(res, 200, body, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });

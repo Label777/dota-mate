@@ -222,6 +222,9 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;c
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
 a.btn{text-decoration:none}
 img.av{object-fit:cover}
+.av img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#2a303a}
+.optin{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.optin input{width:18px;height:18px;margin-top:3px;accent-color:#a8323a;flex:none}
 .me .btn{margin-left:4px}
 </style>
 </head>
@@ -272,7 +275,11 @@ const fdur=s=>{s=Math.max(0,s|0);const h=Math.floor(s/3600),m=Math.floor(s%3600/
 const ago=ts=>{const d=Math.floor((Date.now()/1000-ts)/86400);if(d<1)return'сегодня';if(d===1)return'вчера';if(d<30)return`${d} ${pl(d,'день','дня','дней')} назад`;return fday(ts)};
 const hue=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return h%360};
 const initials=n=>{const t=String(n||'?').replace(/[^\p{L}\p{N} ]/gu,' ').trim().split(/\s+/);return((t[0]||'?')[0]+(t[1]?t[1][0]:'')).toUpperCase()};
-const av=(name,cls,sid)=>`<span class="av ${cls||''}" style="background:hsl(${hue(sid||name)} 26% 30%)" aria-hidden="true">${esc(initials(name))}</span>`;
+const AVRE=/^https:\/\/([a-z0-9-]+\.)+(steamstatic\.com|akamaihd\.net)\//;
+const avOn=()=>!(S.settings&&S.settings.avatars===false);
+const avUrl=sid=>{const u=avOn()&&S.avatars&&S.avatars[sid];return u&&AVRE.test(u)?u:''};
+const avImg=sid=>{const u=avUrl(sid);return u?`<img src="${esc(u)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`:''};
+const av=(name,cls,sid)=>`<span class="av ${cls||''}" style="background:hsl(${hue(sid||name)} 26% 30%)"${isNum(sid)?` data-av="${esc(sid)}"`:''} aria-hidden="true">${esc(initials(name))}${avImg(sid)}</span>`;
 const stars=n=>`<span class="stars" role="img" aria-label="Оценка ${n} из 5">${[1,2,3,4,5].map(i=>`<svg class="ic ${i<=Math.round(n)?'on':''}"><use href="#i-star"/></svg>`).join('')}</span>`;
 const steam64=acc=>(BigInt(acc)+OFF).toString();
 const isNum=s=>/^\d+$/.test(String(s));
@@ -285,7 +292,7 @@ const CATS=[['team','Командная игра'],['comm','Общение'],['b
 
 /* ---------- state ---------- */
 const LS='dotamate.v1';
-function fresh(){return{v:1,me:{acc:'',name:'Вы'},matches:[],reviews:{},pnotes:{},demo:false,lastSync:null}}
+function fresh(){return{v:1,me:{acc:'',name:'Вы'},matches:[],reviews:{},pnotes:{},avatars:{},settings:{avatars:true},demo:false,lastSync:null}}
 function load(){try{const r=localStorage.getItem(LS);if(r){const j=JSON.parse(r);if(j&&j.v===1&&Array.isArray(j.matches))return j}}catch(e){}return null}
 let SRV=null,SERVER=false,svT=null;
 function pushState(){fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','X-DM':'1'},body:JSON.stringify(S)}).catch(()=>{})}
@@ -382,7 +389,7 @@ const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['pl
 const cur=()=>V.page==='player'?'players':V.page;
 function navBtns(){return NAV.map(n=>`<button class="tab" data-a="go" data-p="${n[0]}" ${cur()===n[0]?'aria-current="page"':''}>${ico(n[1])}<span>${n[2]}</span></button>`).join('')}
 function meBlock(){
-  const face=SRV&&SRV.avatar?`<img class="av" src="${esc(SRV.avatar)}" alt="" width="32" height="32" referrerpolicy="no-referrer">`:av(S.me.name,'','me');
+  const face=SRV&&SRV.avatar?`<img class="av" src="${esc(SRV.avatar)}" alt="" width="32" height="32" referrerpolicy="no-referrer">`:av(S.me.name,'',S.me.acc||'me');
   let act='';
   if(SERVER)act=SRV?`<button class="btn ghost sm2" data-a="logout">Выйти</button>`:`<a class="btn primary sm2" href="/auth/steam">${ico('lock')}<span>Войти через Steam</span></a>`;
   return`<span class="me">${face}<span class="nm">${esc(S.me.name||'Вы')}</span>${act}</span>`;
@@ -390,7 +397,7 @@ function meBlock(){
 function steamBlock(){
   if(SRV)return`<div class="banner">${ico('check')}<div style="flex:1"><b>Вы вошли через Steam</b><p class="sm" style="margin-top:2px">Данные привязаны к вашему аккаунту и хранятся на сервере Dota Mate.</p></div><button class="btn sm2" data-a="logout">Выйти</button></div>`;
   if(SERVER)return`<div class="banner">${ico('lock')}<div style="flex:1"><b>Вход через Steam</b><p class="sm" style="margin-top:2px">Вход происходит на сайте steamcommunity.com. Пароль Dota Mate не видит, мы получаем только ваш публичный Steam ID.</p></div><a class="btn primary sm2" href="/auth/steam">Войти</a></div>`;
-  return`<div class="banner" style="background:none">${ico('lock')}<div><b>Вход через Steam</b><p class="sm" style="margin-top:2px">Steam OpenID требует сервер, который проверяет ответ Steam. Эта страница работает без сервера, поэтому вход недоступен. Аватар Steam тоже не загружается: вместо него показаны инициалы.</p></div></div>`;
+  return`<div class="banner" style="background:none">${ico('lock')}<div><b>Вход через Steam</b><p class="sm" style="margin-top:2px">Steam OpenID требует сервер, который проверяет ответ Steam. Эта страница работает без сервера, поэтому вход недоступен. Аватары игроков подгружаются из OpenDota, а пока их нет, показаны инициалы.</p></div></div>`;
 }
 function paintHdr(){
   $('#hdr').innerHTML=`<header class="top"><div class="top-in wrap gut">
@@ -416,7 +423,7 @@ function mrow(m){
   return`<button class="mrow" data-a="openMatch" data-id="${esc(m.id)}">
     <span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span>
     <span class="mmain"><b>${esc(m.hero)}</b><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></span>
-    <span class="mallies" aria-label="Союзники">${al.slice(0,4).map(p=>`<span class="av sm ${p.sid&&prior(p.sid,m)>0?'known':''}" style="background:hsl(${hue(p.sid||p.name)} 26% 30%)" title="${esc(p.name)}">${esc(initials(p.name))}</span>`).join('')}</span>
+    <span class="mallies" aria-label="Союзники">${al.slice(0,4).map(p=>`<span class="av sm ${p.sid&&prior(p.sid,m)>0?'known':''}" style="background:hsl(${hue(p.sid||p.name)} 26% 30%)" title="${esc(p.name)}"${isNum(p.sid)?` data-av="${esc(p.sid)}"`:''}>${esc(initials(p.name))}${avImg(p.sid)}</span>`).join('')}</span>
     <span class="ch">${ico('chev')}</span></button>`;
 }
 function prow(e){
@@ -542,7 +549,9 @@ function vSettings(){
     <ul class="plain"><li>Сохраняются: ники и публичные ID участников ваших матчей, герои, результат, а также ваши оценки и заметки.</li>
     <li>${SRV?'Оценки, заметки и матчи хранятся на сервере Dota Mate и привязаны к вашему Steam ID. Другим пользователям они недоступны.':'Всё хранится только в этом браузере. Dota Mate не отправляет ваши оценки и заметки никуда.'}</li>
     <li>Оценки приватны, публичных рейтингов и списков игроков нет и не будет.</li>
-    <li>Пароли от Steam и Dotabuff не запрашиваются и не хранятся.</li></ul>
+    <li>Пароли от Steam и Dotabuff не запрашиваются и не хранятся.</li>
+    <li>Для аватарок сайт запрашивает у OpenDota профиль игрока по его публичному ID${SRV?' (через сервер Dota Mate)':''}. Сохраняется только адрес картинки.</li></ul>
+    <label class="optin" for="set-av"><input type="checkbox" id="set-av" ${avOn()?'checked':''}><span>Показывать аватарки Steam<br><small>Если выключить, запросы о профилях прекратятся, везде будут инициалы.</small></span></label>
   </section>
   <section class="card stack"><h3>Резервная копия</h3>
     <p class="sm">${SRV?'Данные хранятся на сервере.':'Данные живут в этом браузере.'} Скопируйте копию и сохраните её в заметках, чтобы перенести на другое устройство.</p>
@@ -687,7 +696,7 @@ function readManual(){
 }
 function wipe(kind){
   if(kind==='notes'){S.reviews={};S.pnotes={};toast('Оценки и заметки удалены.')}
-  else if(kind==='history'){S.matches=[];S.reviews={};S.pnotes={};S.demo=false;toast('История матчей удалена.')}
+  else if(kind==='history'){S.matches=[];S.reviews={};S.pnotes={};S.avatars={};S.demo=false;toast('История матчей удалена.')}
   else if(kind==='all'){
     if(SRV){fetch('/api/account',{method:'DELETE',headers:{'X-DM':'1'}}).finally(()=>location.reload());clearTimeout(svT);SRV=null;S=fresh();try{localStorage.removeItem(LS)}catch(e){}V.confirm=null;V.sync={st:'idle',msg:''};toast('Все данные удалены.');paint();return}
     S=fresh();try{localStorage.removeItem(LS)}catch(e){}V.sync={st:'idle',msg:''};toast('Все данные удалены.')}
@@ -767,11 +776,48 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
+  if(t.id==='set-av'){S.settings=S.settings||{};S.settings.avatars=t.checked;save();paint();if(t.checked)scanAvatars();return}
   if(t.id==='sort'){V.sort=t.value;$('#plist').innerHTML=plistHtml()}
   else if(t.id==='f-res'||t.id==='f-mode'||t.id==='f-range'){V.f={res:$('#f-res').value,mode:$('#f-mode').value,range:$('#f-range').value};$('#mlist').innerHTML=mlistHtml()}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&V.modal)closeModal()});
 
+/* ---------- аватарки ---------- */
+const AV={q:[],busy:false,fail:new Set()};
+function putAv(sid,u){
+  S.avatars=S.avatars||{};S.avatars[sid]=u;save();
+  if(u)document.querySelectorAll('[data-av="'+sid+'"]').forEach(el=>{if(!el.querySelector('img'))el.insertAdjacentHTML('beforeend',avImg(sid))});
+}
+function scanAvatars(){
+  if(!avOn()||S.demo)return;
+  document.querySelectorAll('[data-av]').forEach(el=>{
+    const sid=el.dataset.av;
+    if(S.avatars&&sid in S.avatars)return;
+    if(AV.fail.has(sid)||AV.q.includes(sid))return;
+    AV.q.push(sid);
+  });
+  runAv();
+}
+async function runAv(){
+  if(AV.busy)return;AV.busy=true;
+  while(AV.q.length&&avOn()&&!S.demo){
+    const sid=AV.q.shift();
+    try{
+      const base=SRV?'/api/od':'https://api.opendota.com/api';
+      const c=new AbortController(),tm=setTimeout(()=>c.abort(),8000);
+      let r;try{r=await fetch(base+'/players/'+sid,{signal:c.signal})}finally{clearTimeout(tm)}
+      if(r.status===429){AV.fail.add(sid);AV.q.length=0;break}
+      if(r.status===404)putAv(sid,'');
+      else if(!r.ok)throw new Error('http');
+      else{const j=await r.json();const u=(j&&j.profile&&(j.profile.avatarmedium||j.profile.avatarfull))||'';putAv(sid,AVRE.test(u)?u:'')}
+    }catch(e){AV.fail.add(sid)}
+    await new Promise(r=>setTimeout(r,SRV?150:1100));
+  }
+  AV.busy=false;
+}
+let avT=null;
+new MutationObserver(()=>{clearTimeout(avT);avT=setTimeout(scanAvatars,300)}).observe(document.body,{childList:true,subtree:true});
+document.addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('[data-av]'))t.remove()},true);
 paint();
 (async function init(){
   try{
