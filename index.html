@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Dota Mate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky top bar (bottom tab bar on phones), one content column with a two-column dashboard.
+   Deliberately a single dark look: graphite surfaces, muted red accent, gold only for ratings. */
+:root{
+  --bg:#13151a; --card:#1b1e25; --card-2:#232831; --line:#2d333d;
+  --fg:#e8e6e1; --fg-2:#aeb4bf; --mute:#7d8592;
+  --red:#a8323a; --red-hi:#d95c63; --red-soft:rgba(168,50,58,.16);
+  --win:#58a67d; --win-soft:rgba(88,166,125,.14); --gold:#cfa95a;
+  --f-disp:'Oswald','Arial Narrow',Impact,sans-serif;
+  --f-body:'Source Sans 3','Segoe UI',system-ui,-apple-system,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:radial-gradient(900px 420px at 8% -8%,rgba(168,50,58,.15),transparent 60%),var(--bg);color:var(--fg);font:400 15.5px/1.5 var(--f-body);min-height:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:#13151a;z-index:30}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{font-family:var(--f-disp);font-weight:500;letter-spacing:.03em;text-transform:uppercase;margin:0;text-wrap:balance}
+h1{font-size:1.9rem;line-height:1.15}
+h2{font-size:1.1rem;color:var(--fg-2)}
+h3{font-size:1rem}
+p{margin:0}
+small,.sm{font-size:.84rem;color:var(--mute)}
+.mono{font-family:var(--f-mono);font-size:.84rem}
+:focus-visible{outline:2px solid var(--red-hi);outline-offset:2px;border-radius:6px}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto}
+
+/* icons */
+.ic{width:1.15em;height:1.15em;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:31;background:rgba(19,21,26,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-in{display:flex;align-items:center;gap:16px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;font-family:var(--f-disp);font-size:1.2rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.brand svg{width:26px;height:26px}
+.tabs{display:flex;gap:4px;margin-left:12px}
+.tab{display:flex;align-items:center;gap:8px;background:none;border:0;border-radius:8px;padding:8px 12px;color:var(--fg-2)}
+.tab:hover{background:var(--card)}
+.tab[aria-current=page]{color:var(--fg);background:var(--red-soft);box-shadow:inset 0 -2px 0 var(--red)}
+.grow{flex:1}
+.me{display:flex;align-items:center;gap:8px;color:var(--fg-2)}
+
+/* bottom nav (phones) */
+#nav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav .row{display:grid;grid-template-columns:repeat(4,1fr)}
+#nav .tab{flex-direction:column;gap:2px;font-size:.72rem;border-radius:0;padding:9px 4px 8px}
+#nav .tab .ic{width:1.35em;height:1.35em}
+#nav .tab[aria-current=page]{box-shadow:inset 0 2px 0 var(--red)}
+
+main{padding-top:24px;padding-bottom:56px;display:flex;flex-direction:column;gap:24px}
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.pagehead p{color:var(--fg-2);margin-top:4px;max-width:60ch}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--card-2);border-radius:9px;padding:9px 14px;font-weight:600;min-height:40px;transition:background .15s,border-color .15s}
+.btn:hover{border-color:#434b58;background:#2a303a}
+.btn.primary{background:var(--red);border-color:#c04048;color:#fff}
+.btn.primary:hover{background:#bb3a43}
+.btn.ghost{background:none}
+.btn.danger{color:#f0a0a4;border-color:#5b2a2f;background:rgba(168,50,58,.1)}
+.btn.danger:hover{background:rgba(168,50,58,.22)}
+.btn.sm2{padding:5px 10px;min-height:32px;font-size:.88rem}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.iconbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:none;color:var(--fg-2)}
+.iconbtn:hover{background:var(--card-2);color:var(--fg)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card.flat{background:none}
+.stack{display:flex;flex-direction:column;gap:12px}
+.cols{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:24px;align-items:start}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+
+/* status pill */
+.pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:5px 12px;font-size:.88rem;background:var(--card-2);color:var(--fg-2);border:1px solid var(--line)}
+.pill.ok{color:#8fd1ae;background:var(--win-soft);border-color:#2c5d45}
+.pill.err{color:#f0a0a4;background:var(--red-soft);border-color:#5b2a2f}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid #4a515d;border-top-color:var(--red-hi);animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.skel{height:64px;border-radius:12px;background:linear-gradient(90deg,var(--card) 25%,var(--card-2) 50%,var(--card) 75%);background-size:200% 100%;animation:sh 1.3s linear infinite}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* match rows */
+.mlist{display:flex;flex-direction:column;gap:10px}
+.mrow{display:grid;grid-template-columns:96px minmax(0,1fr) auto 20px;align-items:center;gap:14px;text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.mrow:hover{border-color:#434b58;background:#20242c}
+.res{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.05em;font-size:.82rem;padding:4px 10px;border-radius:6px;text-align:center}
+.res.win{background:var(--win-soft);color:#8fd1ae}
+.res.loss{background:var(--red-soft);color:#f0a0a4}
+.mmain{display:flex;flex-direction:column;min-width:0}
+.mmain b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mallies{display:flex}
+.mallies .av{margin-left:-6px;box-shadow:0 0 0 2px var(--card)}
+.mallies .av:first-child{margin-left:0}
+.mrow .ch{color:var(--mute)}
+
+/* avatars */
+.av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;font-weight:700;font-size:.82rem;color:#e8e6e1;flex:none;position:relative}
+.av.lg{width:64px;height:64px;font-size:1.4rem}
+.av.md{width:40px;height:40px;font-size:.95rem}
+.av.known::after{content:"";position:absolute;right:-1px;top:-1px;width:9px;height:9px;border-radius:50%;background:var(--red-hi);border:2px solid var(--card)}
+
+/* player rows */
+.plist{display:flex;flex-direction:column;gap:10px}
+.prow{display:grid;grid-template-columns:40px minmax(0,1fr) auto 20px;gap:14px;align-items:center;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.prow:hover{border-color:#434b58;background:#20242c}
+.pname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stars{display:inline-flex;gap:1px;vertical-align:middle}
+.stars .ic{width:14px;height:14px;color:#454c58}
+.stars .ic.on{color:var(--gold);fill:var(--gold)}
+.avg{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;color:var(--fg-2)}
+
+/* forms */
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>label,.lbl{font-size:.8rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
+input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;background:#12151a;border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-height:40px}
+textarea{resize:vertical;min-height:84px}
+input::placeholder,textarea::placeholder{color:#5f6672}
+.searchbox{position:relative}
+.searchbox .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mute)}
+.searchbox input{padding-left:38px}
+.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) ;gap:12px}
+.toolbar{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:12px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+
+/* banners, notes */
+.banner{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
+.banner.soft{background:var(--red-soft);border-color:#4d2a2f}
+.banner.demo{background:rgba(207,169,90,.09);border-color:#5a4c2d}
+.banner .ic{margin-top:3px;color:var(--red-hi)}
+.banner.demo .ic{color:var(--gold)}
+.banner p{flex:1;min-width:0}
+
+/* empty */
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:36px 16px;border:1px dashed #3a414d;border-radius:12px;color:var(--fg-2)}
+.empty .ic{width:30px;height:30px;color:var(--mute)}
+.empty b{color:var(--fg)}
+
+/* modal */
+#modal:empty{display:none}
+.ov{position:fixed;inset:0;z-index:50;background:rgba(8,9,12,.74);display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.panel{width:min(680px,100%);max-height:100%;overflow:auto;background:var(--card);border:1px solid #3a414d;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.panel-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 12px;position:sticky;top:0;background:var(--card);z-index:1;border-bottom:1px solid var(--line)}
+.panel-b{padding:16px 18px 20px;display:flex;flex-direction:column;gap:16px}
+.arow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.arow:first-child{border-top:0}
+.erow{display:flex;justify-content:space-between;gap:12px;padding:6px 0;color:var(--fg-2);border-top:1px solid var(--line)}
+.erow:first-child{border-top:0}
+.tag{display:inline-block;font-size:.76rem;border-radius:6px;padding:1px 8px;background:var(--red-soft);color:#f0a0a4}
+.tag.n{background:var(--card-2);color:var(--fg-2)}
+.linkbtn{background:none;border:0;padding:0;color:var(--fg);font-weight:600;text-align:left;text-decoration:underline;text-decoration-color:#555c68;text-underline-offset:3px}
+.linkbtn:hover{text-decoration-color:var(--red-hi)}
+a{color:#e9a2a6}
+
+/* rating editor */
+.sbtn{background:none;border:0;padding:3px;color:#454c58;border-radius:6px}
+.sbtn .ic{width:30px;height:30px}
+.sbtn.on{color:var(--gold)}
+.sbtn.on .ic{fill:var(--gold)}
+.sbtn:hover{color:#e2c07a}
+.cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.dots{display:flex;gap:6px}
+.dot{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#12151a;color:var(--fg-2);font-weight:600}
+.dot.on{background:var(--red);border-color:#c04048;color:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:.78rem;border-radius:999px;padding:2px 10px;background:var(--card-2);color:var(--fg-2);border:1px solid var(--line)}
+
+/* history */
+.hist{display:flex;flex-direction:column;gap:10px}
+.hitem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.hitem .note{margin-top:8px;color:var(--fg);background:#15181e;border-radius:8px;padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.profile-h{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.links{display:flex;gap:14px;flex-wrap:wrap}
+.links a{display:inline-flex;gap:6px;align-items:center;font-size:.9rem}
+
+/* toast */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:60;width:min(520px,calc(100% - 32px));pointer-events:none}
+.toast{pointer-events:auto;display:flex;gap:12px;align-items:center;justify-content:space-between;background:#262b34;border:1px solid #444c59;border-radius:12px;padding:12px 14px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+
+.kv{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px 16px}
+.kv dt{color:var(--mute)}
+.kv dd{margin:0;overflow-wrap:anywhere}
+ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--fg-2)}
+.hr{height:1px;background:var(--line);border:0;margin:0}
+.statline{display:flex;gap:20px;flex-wrap:wrap;color:var(--fg-2)}
+.statline b{font-family:var(--f-disp);font-weight:500;font-size:1.3rem;color:var(--fg);margin-right:6px}
+
+@media (max-width:820px){
+  .cols{grid-template-columns:minmax(0,1fr)}
+  .tabs,.me .nm{display:none}
+}
+@media (max-width:759px){
+  #nav{display:block}
+  main{padding-bottom:104px}
+  #toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  .mrow{grid-template-columns:minmax(0,1fr) 20px;grid-template-areas:"a c" "b c" "d c"}
+  .mrow .res{grid-area:a;justify-self:start}
+  .mrow .mmain{grid-area:b}
+  .mrow .mallies{grid-area:d}
+  .mrow .ch{grid-area:c}
+  .filters,.toolbar,.grid2{grid-template-columns:minmax(0,1fr)}
+  .kv{grid-template-columns:minmax(0,1fr)}
+  .kv dt{margin-top:6px}
+  h1{font-size:1.55rem}
+  .hitem{grid-template-columns:minmax(0,1fr)}
+  .btn.label-hide span{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
+a.btn{text-decoration:none}
+img.av{object-fit:cover}
+.me .btn{margin-left:4px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+</defs></svg>
+
+<div id="hdr"></div>
+<main id="main" class="wrap gut"></main>
+<nav id="nav" aria-label="Разделы"></nav>
+<div id="modal"></div>
+<div id="toast" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+/* ---------- helpers ---------- */
+const OFF=76561197960265728n;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ico=(n,c)=>`<svg class="ic ${c||''}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const pl=(n,a,b,c)=>{n=Math.abs(n)%100;const k=n%10;return n>10&&n<20?c:k>1&&k<5?b:k===1?a:c};
+const fd=ts=>new Date(ts*1000).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+const fday=ts=>new Date(ts*1000).toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'});
+const p2=n=>String(n).padStart(2,'0');
+const fdur=s=>{s=Math.max(0,s|0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${h}:${p2(m)}:${p2(x)}`:`${m}:${p2(x)}`};
+const ago=ts=>{const d=Math.floor((Date.now()/1000-ts)/86400);if(d<1)return'сегодня';if(d===1)return'вчера';if(d<30)return`${d} ${pl(d,'день','дня','дней')} назад`;return fday(ts)};
+const hue=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return h%360};
+const initials=n=>{const t=String(n||'?').replace(/[^\p{L}\p{N} ]/gu,' ').trim().split(/\s+/);return((t[0]||'?')[0]+(t[1]?t[1][0]:'')).toUpperCase()};
+const av=(name,cls,sid)=>`<span class="av ${cls||''}" style="background:hsl(${hue(sid||name)} 26% 30%)" aria-hidden="true">${esc(initials(name))}</span>`;
+const stars=n=>`<span class="stars" role="img" aria-label="Оценка ${n} из 5">${[1,2,3,4,5].map(i=>`<svg class="ic ${i<=Math.round(n)?'on':''}"><use href="#i-star"/></svg>`).join('')}</span>`;
+const steam64=acc=>(BigInt(acc)+OFF).toString();
+const isNum=s=>/^\d+$/.test(String(s));
+
+const HEROES={1:'Anti-Mage',2:'Axe',3:'Bane',4:'Bloodseeker',5:'Crystal Maiden',6:'Drow Ranger',7:'Earthshaker',8:'Juggernaut',9:'Mirana',10:'Morphling',11:'Shadow Fiend',12:'Phantom Lancer',13:'Puck',14:'Pudge',15:'Razor',16:'Sand King',17:'Storm Spirit',18:'Sven',19:'Tiny',20:'Vengeful Spirit',21:'Windranger',22:'Zeus',23:'Kunkka',25:'Lina',26:'Lion',27:'Shadow Shaman',28:'Slardar',29:'Tidehunter',30:'Witch Doctor',31:'Lich',32:'Riki',33:'Enigma',34:'Tinker',35:'Sniper',36:'Necrophos',37:'Warlock',38:'Beastmaster',39:'Queen of Pain',40:'Venomancer',41:'Faceless Void',42:'Wraith King',43:'Death Prophet',44:'Phantom Assassin',45:'Pugna',46:'Templar Assassin',47:'Viper',48:'Luna',49:'Dragon Knight',50:'Dazzle',51:'Clockwerk',52:'Leshrac',53:"Nature's Prophet",54:'Lifestealer',55:'Dark Seer',56:'Clinkz',57:'Omniknight',58:'Enchantress',59:'Huskar',60:'Night Stalker',61:'Broodmother',62:'Bounty Hunter',63:'Weaver',64:'Jakiro',65:'Batrider',66:'Chen',67:'Spectre',68:'Ancient Apparition',69:'Doom',70:'Ursa',71:'Spirit Breaker',72:'Gyrocopter',73:'Alchemist',74:'Invoker',75:'Silencer',76:'Outworld Destroyer',77:'Lycan',78:'Brewmaster',79:'Shadow Demon',80:'Lone Druid',81:'Chaos Knight',82:'Meepo',83:'Treant Protector',84:'Ogre Magi',85:'Undying',86:'Rubick',87:'Disruptor',88:'Nyx Assassin',89:'Naga Siren',90:'Keeper of the Light',91:'Io',92:'Visage',93:'Slark',94:'Medusa',95:'Troll Warlord',96:'Centaur Warrunner',97:'Magnus',98:'Timbersaw',99:'Bristleback',100:'Tusk',101:'Skywrath Mage',102:'Abaddon',103:'Elder Titan',104:'Legion Commander',105:'Techies',106:'Ember Spirit',107:'Earth Spirit',108:'Underlord',109:'Terrorblade',110:'Phoenix',111:'Oracle',112:'Winter Wyvern',113:'Arc Warden',114:'Monkey King',119:'Dark Willow',120:'Pangolier',121:'Grimstroke',123:'Hoodwink',126:'Void Spirit',128:'Snapfire',129:'Mars',131:'Ringmaster',135:'Dawnbreaker',136:'Marci',137:'Primal Beast',138:'Muerta',145:'Kez',155:'Largo'};
+const HERO_NAMES=Object.values(HEROES).sort();
+const MODES={1:'All Pick',2:'Captains Mode',3:'Random Draft',4:'Single Draft',5:'All Random',12:'Least Played',16:'Captains Draft',18:'Ability Draft',22:'All Pick',23:'Turbo'};
+const MODE_LIST=['All Pick','Turbo','Captains Mode','Random Draft','Single Draft','All Random','Captains Draft','Ability Draft','Другой'];
+const CATS=[['team','Командная игра'],['comm','Общение'],['beh','Поведение'],['help','Помощь команде']];
+
+/* ---------- state ---------- */
+const LS='dotamate.v1';
+function fresh(){return{v:1,me:{acc:'',name:'Вы'},matches:[],reviews:{},pnotes:{},demo:false,lastSync:null}}
+function load(){try{const r=localStorage.getItem(LS);if(r){const j=JSON.parse(r);if(j&&j.v===1&&Array.isArray(j.matches))return j}}catch(e){}return null}
+let SRV=null,SERVER=false,svT=null;
+function pushState(){fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','X-DM':'1'},body:JSON.stringify(S)}).catch(()=>{})}
+function save(){
+  if(SRV){clearTimeout(svT);svT=setTimeout(pushState,600);return}
+  try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
+}
+
+function demoData(){
+  const now=Math.floor(Date.now()/1000),D=86400;
+  const A=['Fenrir','kotleta_pro','Мамкин саппорт','Zolotaya_Ruka','nightowl','Ржавый','Lumen','Dimych','ShadowVK','Aurora'];
+  const E=['xXdarkXx','Pelmen','Oleg_228','mid_or_feed','Kiwi','Vitalik','sunrise','Gnom','Tigr','BarsukBoss','Nika','Toxic_Tom'];
+  const H=['Crystal Maiden','Axe','Pudge','Lion','Tidehunter','Witch Doctor','Invoker','Io','Spectre','Sniper','Mars','Lich'];
+  const sid=i=>String(120000000+i*7919);
+  const plan=[[0.3,true,'All Pick','Juggernaut',38,[0,1,2,4]],[1.2,false,'All Pick','Sniper',44,[0,1,6,7]],[3.1,true,'Turbo','Mars',22,[0,5,8,3]],[4.6,false,'All Pick','Juggernaut',51,[1,2,6,9]],[7,true,'All Pick','Axe',33,[0,2,4,5]],[10,true,'Captains Mode','Tidehunter',47,[5,7,8,9]],[14,false,'All Pick','Sniper',29,[1,3,6,8]],[19,true,'Turbo','Juggernaut',19,[0,4,7,9]],[26,true,'All Pick','Mars',41,[2,3,5,6]]];
+  const d=fresh();d.demo=true;
+  plan.forEach((p,i)=>{
+    const pls=[{sid:'me',name:'Вы',hero:p[3],ally:true,me:true}];
+    p[5].forEach((a,k)=>pls.push({sid:sid(a),name:A[a],hero:H[(i+a+k)%H.length],ally:true,me:false}));
+    for(let k=0;k<5;k++)pls.push({sid:String(130000000+(i*5+k)*104729),name:E[(i*3+k)%E.length],hero:H[(i*2+k+3)%H.length],ally:false,me:false});
+    d.matches.push({id:'d'+(i+1),start:Math.floor(now-p[0]*D),mode:p[2],ranked:false,win:p[1],dur:p[4]*60+(i*37)%60,hero:p[3],players:pls});
+  });
+  const rv=(mi,ai,r,cats,note)=>{d.reviews['d'+(mi+1)+'|'+sid(ai)]={rating:r,cats:cats||{},note:note||'',ts:now-mi*D}};
+  rv(0,0,5,{team:5,comm:5,beh:5,help:5},'Хорошо коллил, вовремя ставил смоки');
+  rv(1,0,4,{team:4,comm:5});rv(2,0,5);rv(4,0,5,{help:5},'Предпочитает играть на саппорте 4');rv(7,0,4);
+  rv(1,1,3,{},'Рано сливается после первой смерти');rv(3,1,2,{beh:2,comm:2});rv(6,1,2);
+  rv(0,2,4);rv(3,2,3);rv(4,2,5,{help:5},'Варды ставит каждый раунд');
+  rv(1,6,4,{team:4});rv(8,6,4,{},'Уверенный мид, но редко отвечает в чат');
+  d.pnotes[sid(0)]='Надёжный напарник. Лучше всего заходит в паре на линии.';
+  return d;
+}
+let S=load()||demoData();
+if(!load())save();
+
+const V={page:'dash',pid:null,f:{res:'all',mode:'all',range:'all'},q:'',sort:'count',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
+
+/* ---------- data helpers ---------- */
+const rkey=(mid,sid)=>mid+'|'+sid;
+const sorted=()=>S.matches.slice().sort((a,b)=>b.start-a.start);
+const mById=id=>S.matches.find(m=>m.id===id);
+function allyIndex(){
+  const map={};
+  for(const m of S.matches)for(const p of m.players){
+    if(!p.ally||p.me||!p.sid)continue;
+    const e=map[p.sid]||(map[p.sid]={sid:p.sid,name:p.name,last:0,list:[]});
+    e.list.push({m,p});
+    if(m.start>=e.last){e.last=m.start;e.name=p.name}
+  }
+  for(const e of Object.values(map)){
+    e.list.sort((a,b)=>b.m.start-a.m.start);
+    e.count=e.list.length;
+    const rs=e.list.map(x=>S.reviews[rkey(x.m.id,e.sid)]).filter(r=>r&&r.rating);
+    e.rated=rs.length;e.avg=rs.length?rs.reduce((a,r)=>a+r.rating,0)/rs.length:null;
+  }
+  return map;
+}
+const prior=(sid,m)=>S.matches.filter(x=>x.id!==m.id&&x.start<m.start&&x.players.some(p=>p.sid===sid&&p.ally&&!p.me)).length;
+const notices=m=>m.players.filter(p=>p.ally&&!p.me&&p.sid).map(p=>({p,n:prior(p.sid,m)})).filter(x=>x.n>0);
+function parseSteam(v){
+  v=String(v||'').trim();if(!v)return null;
+  const m=v.match(/(?:profiles|players)\/(\d{5,20})/);if(m)v=m[1];
+  if(!/^\d{5,20}$/.test(v))return null;
+  try{let b=BigInt(v);if(b>=OFF)b-=OFF;if(b<=0n||b>4294967295n)return null;return b.toString()}catch(e){return null}
+}
+function leaveDemo(){if(S.demo){S.matches=[];S.reviews={};S.pnotes={};S.demo=false;return true}return false}
+function addMatch(m){
+  if(S.matches.some(x=>x.id===m.id))throw new Error('Этот матч уже добавлен.');
+  const was=leaveDemo();S.matches.push(m);save();return was;
+}
+function fromOD(j){
+  const me=j.players.find(p=>p.account_id!=null&&String(p.account_id)===String(S.me.acc));
+  if(!me)throw new Error('Вас нет среди игроков этого матча. Проверьте Steam ID в настройках.');
+  const mine=me.player_slot<128;
+  const players=j.players.map(p=>({sid:p.account_id!=null?String(p.account_id):null,name:p.personaname||p.name||'Скрытый игрок',hero:HEROES[p.hero_id]||('Герой #'+p.hero_id),ally:(p.player_slot<128)===mine,me:p===me}));
+  return{id:String(j.match_id),start:j.start_time,mode:MODES[j.game_mode]||('Режим '+j.game_mode),ranked:j.lobby_type===7,win:!!j.radiant_win===mine,dur:j.duration,hero:HEROES[me.hero_id]||('Герой #'+me.hero_id),players};
+}
+function importJson(txt){
+  let j;try{j=JSON.parse(txt)}catch(e){throw new Error('Не удалось прочитать JSON. Скопируйте весь текст со страницы данных матча.')}
+  if(!j||!Array.isArray(j.players)||j.match_id==null)throw new Error('В тексте нет данных матча. Нужен ответ OpenDota по адресу /api/matches/номер.');
+  if(!S.me.acc)throw new Error('NOACC');
+  return fromOD(j);
+}
+
+/* ---------- toast ---------- */
+let tt=null;
+function toast(msg,act){V.toast={msg,act};paintToast();clearTimeout(tt);tt=setTimeout(()=>{V.toast=null;paintToast()},act?7000:3800)}
+function paintToast(){
+  const t=V.toast;
+  $('#toast').innerHTML=t?`<div class="toast"><span>${esc(t.msg)}</span>${t.act?`<button class="btn sm2" data-a="${esc(t.act.a)}" data-id="${esc(t.act.id||'')}">${esc(t.act.label)}</button>`:''}</div>`:'';
+}
+
+/* ---------- views ---------- */
+const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['players','users','Игроки'],['settings','sliders','Настройки']];
+const cur=()=>V.page==='player'?'players':V.page;
+function navBtns(){return NAV.map(n=>`<button class="tab" data-a="go" data-p="${n[0]}" ${cur()===n[0]?'aria-current="page"':''}>${ico(n[1])}<span>${n[2]}</span></button>`).join('')}
+function meBlock(){
+  const face=SRV&&SRV.avatar?`<img class="av" src="${esc(SRV.avatar)}" alt="" width="32" height="32" referrerpolicy="no-referrer">`:av(S.me.name,'','me');
+  let act='';
+  if(SERVER)act=SRV?`<button class="btn ghost sm2" data-a="logout">Выйти</button>`:`<a class="btn primary sm2" href="/auth/steam">${ico('lock')}<span>Войти через Steam</span></a>`;
+  return`<span class="me">${face}<span class="nm">${esc(S.me.name||'Вы')}</span>${act}</span>`;
+}
+function steamBlock(){
+  if(SRV)return`<div class="banner">${ico('check')}<div style="flex:1"><b>Вы вошли через Steam</b><p class="sm" style="margin-top:2px">Данные привязаны к вашему аккаунту и хранятся на сервере Dota Mate.</p></div><button class="btn sm2" data-a="logout">Выйти</button></div>`;
+  if(SERVER)return`<div class="banner">${ico('lock')}<div style="flex:1"><b>Вход через Steam</b><p class="sm" style="margin-top:2px">Вход происходит на сайте steamcommunity.com. Пароль Dota Mate не видит, мы получаем только ваш публичный Steam ID.</p></div><a class="btn primary sm2" href="/auth/steam">Войти</a></div>`;
+  return`<div class="banner" style="background:none">${ico('lock')}<div><b>Вход через Steam</b><p class="sm" style="margin-top:2px">Steam OpenID требует сервер, который проверяет ответ Steam. Эта страница работает без сервера, поэтому вход недоступен. Аватар Steam тоже не загружается: вместо него показаны инициалы.</p></div></div>`;
+}
+function paintHdr(){
+  $('#hdr').innerHTML=`<header class="top"><div class="top-in wrap gut">
+    <button class="brand" data-a="go" data-p="dash" aria-label="Dota Mate, главная"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 14-12 14L4 16z" fill="#a8323a"/><path d="M16 8l6.5 8L16 24l-6.5-8z" fill="#13151a"/><path d="M16 12.5l3 3.5-3 3.5-3-3.5z" fill="#e8e6e1"/></svg>Dota Mate</button>
+    <nav class="tabs" aria-label="Разделы">${navBtns()}</nav><span class="grow"></span>
+    ${meBlock()}</div></header>`;
+  $('#nav').innerHTML=`<div class="row">${navBtns()}</div>`;
+}
+
+function demoBanner(){
+  if(!S.demo)return'';
+  return`<div class="banner demo" role="note">${ico('info')}<p><b>Это демо-данные.</b> Игроки и матчи выдуманы, чтобы показать, как всё работает. Они исчезнут, когда вы добавите свой первый матч.</p><button class="btn sm2" data-a="clearDemo">Убрать демо</button></div>`;
+}
+function syncStatus(){
+  const s=V.sync;
+  if(s.st==='loading')return`<span class="pill"><span class="spin"></span>${esc(s.msg)}</span>`;
+  if(s.st==='ok')return`<span class="pill ok">${ico('check')}${esc(s.msg)}</span>`;
+  if(s.st==='error')return`<span class="pill err">${ico('alert')}${esc(s.msg)}</span>`;
+  return`<span class="pill">${ico('refresh')}${S.lastSync?'Последняя синхронизация: '+esc(ago(S.lastSync)):'Синхронизация ещё не выполнялась'}</span>`;
+}
+function mrow(m){
+  const al=m.players.filter(p=>p.ally&&!p.me);
+  return`<button class="mrow" data-a="openMatch" data-id="${esc(m.id)}">
+    <span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span>
+    <span class="mmain"><b>${esc(m.hero)}</b><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></span>
+    <span class="mallies" aria-label="Союзники">${al.slice(0,4).map(p=>`<span class="av sm ${p.sid&&prior(p.sid,m)>0?'known':''}" style="background:hsl(${hue(p.sid||p.name)} 26% 30%)" title="${esc(p.name)}">${esc(initials(p.name))}</span>`).join('')}</span>
+    <span class="ch">${ico('chev')}</span></button>`;
+}
+function prow(e){
+  return`<button class="prow" data-a="openPlayer" data-id="${esc(e.sid)}">${av(e.name,'md',e.sid)}
+    <span style="min-width:0;display:flex;flex-direction:column"><span class="pname">${esc(e.name)}</span><small>${e.count} ${pl(e.count,'совместный матч','совместных матча','совместных матчей')} · был${''} ${esc(ago(e.last))}</small></span>
+    <span class="avg">${e.avg!=null?stars(e.avg)+e.avg.toFixed(1):'<small>без оценки</small>'}</span><span class="ch" style="color:var(--mute)">${ico('chev')}</span></button>`;
+}
+function emptyMatches(){
+  return`<div class="empty">${ico('list')}<b>Пока нет ни одного матча</b><p>Добавьте матч по ссылке на OpenDota или Dotabuff, либо введите его вручную.</p><div class="actions" style="justify-content:center"><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button><button class="btn" data-a="loadDemo">Показать демо-данные</button></div></div>`;
+}
+
+function vDash(){
+  const ms=sorted(),idx=allyIndex(),known=Object.values(idx).sort((a,b)=>b.last-a.last).slice(0,6);
+  const loading=V.sync.st==='loading';
+  const total=Object.keys(idx).length,rated=Object.keys(S.reviews).length;
+  return`<div class="pagehead"><div><h1>Панель управления</h1><p>Запоминайте тех, с кем играли: оценки и заметки видны только вам.</p></div></div>
+  ${demoBanner()}
+  <section class="card stack" aria-label="Синхронизация">
+    <div class="sec-h" style="margin:0"><h3>Синхронизация матчей</h3>${syncStatus()}</div>
+    <div class="actions"><button class="btn primary" data-a="sync" ${loading?'disabled':''}>${ico('refresh')}Синхронизировать матчи</button><button class="btn" data-a="add">${ico('plus')}Добавить матч</button></div>
+    <div class="statline"><span><b>${ms.length}</b>${pl(ms.length,'матч','матча','матчей')}</span><span><b>${total}</b>${pl(total,'знакомый игрок','знакомых игрока','знакомых игроков')}</span><span><b>${rated}</b>${pl(rated,'оценка','оценки','оценок')} и заметок</span></div>
+  </section>
+  <div class="cols">
+    <section><div class="sec-h"><h2>Последние матчи</h2>${ms.length?`<button class="btn ghost sm2" data-a="go" data-p="matches">Все матчи</button>`:''}</div>
+      <div class="mlist">${loading?'<div class="skel"></div><div class="skel"></div><div class="skel"></div>':ms.length?ms.slice(0,5).map(mrow).join(''):emptyMatches()}</div></section>
+    <section><div class="sec-h"><h2>Недавно встречавшиеся</h2>${known.length?`<button class="btn ghost sm2" data-a="go" data-p="players">Все игроки</button>`:''}</div>
+      <div class="plist">${loading?'<div class="skel"></div><div class="skel"></div>':known.length?known.map(prow).join(''):'<div class="empty">'+ico('users')+'<b>Здесь появятся союзники</b><p>После первого матча вы увидите, с кем играли.</p></div>'}</div></section>
+  </div>`;
+}
+
+function filteredMatches(){
+  const f=V.f,now=Date.now()/1000;
+  return sorted().filter(m=>(f.res==='all'||(f.res==='win')===m.win)&&(f.mode==='all'||m.mode===f.mode)&&(f.range==='all'||m.start>=now-Number(f.range)*86400));
+}
+function mlistHtml(){
+  if(!S.matches.length)return emptyMatches();
+  const l=filteredMatches();
+  return l.length?l.map(mrow).join(''):`<div class="empty">${ico('search')}<b>Ничего не найдено</b><p>Попробуйте изменить фильтры.</p><button class="btn" data-a="resetF">Сбросить фильтры</button></div>`;
+}
+function vMatches(){
+  const modes=[...new Set(S.matches.map(m=>m.mode))].sort();
+  return`<div class="pagehead"><div><h1>Матчи</h1><p>История игр. Откройте матч, чтобы увидеть состав и оценить союзников.</p></div><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button></div>
+  ${demoBanner()}
+  <div class="filters card" style="padding:14px">
+    <div class="field"><label for="f-res">Результат</label><select id="f-res"><option value="all">Все</option><option value="win" ${V.f.res==='win'?'selected':''}>Победы</option><option value="loss" ${V.f.res==='loss'?'selected':''}>Поражения</option></select></div>
+    <div class="field"><label for="f-mode">Режим</label><select id="f-mode"><option value="all">Все режимы</option>${modes.map(m=>`<option ${V.f.mode===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
+    <div class="field"><label for="f-range">Период</label><select id="f-range"><option value="all">Всё время</option>${[[7,'7 дней'],[30,'30 дней'],[90,'90 дней']].map(r=>`<option value="${r[0]}" ${String(V.f.range)===String(r[0])?'selected':''}>${r[1]}</option>`).join('')}</select></div>
+  </div>
+  <div class="mlist" id="mlist">${mlistHtml()}</div>`;
+}
+
+function playersFiltered(){
+  const idx=Object.values(allyIndex());let q=V.q.trim().toLowerCase();
+  const acc=parseSteam(V.q);
+  let l=idx.filter(e=>!q||e.name.toLowerCase().includes(q)||e.sid.includes(q)||(acc&&e.sid===acc)||(isNum(e.sid)&&steam64(e.sid).includes(q)));
+  const s=V.sort;
+  l.sort((a,b)=>s==='count'?b.count-a.count||b.last-a.last:s==='recent'?b.last-a.last:s==='rating'?((b.avg||0)-(a.avg||0))||b.count-a.count:a.name.localeCompare(b.name,'ru'));
+  return l;
+}
+function plistHtml(){
+  if(!S.matches.length||!Object.keys(allyIndex()).length)return`<div class="empty">${ico('users')}<b>Список знакомых пуст</b><p>Союзники появятся здесь после добавления матчей.</p><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button></div>`;
+  const l=playersFiltered();
+  return l.length?l.map(prow).join(''):`<div class="empty">${ico('search')}<b>Игрок не найден</b><p>Проверьте ник или Steam ID. Ищутся только те, с кем вы уже играли.</p></div>`;
+}
+function vPlayers(){
+  return`<div class="pagehead"><div><h1>Игроки</h1><p>Союзники, с которыми вы уже играли. Рейтинг считается только по вашим оценкам и нигде не публикуется.</p></div></div>
+  ${demoBanner()}
+  <div class="toolbar">
+    <div class="searchbox"><label class="sm" for="q" style="position:absolute;left:-9999px">Поиск</label>${ico('search')}<input id="q" type="text" inputmode="search" autocomplete="off" placeholder="Ник или Steam ID" value="${esc(V.q)}"></div>
+    <select id="sort" aria-label="Сортировка"><option value="count" ${V.sort==='count'?'selected':''}>По числу встреч</option><option value="recent" ${V.sort==='recent'?'selected':''}>По последней встрече</option><option value="rating" ${V.sort==='rating'?'selected':''}>По вашей оценке</option><option value="name" ${V.sort==='name'?'selected':''}>По алфавиту</option></select>
+  </div>
+  <div class="plist" id="plist">${plistHtml()}</div>`;
+}
+
+function vPlayer(){
+  const e=allyIndex()[V.pid];
+  if(!e)return`<button class="btn ghost" data-a="go" data-p="players">${ico('back')}Игроки</button><div class="empty">${ico('user')}<b>Игрок не найден</b><p>Возможно, его матчи были удалены.</p></div>`;
+  const num=isNum(e.sid);
+  const note=S.pnotes[e.sid]||'';
+  return`<div><button class="btn ghost sm2" data-a="go" data-p="players">${ico('back')}Игроки</button></div>
+  <section class="card stack"><div class="profile-h">${av(e.name,'lg',e.sid)}<div style="min-width:0;flex:1">
+    <h1 style="overflow-wrap:anywhere">${esc(e.name)}</h1>
+    <div class="sm" style="margin-top:4px">${num?`Steam ID <span class="mono">${esc(e.sid)}</span> <button class="iconbtn" data-a="copy" data-t="${esc(e.sid)}" aria-label="Скопировать Steam ID">${ico('copy')}</button>`:'Steam ID не указан, игрок отслеживается по нику'}</div>
+    <div class="statline" style="margin-top:8px"><span><b>${e.count}</b>${pl(e.count,'совместный матч','совместных матча','совместных матчей')}</span>${e.avg!=null?`<span class="avg">${stars(e.avg)}<b style="font-size:1.1rem;margin:0">${e.avg.toFixed(1)}</b>${e.rated} ${pl(e.rated,'оценка','оценки','оценок')}</span>`:'<span>Оценок пока нет</span>'}</div></div></div>
+    ${num?`<div class="links"><a href="https://steamcommunity.com/profiles/${steam64(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Профиль Steam</a><a href="https://www.opendota.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}OpenDota</a><a href="https://www.dotabuff.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Dotabuff</a></div>`:''}
+    <div class="field"><label for="pnote">Общая заметка об игроке (видите только вы)</label><textarea id="pnote" data-sid="${esc(e.sid)}" placeholder="Например: играет на саппорте, любит голосовой чат">${esc(note)}</textarea></div>
+  </section>
+  <section><div class="sec-h"><h2>История встреч</h2></div><div class="hist">${e.list.map(x=>{
+    const r=S.reviews[rkey(x.m.id,e.sid)];const k='r:'+rkey(x.m.id,e.sid);
+    return`<div class="hitem"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${x.m.win?'win':'loss'}">${x.m.win?'Победа':'Поражение'}</span><b>${esc(x.p.hero)}</b><small>${fd(x.m.start)} · ${esc(x.m.mode)}</small></div>
+      <div style="margin-top:8px">${r&&r.rating?`<span class="avg">${stars(r.rating)}${r.rating}/5</span>`:'<small>Оценка не поставлена</small>'}</div>
+      ${r&&Object.values(r.cats||{}).some(Boolean)?`<div class="chips" style="margin-top:8px">${CATS.filter(c=>r.cats[c[0]]).map(c=>`<span class="chip">${c[1]}: ${r.cats[c[0]]}</span>`).join('')}</div>`:''}
+      ${r&&r.note?`<div class="note">${esc(r.note)}</div>`:''}</div>
+      <div class="actions" style="align-self:start">${V.confirm===k?`<span class="sm" style="align-self:center">Удалить?</span><button class="btn danger sm2" data-a="delReview" data-mid="${esc(x.m.id)}" data-sid="${esc(e.sid)}">Да</button><button class="btn sm2" data-a="cancel">Нет</button>`:`<button class="btn sm2" data-a="review" data-mid="${esc(x.m.id)}" data-sid="${esc(e.sid)}">${ico('edit')}${r?'Изменить':'Оценить'}</button>${r?`<button class="iconbtn" data-a="askDel" data-k="${esc(k)}" aria-label="Удалить оценку и заметку">${ico('trash')}</button>`:''}`}</div></div>`}).join('')}</div></section>
+  <section class="card flat"><div class="actions"><button class="btn danger sm2" data-a="${V.confirm==='pwipe'?'wipePlayer':'askDel'}" data-k="pwipe" data-sid="${esc(e.sid)}">${ico('trash')}${V.confirm==='pwipe'?'Подтвердить: удалить все мои оценки и заметки об игроке':'Удалить мои оценки и заметки об игроке'}</button>${V.confirm==='pwipe'?`<button class="btn sm2" data-a="cancel">Отмена</button>`:''}</div></section>`;
+}
+
+function dangerBtn(key,label,confirmLabel){
+  return V.confirm===key
+    ?`<div class="actions"><button class="btn danger" data-a="doDel" data-k="${key}">${esc(confirmLabel)}</button><button class="btn" data-a="cancel">Отмена</button></div>`
+    :`<button class="btn danger" data-a="askDel" data-k="${key}">${ico('trash')}${esc(label)}</button>`;
+}
+function vSettings(){
+  const acc=S.me.acc;
+  return`<div class="pagehead"><div><h1>Настройки</h1><p>Аккаунт, источники данных, приватность и удаление.</p></div></div>
+  <section class="card stack"><h3>Подключение аккаунта</h3>
+    <div class="banner">${ico('shield')}<p>Dota Mate никогда не просит пароль от Steam или Dotabuff. Нужен только ваш публичный числовой ID.</p></div>
+    <div class="grid2"><div class="field"><label for="set-steam">Steam ID или ссылка на профиль</label><input id="set-steam" type="text" autocomplete="off" inputmode="numeric" placeholder="7656119… или ссылка вида /profiles/…" value="${acc?esc(steam64(acc)):''}" ${SRV?'readonly':''}></div>
+    <div class="field"><label for="set-name">Игровой ник</label><input id="set-name" type="text" autocomplete="off" maxlength="40" value="${esc(S.me.name)}"></div></div>
+    <p class="sm" id="acc-msg" role="status"></p>
+    <div class="actions"><button class="btn primary" data-a="saveAcc">${ico('check')}Сохранить</button></div>
+    ${acc?`<hr class="hr"><dl class="kv" style="margin:0"><dt>Steam ID (64-бит)</dt><dd class="mono">${steam64(acc)}</dd><dt>ID в Dota 2</dt><dd class="mono">${esc(acc)}</dd><dt>Профили</dt><dd class="links"><a href="https://steamcommunity.com/profiles/${steam64(acc)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Steam</a><a href="https://www.opendota.com/players/${esc(acc)}" target="_blank" rel="noopener noreferrer">${ico('ext')}OpenDota</a><a href="https://www.dotabuff.com/players/${esc(acc)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Dotabuff</a></dd></dl>`:''}
+    ${steamBlock()}
+  </section>
+  <section class="card stack"><h3>Откуда берутся матчи</h3>
+    <ul class="plain"><li><b>OpenDota.</b> Открытый API с составами матчей. Работает только для игроков, которые включили в настройках Dota 2 пункт «Открытые данные матчей» (Expose Public Match Data).</li>
+    <li><b>Добавление по ссылке.</b> Вставьте ссылку на матч, откройте данные OpenDota и вставьте их сюда.</li>
+    <li><b>Вручную.</b> Дата, герои, ники союзников.</li>
+    <li><b>Dotabuff.</b> Официального API нет, поэтому данные оттуда не собираются. Ссылки на профили только ведут на сайт.</li></ul>
+    <p class="sm">${SRV?'Кнопка «Синхронизировать матчи» запрашивает OpenDota через сервер Dota Mate. Если список пуст, проверьте настройку «Открытые данные матчей» в Dota 2.':'Кнопка «Синхронизировать матчи» обращается к OpenDota напрямую из вашего браузера. Если браузер или окружение блокирует такие запросы, используйте добавление по ссылке.'}</p>
+  </section>
+  <section class="card stack"><h3>Приватность</h3>
+    <ul class="plain"><li>Сохраняются: ники и публичные ID участников ваших матчей, герои, результат, а также ваши оценки и заметки.</li>
+    <li>${SRV?'Оценки, заметки и матчи хранятся на сервере Dota Mate и привязаны к вашему Steam ID. Другим пользователям они недоступны.':'Всё хранится только в этом браузере. Dota Mate не отправляет ваши оценки и заметки никуда.'}</li>
+    <li>Оценки приватны, публичных рейтингов и списков игроков нет и не будет.</li>
+    <li>Пароли от Steam и Dotabuff не запрашиваются и не хранятся.</li></ul>
+  </section>
+  <section class="card stack"><h3>Резервная копия</h3>
+    <p class="sm">${SRV?'Данные хранятся на сервере.':'Данные живут в этом браузере.'} Скопируйте копию и сохраните её в заметках, чтобы перенести на другое устройство.</p>
+    <div class="actions"><button class="btn" data-a="bkShow">Показать копию</button><button class="btn" data-a="bkCopy">${ico('copy')}Скопировать</button><button class="btn" data-a="bkRestore">Восстановить из текста</button></div>
+    <textarea id="bk" rows="4" placeholder="Здесь появится резервная копия. Чтобы восстановить, вставьте её сюда и нажмите «Восстановить из текста»." spellcheck="false">${esc(V.bk)}</textarea>
+    <p class="sm" id="bk-msg" role="status"></p>
+  </section>
+  <section class="card stack"><h3>Удаление данных</h3>
+    <div class="stack" style="gap:16px">
+      <div class="stack" style="gap:6px"><span class="sm">Матчи остаются, пропадают только ваши оценки и заметки.</span>${dangerBtn('notes','Удалить все оценки и заметки','Да, удалить оценки и заметки')}</div>
+      <div class="stack" style="gap:6px"><span class="sm">Удалит все матчи, а вместе с ними оценки и заметки.</span>${dangerBtn('history','Удалить историю матчей','Да, удалить историю')}</div>
+      <div class="stack" style="gap:6px"><span class="sm">Удалит всё: аккаунт, матчи, оценки и заметки.</span>${dangerBtn('all','Удалить аккаунт и все данные','Да, удалить всё')}</div>
+    </div></section>`;
+}
+
+const VIEWS={dash:vDash,matches:vMatches,players:vPlayers,player:vPlayer,settings:vSettings};
+function paintMain(){$('#main').innerHTML=VIEWS[V.page]()}
+function paint(){paintHdr();paintMain();paintModal()}
+
+/* ---------- modals ---------- */
+function closeBtn(){return`<button class="iconbtn" data-a="close" aria-label="Закрыть">${ico('x')}</button>`}
+function mMatch(m){
+  const nt=notices(m),al=m.players.filter(p=>p.ally&&!p.me),en=m.players.filter(p=>!p.ally);
+  const k='dm:'+m.id;
+  return`<div class="panel-h"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span><h3 id="mt">${esc(m.hero)}</h3></div><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></div>${closeBtn()}</div>
+  <div class="panel-b">
+    ${nt.length?`<div class="banner soft" role="note">${ico('users')}<p>${nt.map(x=>`<b>${esc(x.p.name)}</b>: вы уже играли вместе ${x.n} ${pl(x.n,'раз','раза','раз')}`).join('<br>')}</p></div>`:''}
+    <div><div class="lbl" style="margin-bottom:6px">Союзники</div>${al.length?al.map(p=>{
+      const n=p.sid?prior(p.sid,m):0,r=p.sid&&S.reviews[rkey(m.id,p.sid)];
+      return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
+        <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}</div>
+        ${p.sid?`<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):'<p class="sm">В матче не было других союзников.</p>'}</div>
+    <div><div class="lbl" style="margin-bottom:6px">Соперники</div>${en.length?en.map(p=>`<div class="erow"><span>${esc(p.name)}</span><span>${esc(p.hero)}</span></div>`).join(''):'<p class="sm">Состав соперников не указан.</p>'}</div>
+    <hr class="hr">
+    <div class="actions">${V.confirm===k?`<button class="btn danger" data-a="delMatch" data-id="${esc(m.id)}">Да, удалить матч и оценки к нему</button><button class="btn" data-a="cancel">Отмена</button>`:`<button class="btn danger sm2" data-a="askDel" data-k="${k}">${ico('trash')}Удалить матч</button>`}</div>
+  </div>`;
+}
+function mReview(){
+  const d=V.draft,m=mById(d.mid);if(!m)return'';
+  const p=m.players.find(x=>x.sid===d.sid);const has=S.reviews[rkey(d.mid,d.sid)];
+  return`<div class="panel-h"><div style="display:flex;gap:12px;align-items:center;min-width:0">${av(p?p.name:'?','md',d.sid)}<div style="min-width:0"><h3 id="mt" style="overflow-wrap:anywhere">Оценка: ${esc(p?p.name:'')}</h3><small>${esc(p?p.hero:'')} · ${fd(m.start)} · ${m.win?'победа':'поражение'}</small></div></div>${closeBtn()}</div>
+  <div class="panel-b">
+    <div class="banner">${ico('lock')}<p class="sm" style="color:var(--fg-2)">Оценка добровольная и видна только вам. Можно оставить только заметку.</p></div>
+    <div><div class="lbl">Общая оценка</div><div role="group" aria-label="Общая оценка">${[1,2,3,4,5].map(i=>`<button class="sbtn ${i<=d.rating?'on':''}" data-a="star" data-n="${i}" aria-label="${i} из 5" aria-pressed="${i<=d.rating}">${ico('star')}</button>`).join('')}</div></div>
+    <div><div class="lbl">Категории (необязательно)</div>${CATS.map(c=>`<div class="cat"><span>${c[1]}</span><div class="dots" role="group" aria-label="${c[1]}">${[1,2,3,4,5].map(i=>`<button class="dot ${d.cats[c[0]]===i?'on':''}" data-a="cat" data-c="${c[0]}" data-n="${i}" aria-pressed="${d.cats[c[0]]===i}">${i}</button>`).join('')}</div></div>`).join('')}</div>
+    <div class="field"><label for="rv-note">Личная заметка</label><textarea id="rv-note" placeholder="Например: хорошо коллил, предпочитает играть на саппорте" maxlength="600">${esc(d.note)}</textarea></div>
+    <div class="actions"><button class="btn primary" data-a="saveReview">${ico('check')}Сохранить</button><button class="btn" data-a="close">Отмена</button>${has?`<button class="btn danger" data-a="delReview" data-mid="${esc(d.mid)}" data-sid="${esc(d.sid)}" style="margin-left:auto">${ico('trash')}Удалить</button>`:''}</div>
+  </div>`;
+}
+function apiLink(v){const m=String(v||'').match(/\d{7,}/);return m?m[0]:null}
+function mAdd(){
+  const t=V.tab,nm=!S.me.acc;
+  const modeOpts=MODE_LIST.map(x=>`<option>${x}</option>`).join('');
+  const dt=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const link=`<div class="stack">
+    ${nm?`<div class="banner soft">${ico('alert')}<p>Сначала укажите свой Steam ID в <button class="linkbtn" data-a="goSettings">настройках</button>, чтобы сайт понял, кто в матче вы.</p></div>`:''}
+    <ol class="plain" style="padding-left:20px"><li>Вставьте ссылку на матч (OpenDota или Dotabuff) или его номер.</li><li>Откройте данные матча по появившейся ссылке и скопируйте весь текст.</li><li>Вставьте текст ниже и нажмите «Добавить матч».</li></ol>
+    <div class="field"><label for="m-link">Ссылка или номер матча</label><input id="m-link" type="text" autocomplete="off" placeholder="https://www.opendota.com/matches/8123456789"></div>
+    <div id="api-box" class="sm"></div>
+    <div class="field"><label for="m-json">Данные матча (JSON)</label><textarea id="m-json" rows="5" spellcheck="false" placeholder='{"match_id":8123456789,"players":[…]}'></textarea></div>
+    <p class="sm" id="add-err" role="alert" style="color:#f0a0a4"></p>
+    <div class="actions"><button class="btn primary" data-a="importJson">${ico('plus')}Добавить матч</button></div></div>`;
+  const man=`<div class="stack">
+    <div class="grid2"><div class="field"><label for="x-date">Дата и время</label><input id="x-date" type="datetime-local" value="${dt}"></div>
+    <div class="field"><label for="x-mode">Режим</label><select id="x-mode">${modeOpts}</select></div>
+    <div class="field"><label for="x-res">Результат</label><select id="x-res"><option value="win">Победа</option><option value="loss">Поражение</option></select></div>
+    <div class="field"><label for="x-dur">Длительность, минут</label><input id="x-dur" type="number" min="1" max="240" value="35"></div></div>
+    <div class="field"><label for="x-hero">Ваш герой</label><input id="x-hero" type="text" list="heroes" autocomplete="off" placeholder="Например: Juggernaut"></div>
+    <div><div class="lbl" style="margin-bottom:6px">Союзники (до четырёх)</div>${[0,1,2,3].map(i=>`<div class="grid2" style="grid-template-columns:2fr 2fr 2fr;margin-bottom:8px"><input id="a-n${i}" type="text" placeholder="Ник" aria-label="Ник союзника ${i+1}" autocomplete="off"><input id="a-s${i}" type="text" inputmode="numeric" placeholder="Steam ID, если знаете" aria-label="Steam ID союзника ${i+1}" autocomplete="off"><input id="a-h${i}" type="text" list="heroes" placeholder="Герой" aria-label="Герой союзника ${i+1}" autocomplete="off"></div>`).join('')}<p class="sm">Без Steam ID игрок отслеживается по нику.</p></div>
+    <div class="field"><label for="x-en">Соперники (через запятую, необязательно)</label><input id="x-en" type="text" autocomplete="off"></div>
+    <datalist id="heroes">${HERO_NAMES.map(h=>`<option value="${esc(h)}">`).join('')}</datalist>
+    <p class="sm" id="add-err" role="alert" style="color:#f0a0a4"></p>
+    <div class="actions"><button class="btn primary" data-a="addManual">${ico('plus')}Добавить матч</button></div></div>`;
+  return`<div class="panel-h"><h3 id="mt">Добавить матч</h3>${closeBtn()}</div>
+  <div class="panel-b"><div class="actions" role="tablist"><button class="btn ${t==='link'?'primary':''}" role="tab" aria-selected="${t==='link'}" data-a="tab" data-t="link">По ссылке</button><button class="btn ${t==='man'?'primary':''}" role="tab" aria-selected="${t==='man'}" data-a="tab" data-t="man">Вручную</button></div>${t==='link'?link:man}</div>`;
+}
+function paintModal(){
+  const M=V.modal,el=$('#modal');
+  if(!M){el.innerHTML='';return}
+  let inner='';
+  if(M==='match'){const m=mById(V.mid);inner=m?mMatch(m):''}
+  else if(M==='review')inner=mReview();
+  else if(M==='add')inner=mAdd();
+  if(!inner){V.modal=null;el.innerHTML='';return}
+  el.innerHTML=`<div class="ov" data-a="ovl"><div class="panel" role="dialog" aria-modal="true" aria-labelledby="mt">${inner}</div></div>`;
+}
+function openModal(k,extra){V.modal=k;Object.assign(V,extra||{});V.confirm=null;paintModal();const p=$('#modal .panel');if(p)p.scrollTop=0}
+function closeModal(){V.modal=null;V.draft=null;V.confirm=null;paintModal();paintMain()}
+
+/* ---------- actions ---------- */
+function go(p,id){V.page=p;V.pid=id||null;V.modal=null;V.confirm=null;paint();window.scrollTo(0,0)}
+function openReview(mid,sid){
+  const r=S.reviews[rkey(mid,sid)];
+  V.draft={mid,sid,rating:r?r.rating||0:0,cats:Object.assign({},r&&r.cats),note:r?r.note||'':''};
+  openModal('review');
+}
+function newMatchAdded(m,was){
+  V.modal=null;V.tab='link';V.mid=m.id;paintMain();paintHdr();
+  openModal('match',{mid:m.id});
+  const n=notices(m).length;
+  toast(was?'Матч добавлен. Демо-данные удалены.':'Матч добавлен.'+(n?` Знакомых игроков: ${n}.`:''));
+}
+async function doSync(){
+  if(!S.me.acc){V.sync={st:'error',msg:'Укажите Steam ID в настройках.'};paintMain();return}
+  V.sync={st:'loading',msg:'Запрашиваю список матчей…'};paintMain();
+  const base=SRV?'/api/od':'https://api.opendota.com/api';
+  const get=async u=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),12000);try{const r=await fetch(u,{signal:c.signal});if(r.status===429)throw new Error('RATE');if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}};
+  try{
+    const list=await get(`${base}/players/${S.me.acc}/matches?limit=15`);
+    const fresh=(list||[]).filter(x=>!S.matches.some(m=>m.id===String(x.match_id))).slice(0,5);
+    if(!fresh.length){S.lastSync=Math.floor(Date.now()/1000);save();V.sync={st:'ok',msg:list&&list.length?'Новых матчей нет.':'Список пуст. Включите «Открытые данные матчей» в настройках Dota 2.'};paintMain();return}
+    let added=0,skipped=0;
+    for(let i=0;i<fresh.length;i++){
+      V.sync={st:'loading',msg:`Загружаю матч ${i+1} из ${fresh.length}…`};paintMain();
+      try{const j=await get(`${base}/matches/${fresh[i].match_id}`);addMatch(fromOD(j));added++}catch(e){if(e.message==='RATE')throw e;skipped++}
+      if(i<fresh.length-1)await new Promise(r=>setTimeout(r,1100));
+    }
+    S.lastSync=Math.floor(Date.now()/1000);save();
+    V.sync={st:added?'ok':'error',msg:added?`Добавлено матчей: ${added}${skipped?`, пропущено: ${skipped}`:''}.`:'Подробности матчей пока недоступны. Попробуйте позже.'};
+  }catch(e){
+    V.sync={st:'error',msg:e.message==='RATE'?'Лимит запросов OpenDota исчерпан. Попробуйте позже.':'Не удалось связаться с OpenDota. Добавьте матч по ссылке: это работает без прямого подключения.'};
+  }
+  paintMain();paintHdr();
+}
+function setMsg(id,txt){const el=document.getElementById(id);if(el)el.textContent=txt}
+function readManual(){
+  const g=id=>document.getElementById(id).value.trim();
+  const allies=[0,1,2,3].map(i=>({n:g('a-n'+i),s:g('a-s'+i),h:g('a-h'+i)})).filter(a=>a.n);
+  if(!allies.length)throw new Error('Добавьте хотя бы одного союзника с ником.');
+  const hero=g('x-hero');if(!hero)throw new Error('Укажите вашего героя.');
+  const ts=Math.floor(new Date(document.getElementById('x-date').value).getTime()/1000);
+  if(!ts)throw new Error('Укажите дату и время.');
+  const dur=Number(g('x-dur'));if(!(dur>0))throw new Error('Укажите длительность матча.');
+  const pls=[{sid:S.me.acc||'me',name:S.me.name||'Вы',hero,ally:true,me:true}];
+  for(const a of allies){
+    let sid='nick:'+a.n.toLowerCase();
+    if(a.s){const acc=parseSteam(a.s);if(!acc)throw new Error(`Steam ID союзника «${a.n}» не распознан. Нужны цифры или ссылка вида /profiles/…`);sid=acc}
+    pls.push({sid,name:a.n,hero:a.h||'—',ally:true,me:false});
+  }
+  g('x-en').split(/[,\n]/).map(s=>s.trim()).filter(Boolean).slice(0,5).forEach(n=>pls.push({sid:null,name:n,hero:'—',ally:false,me:false}));
+  return{id:'m'+Date.now(),start:ts,mode:g('x-mode'),ranked:false,win:g('x-res')==='win',dur:Math.round(dur*60),hero,players:pls};
+}
+function wipe(kind){
+  if(kind==='notes'){S.reviews={};S.pnotes={};toast('Оценки и заметки удалены.')}
+  else if(kind==='history'){S.matches=[];S.reviews={};S.pnotes={};S.demo=false;toast('История матчей удалена.')}
+  else if(kind==='all'){
+    if(SRV){fetch('/api/account',{method:'DELETE',headers:{'X-DM':'1'}}).finally(()=>location.reload());clearTimeout(svT);SRV=null;S=fresh();try{localStorage.removeItem(LS)}catch(e){}V.confirm=null;V.sync={st:'idle',msg:''};toast('Все данные удалены.');paint();return}
+    S=fresh();try{localStorage.removeItem(LS)}catch(e){}V.sync={st:'idle',msg:''};toast('Все данные удалены.')}
+  save();V.confirm=null;paint();
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-a]');if(!t)return;
+  const a=t.dataset.a,d=t.dataset;
+  if(a==='ovl'){if(e.target===t)closeModal();return}
+  switch(a){
+    case'go':go(d.p);break;
+    case'goSettings':go('settings');break;
+    case'logout':fetch('/auth/logout',{method:'POST',headers:{'X-DM':'1'}}).finally(()=>location.reload());break;
+    case'openPlayer':go('player',d.id);break;
+    case'openMatch':openModal('match',{mid:d.id});break;
+    case'close':closeModal();break;
+    case'sync':doSync();break;
+    case'add':V.tab='link';openModal('add');break;
+    case'tab':V.tab=d.t;paintModal();break;
+    case'resetF':V.f={res:'all',mode:'all',range:'all'};paintMain();break;
+    case'clearDemo':leaveDemo();save();toast('Демо-данные удалены.');paint();break;
+    case'loadDemo':S=demoData();save();paint();break;
+    case'review':openReview(d.mid,d.sid);break;
+    case'star':V.draft.rating=V.draft.rating===Number(d.n)?0:Number(d.n);V.draft.note=document.getElementById('rv-note').value;paintModal();break;
+    case'cat':{const n=Number(d.n);V.draft.cats[d.c]=V.draft.cats[d.c]===n?0:n;V.draft.note=document.getElementById('rv-note').value;paintModal();break}
+    case'saveReview':{
+      const dr=V.draft,note=document.getElementById('rv-note').value.trim();
+      const cats={};CATS.forEach(c=>{if(dr.cats[c[0]])cats[c[0]]=dr.cats[c[0]]});
+      const k=rkey(dr.mid,dr.sid);
+      if(!dr.rating&&!note&&!Object.keys(cats).length){delete S.reviews[k]}
+      else S.reviews[k]={rating:dr.rating,cats,note,ts:Math.floor(Date.now()/1000)};
+      save();V.draft=null;
+      if(V.page==='player'){V.modal=null;paintModal();paintMain()}else{openModal('match',{mid:dr.mid});paintMain()}
+      toast('Оценка сохранена.');break}
+    case'delReview':{
+      delete S.reviews[rkey(d.mid,d.sid)];save();V.confirm=null;V.draft=null;
+      if(V.page==='player'){V.modal=null;paintModal();paintMain()}else{openModal('match',{mid:d.mid});paintMain()}
+      toast('Оценка и заметка удалены.');break}
+    case'askDel':V.confirm=d.k;if(V.modal)paintModal();else paintMain();break;
+    case'cancel':V.confirm=null;if(V.modal)paintModal();else paintMain();break;
+    case'doDel':wipe(d.k);break;
+    case'wipePlayer':{
+      Object.keys(S.reviews).forEach(k=>{if(k.endsWith('|'+d.sid))delete S.reviews[k]});delete S.pnotes[d.sid];save();V.confirm=null;paintMain();toast('Оценки и заметки об игроке удалены.');break}
+    case'delMatch':{
+      S.matches=S.matches.filter(m=>m.id!==d.id);Object.keys(S.reviews).forEach(k=>{if(k.startsWith(d.id+'|'))delete S.reviews[k]});save();V.modal=null;V.confirm=null;paintModal();paint();toast('Матч удалён.');break}
+    case'copy':navigator.clipboard.writeText(d.t).then(()=>toast('Скопировано.'),()=>toast('Не удалось скопировать. Выделите текст вручную.'));break;
+    case'saveAcc':{
+      const raw=document.getElementById('set-steam').value.trim(),name=document.getElementById('set-name').value.trim()||'Вы';
+      if(SRV){}else if(raw){const acc=parseSteam(raw);if(!acc){setMsg('acc-msg','Не удалось распознать ID. Нужен числовой Steam ID или ссылка вида steamcommunity.com/profiles/… (ссылки с именем не подходят).');break}S.me.acc=acc}else S.me.acc='';
+      S.me.name=name;save();paint();setMsg('acc-msg','Сохранено.');toast('Настройки сохранены.');break}
+    case'importJson':{
+      try{const m=importJson(document.getElementById('m-json').value);const was=addMatch(m);newMatchAdded(m,was)}
+      catch(err){setMsg('add-err',err.message==='NOACC'?'Сначала укажите свой Steam ID в настройках.':err.message)}
+      break}
+    case'addManual':{
+      try{const m=readManual();const was=addMatch(m);newMatchAdded(m,was)}catch(err){setMsg('add-err',err.message)}
+      break}
+    case'bkShow':{V.bk=JSON.stringify(S);document.getElementById('bk').value=V.bk;setMsg('bk-msg','Копия готова. Нажмите «Скопировать».');break}
+    case'bkCopy':{
+      const ta=document.getElementById('bk');if(!ta.value){V.bk=JSON.stringify(S);ta.value=V.bk}
+      navigator.clipboard.writeText(ta.value).then(()=>setMsg('bk-msg','Скопировано.'),()=>{ta.focus();ta.select();setMsg('bk-msg','Текст выделен. Скопируйте его вручную.')});break}
+    case'bkRestore':{
+      try{const j=JSON.parse(document.getElementById('bk').value);if(!j||j.v!==1||!Array.isArray(j.matches))throw 0;S=Object.assign(fresh(),j);save();V.bk='';paint();toast('Данные восстановлены.')}
+      catch(err){setMsg('bk-msg','Это не похоже на резервную копию Dota Mate.')}
+      break}
+  }
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='q'){V.q=t.value;const l=$('#plist');if(l)l.innerHTML=plistHtml()}
+  else if(t.id==='pnote'){S.pnotes[t.dataset.sid]=t.value;save()}
+  else if(t.id==='m-link'){
+    const id=apiLink(t.value),box=document.getElementById('api-box');
+    box.innerHTML=id?`Матч <span class="mono">${id}</span>: <a href="https://api.opendota.com/api/matches/${id}" target="_blank" rel="noopener noreferrer">открыть данные матча</a>. Если данных нет, откройте <a href="https://www.opendota.com/matches/${id}" target="_blank" rel="noopener noreferrer">страницу матча на OpenDota</a>: сайт сам запросит матч у Valve.`:'';
+  }
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='sort'){V.sort=t.value;$('#plist').innerHTML=plistHtml()}
+  else if(t.id==='f-res'||t.id==='f-mode'||t.id==='f-range'){V.f={res:$('#f-res').value,mode:$('#f-mode').value,range:$('#f-range').value};$('#mlist').innerHTML=mlistHtml()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&V.modal)closeModal()});
+
+paint();
+(async function init(){
+  try{
+    const r=await fetch('/api/session',{headers:{'X-DM':'1'}});
+    let j=null;try{j=await r.json()}catch(e){}
+    if(!j||j.server!==true)return;
+    SERVER=true;
+    if(r.ok&&j.user){
+      SRV=j.user;
+      const sj=await(await fetch('/api/state')).json();
+      const local=load();
+      if(sj&&sj.state&&sj.state.v===1)S=sj.state;
+      else if(local&&!local.demo&&local.matches.length)S=local;
+      else S=fresh();
+      S.me=S.me||{};S.me.acc=SRV.acc;
+      if(!S.me.name||S.me.name==='Вы')S.me.name=SRV.name||'Вы';
+      S.demo=false;
+      try{localStorage.removeItem(LS)}catch(e){}
+      pushState();
+    }
+    paint();
+  }catch(e){}
+})();
+})();
+</script>
+</body>
+</html>

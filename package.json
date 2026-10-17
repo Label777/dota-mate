@@ -1,0 +1,13 @@
+{
+  "name": "dota-mate",
+  "version": "1.0.0",
+  "description": "Личный справочник союзников по Dota 2: вход через Steam, матчи из OpenDota, приватные оценки и заметки",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
