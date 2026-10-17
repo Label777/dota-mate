@@ -134,7 +134,8 @@ input::placeholder,textarea::placeholder{color:#5f6672}
 .searchbox .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mute)}
 .searchbox input{padding-left:38px}
 .filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) ;gap:12px}
-.toolbar{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:12px}
+.toolbar{display:grid;grid-template-columns:minmax(0,1fr) 170px 220px;gap:12px}
+.trio{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,3fr) minmax(0,2fr);gap:8px;margin-bottom:8px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 
 /* banners, notes */
@@ -213,6 +214,8 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;c
   .mrow .mallies{grid-area:d}
   .mrow .ch{grid-area:c}
   .filters,.toolbar,.grid2{grid-template-columns:minmax(0,1fr)}
+  .trio{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .trio input:nth-child(3){grid-column:1/-1}
   .kv{grid-template-columns:minmax(0,1fr)}
   .kv dt{margin-top:6px}
   h1{font-size:1.55rem}
@@ -289,6 +292,7 @@ const HERO_NAMES=Object.values(HEROES).sort();
 const MODES={1:'All Pick',2:'Captains Mode',3:'Random Draft',4:'Single Draft',5:'All Random',12:'Least Played',16:'Captains Draft',18:'Ability Draft',22:'All Pick',23:'Turbo'};
 const MODE_LIST=['All Pick','Turbo','Captains Mode','Random Draft','Single Draft','All Random','Captains Draft','Ability Draft','Другой'];
 const CATS=[['team','Командная игра'],['comm','Общение'],['beh','Поведение'],['help','Помощь команде']];
+const catsFor=p=>p&&!p.ally?CATS.filter(c=>c[0]==='comm'||c[0]==='beh'):CATS;
 
 /* ---------- state ---------- */
 const LS='dotamate.v1';
@@ -312,7 +316,7 @@ function demoData(){
   plan.forEach((p,i)=>{
     const pls=[{sid:'me',name:'Вы',hero:p[3],ally:true,me:true}];
     p[5].forEach((a,k)=>pls.push({sid:sid(a),name:A[a],hero:H[(i+a+k)%H.length],ally:true,me:false}));
-    for(let k=0;k<5;k++)pls.push({sid:String(130000000+(i*5+k)*104729),name:E[(i*3+k)%E.length],hero:H[(i*2+k+3)%H.length],ally:false,me:false});
+    for(let k=0;k<5;k++)pls.push({sid:String(130000000+((i*3+k)%E.length)*104729),name:E[(i*3+k)%E.length],hero:H[(i*2+k+3)%H.length],ally:false,me:false});
     d.matches.push({id:'d'+(i+1),start:Math.floor(now-p[0]*D),mode:p[2],ranked:false,win:p[1],dur:p[4]*60+(i*37)%60,hero:p[3],players:pls});
   });
   const rv=(mi,ai,r,cats,note)=>{d.reviews['d'+(mi+1)+'|'+sid(ai)]={rating:r,cats:cats||{},note:note||'',ts:now-mi*D}};
@@ -321,36 +325,54 @@ function demoData(){
   rv(1,1,3,{},'Рано сливается после первой смерти');rv(3,1,2,{beh:2,comm:2});rv(6,1,2);
   rv(0,2,4);rv(3,2,3);rv(4,2,5,{help:5},'Варды ставит каждый раунд');
   rv(1,6,4,{team:4});rv(8,6,4,{},'Уверенный мид, но редко отвечает в чат');
+  d.reviews['d1|130000000']={rating:3,cats:{beh:3},note:'Любит рано ганкать боковую линию',ts:now-D};
   d.pnotes[sid(0)]='Надёжный напарник. Лучше всего заходит в паре на линии.';
   return d;
 }
-let S=load()||demoData();
+function migrate(st){for(const m of st.matches||[])for(const p of m.players||[]){if(!p.sid&&!p.ally&&p.name&&p.name!=='Скрытый игрок')p.sid='nick:'+String(p.name).toLowerCase()}return st}
+let S=migrate(load()||demoData());
 if(!load())save();
 
-const V={page:'dash',pid:null,f:{res:'all',mode:'all',range:'all'},q:'',sort:'count',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
+const V={page:'dash',pid:null,f:{res:'all',mode:'all',range:'all'},q:'',sort:'count',role:'all',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
 
 /* ---------- data helpers ---------- */
 const rkey=(mid,sid)=>mid+'|'+sid;
 const sorted=()=>S.matches.slice().sort((a,b)=>b.start-a.start);
 const mById=id=>S.matches.find(m=>m.id===id);
-function allyIndex(){
+function pIndex(){
   const map={};
   for(const m of S.matches)for(const p of m.players){
-    if(!p.ally||p.me||!p.sid)continue;
+    if(p.me||!p.sid)continue;
     const e=map[p.sid]||(map[p.sid]={sid:p.sid,name:p.name,last:0,list:[]});
-    e.list.push({m,p});
+    e.list.push({m,p,role:p.ally?'ally':'enemy'});
     if(m.start>=e.last){e.last=m.start;e.name=p.name}
   }
   for(const e of Object.values(map)){
     e.list.sort((a,b)=>b.m.start-a.m.start);
     e.count=e.list.length;
+    e.withN=e.list.filter(x=>x.role==='ally').length;
+    e.vsN=e.count-e.withN;
     const rs=e.list.map(x=>S.reviews[rkey(x.m.id,e.sid)]).filter(r=>r&&r.rating);
     e.rated=rs.length;e.avg=rs.length?rs.reduce((a,r)=>a+r.rating,0)/rs.length:null;
   }
   return map;
 }
-const prior=(sid,m)=>S.matches.filter(x=>x.id!==m.id&&x.start<m.start&&x.players.some(p=>p.sid===sid&&p.ally&&!p.me)).length;
-const notices=m=>m.players.filter(p=>p.ally&&!p.me&&p.sid).map(p=>({p,n:prior(p.sid,m)})).filter(x=>x.n>0);
+function priorSplit(sid,m){
+  let w=0,v=0;
+  for(const x of S.matches){
+    if(x.id===m.id||x.start>=m.start)continue;
+    const q=x.players.find(p=>p.sid===sid&&!p.me);
+    if(q){if(q.ally)w++;else v++}
+  }
+  return{w,v,n:w+v};
+}
+const prior=(sid,m)=>priorSplit(sid,m).n;
+const meetText=(role,w,v)=>{
+  const a=n=>`${n} ${pl(n,'раз','раза','раз')}`;
+  if(role==='ally')return w?`вы уже играли вместе ${a(w)}`+(v?`, против друг друга ${a(v)}`:''):`раньше вы встречались как соперники ${a(v)}`;
+  return v?`вы уже встречались как соперники ${a(v)}`+(w?`, вместе играли ${a(w)}`:''):`раньше вы играли вместе ${a(w)}`;
+};
+const notices=m=>m.players.filter(p=>!p.me&&p.sid).map(p=>Object.assign({p,role:p.ally?'ally':'enemy'},priorSplit(p.sid,m))).filter(x=>x.n>0);
 function parseSteam(v){
   v=String(v||'').trim();if(!v)return null;
   const m=v.match(/(?:profiles|players)\/(\d{5,20})/);if(m)v=m[1];
@@ -428,7 +450,7 @@ function mrow(m){
 }
 function prow(e){
   return`<button class="prow" data-a="openPlayer" data-id="${esc(e.sid)}">${av(e.name,'md',e.sid)}
-    <span style="min-width:0;display:flex;flex-direction:column"><span class="pname">${esc(e.name)}</span><small>${e.count} ${pl(e.count,'совместный матч','совместных матча','совместных матчей')} · был${''} ${esc(ago(e.last))}</small></span>
+    <span style="min-width:0;display:flex;flex-direction:column"><span class="pname">${esc(e.name)}</span><small>${[e.withN?`вместе: ${e.withN}`:'',e.vsN?`против: ${e.vsN}`:''].filter(Boolean).join(' · ')} · последний раз: ${esc(ago(e.last))}</small></span>
     <span class="avg">${e.avg!=null?stars(e.avg)+e.avg.toFixed(1):'<small>без оценки</small>'}</span><span class="ch" style="color:var(--mute)">${ico('chev')}</span></button>`;
 }
 function emptyMatches(){
@@ -436,7 +458,7 @@ function emptyMatches(){
 }
 
 function vDash(){
-  const ms=sorted(),idx=allyIndex(),known=Object.values(idx).sort((a,b)=>b.last-a.last).slice(0,6);
+  const ms=sorted(),idx=pIndex(),known=Object.values(idx).sort((a,b)=>b.last-a.last).slice(0,6);
   const loading=V.sync.st==='loading';
   const total=Object.keys(idx).length,rated=Object.keys(S.reviews).length;
   return`<div class="pagehead"><div><h1>Панель управления</h1><p>Запоминайте тех, с кем играли: оценки и заметки видны только вам.</p></div></div>
@@ -450,7 +472,7 @@ function vDash(){
     <section><div class="sec-h"><h2>Последние матчи</h2>${ms.length?`<button class="btn ghost sm2" data-a="go" data-p="matches">Все матчи</button>`:''}</div>
       <div class="mlist">${loading?'<div class="skel"></div><div class="skel"></div><div class="skel"></div>':ms.length?ms.slice(0,5).map(mrow).join(''):emptyMatches()}</div></section>
     <section><div class="sec-h"><h2>Недавно встречавшиеся</h2>${known.length?`<button class="btn ghost sm2" data-a="go" data-p="players">Все игроки</button>`:''}</div>
-      <div class="plist">${loading?'<div class="skel"></div><div class="skel"></div>':known.length?known.map(prow).join(''):'<div class="empty">'+ico('users')+'<b>Здесь появятся союзники</b><p>После первого матча вы увидите, с кем играли.</p></div>'}</div></section>
+      <div class="plist">${loading?'<div class="skel"></div><div class="skel"></div>':known.length?known.map(prow).join(''):'<div class="empty">'+ico('users')+'<b>Здесь появятся игроки</b><p>После первого матча вы увидите, с кем играли.</p></div>'}</div></section>
   </div>`;
 }
 
@@ -465,7 +487,7 @@ function mlistHtml(){
 }
 function vMatches(){
   const modes=[...new Set(S.matches.map(m=>m.mode))].sort();
-  return`<div class="pagehead"><div><h1>Матчи</h1><p>История игр. Откройте матч, чтобы увидеть состав и оценить союзников.</p></div><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button></div>
+  return`<div class="pagehead"><div><h1>Матчи</h1><p>История игр. Откройте матч, чтобы увидеть состав и оценить игроков.</p></div><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button></div>
   ${demoBanner()}
   <div class="filters card" style="padding:14px">
     <div class="field"><label for="f-res">Результат</label><select id="f-res"><option value="all">Все</option><option value="win" ${V.f.res==='win'?'selected':''}>Победы</option><option value="loss" ${V.f.res==='loss'?'selected':''}>Поражения</option></select></div>
@@ -476,30 +498,32 @@ function vMatches(){
 }
 
 function playersFiltered(){
-  const idx=Object.values(allyIndex());let q=V.q.trim().toLowerCase();
+  const idx=Object.values(pIndex());let q=V.q.trim().toLowerCase();
   const acc=parseSteam(V.q);
   let l=idx.filter(e=>!q||e.name.toLowerCase().includes(q)||e.sid.includes(q)||(acc&&e.sid===acc)||(isNum(e.sid)&&steam64(e.sid).includes(q)));
+  if(V.role==='ally')l=l.filter(e=>e.withN>0);else if(V.role==='enemy')l=l.filter(e=>e.vsN>0);
   const s=V.sort;
   l.sort((a,b)=>s==='count'?b.count-a.count||b.last-a.last:s==='recent'?b.last-a.last:s==='rating'?((b.avg||0)-(a.avg||0))||b.count-a.count:a.name.localeCompare(b.name,'ru'));
   return l;
 }
 function plistHtml(){
-  if(!S.matches.length||!Object.keys(allyIndex()).length)return`<div class="empty">${ico('users')}<b>Список знакомых пуст</b><p>Союзники появятся здесь после добавления матчей.</p><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button></div>`;
+  if(!S.matches.length||!Object.keys(pIndex()).length)return`<div class="empty">${ico('users')}<b>Список знакомых пуст</b><p>Игроки появятся здесь после добавления матчей.</p><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button></div>`;
   const l=playersFiltered();
   return l.length?l.map(prow).join(''):`<div class="empty">${ico('search')}<b>Игрок не найден</b><p>Проверьте ник или Steam ID. Ищутся только те, с кем вы уже играли.</p></div>`;
 }
 function vPlayers(){
-  return`<div class="pagehead"><div><h1>Игроки</h1><p>Союзники, с которыми вы уже играли. Рейтинг считается только по вашим оценкам и нигде не публикуется.</p></div></div>
+  return`<div class="pagehead"><div><h1>Игроки</h1><p>Игроки, с которыми вы играли вместе или друг против друга. Рейтинг считается только по вашим оценкам и нигде не публикуется.</p></div></div>
   ${demoBanner()}
   <div class="toolbar">
     <div class="searchbox"><label class="sm" for="q" style="position:absolute;left:-9999px">Поиск</label>${ico('search')}<input id="q" type="text" inputmode="search" autocomplete="off" placeholder="Ник или Steam ID" value="${esc(V.q)}"></div>
+    <select id="prole" aria-label="Роль"><option value="all">Все игроки</option><option value="ally" ${V.role==='ally'?'selected':''}>Союзники</option><option value="enemy" ${V.role==='enemy'?'selected':''}>Соперники</option></select>
     <select id="sort" aria-label="Сортировка"><option value="count" ${V.sort==='count'?'selected':''}>По числу встреч</option><option value="recent" ${V.sort==='recent'?'selected':''}>По последней встрече</option><option value="rating" ${V.sort==='rating'?'selected':''}>По вашей оценке</option><option value="name" ${V.sort==='name'?'selected':''}>По алфавиту</option></select>
   </div>
   <div class="plist" id="plist">${plistHtml()}</div>`;
 }
 
 function vPlayer(){
-  const e=allyIndex()[V.pid];
+  const e=pIndex()[V.pid];
   if(!e)return`<button class="btn ghost" data-a="go" data-p="players">${ico('back')}Игроки</button><div class="empty">${ico('user')}<b>Игрок не найден</b><p>Возможно, его матчи были удалены.</p></div>`;
   const num=isNum(e.sid);
   const note=S.pnotes[e.sid]||'';
@@ -507,13 +531,13 @@ function vPlayer(){
   <section class="card stack"><div class="profile-h">${av(e.name,'lg',e.sid)}<div style="min-width:0;flex:1">
     <h1 style="overflow-wrap:anywhere">${esc(e.name)}</h1>
     <div class="sm" style="margin-top:4px">${num?`Steam ID <span class="mono">${esc(e.sid)}</span> <button class="iconbtn" data-a="copy" data-t="${esc(e.sid)}" aria-label="Скопировать Steam ID">${ico('copy')}</button>`:'Steam ID не указан, игрок отслеживается по нику'}</div>
-    <div class="statline" style="margin-top:8px"><span><b>${e.count}</b>${pl(e.count,'совместный матч','совместных матча','совместных матчей')}</span>${e.avg!=null?`<span class="avg">${stars(e.avg)}<b style="font-size:1.1rem;margin:0">${e.avg.toFixed(1)}</b>${e.rated} ${pl(e.rated,'оценка','оценки','оценок')}</span>`:'<span>Оценок пока нет</span>'}</div></div></div>
+    <div class="statline" style="margin-top:8px">${e.withN?`<span><b>${e.withN}</b>${pl(e.withN,'матч вместе','матча вместе','матчей вместе')}</span>`:''}${e.vsN?`<span><b>${e.vsN}</b>${pl(e.vsN,'матч против','матча против','матчей против')}</span>`:''}${e.avg!=null?`<span class="avg">${stars(e.avg)}<b style="font-size:1.1rem;margin:0">${e.avg.toFixed(1)}</b>${e.rated} ${pl(e.rated,'оценка','оценки','оценок')}</span>`:'<span>Оценок пока нет</span>'}</div></div></div>
     ${num?`<div class="links"><a href="https://steamcommunity.com/profiles/${steam64(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Профиль Steam</a><a href="https://www.opendota.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}OpenDota</a><a href="https://www.dotabuff.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Dotabuff</a></div>`:''}
     <div class="field"><label for="pnote">Общая заметка об игроке (видите только вы)</label><textarea id="pnote" data-sid="${esc(e.sid)}" placeholder="Например: играет на саппорте, любит голосовой чат">${esc(note)}</textarea></div>
   </section>
   <section><div class="sec-h"><h2>История встреч</h2></div><div class="hist">${e.list.map(x=>{
     const r=S.reviews[rkey(x.m.id,e.sid)];const k='r:'+rkey(x.m.id,e.sid);
-    return`<div class="hitem"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${x.m.win?'win':'loss'}">${x.m.win?'Победа':'Поражение'}</span><b>${esc(x.p.hero)}</b><small>${fd(x.m.start)} · ${esc(x.m.mode)}</small></div>
+    return`<div class="hitem"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${x.m.win?'win':'loss'}">${x.m.win?'Победа':'Поражение'}</span><b>${esc(x.p.hero)}</b><span class="tag ${x.role==='ally'?'n':''}">${x.role==='ally'?'Союзник':'Соперник'}</span><small>${fd(x.m.start)} · ${esc(x.m.mode)}</small></div>
       <div style="margin-top:8px">${r&&r.rating?`<span class="avg">${stars(r.rating)}${r.rating}/5</span>`:'<small>Оценка не поставлена</small>'}</div>
       ${r&&Object.values(r.cats||{}).some(Boolean)?`<div class="chips" style="margin-top:8px">${CATS.filter(c=>r.cats[c[0]]).map(c=>`<span class="chip">${c[1]}: ${r.cats[c[0]]}</span>`).join('')}</div>`:''}
       ${r&&r.note?`<div class="note">${esc(r.note)}</div>`:''}</div>
@@ -576,15 +600,16 @@ function closeBtn(){return`<button class="iconbtn" data-a="close" aria-label="З
 function mMatch(m){
   const nt=notices(m),al=m.players.filter(p=>p.ally&&!p.me),en=m.players.filter(p=>!p.ally);
   const k='dm:'+m.id;
+  const rows=(l,empty)=>l.length?l.map(p=>{
+    const n=p.sid?prior(p.sid,m):0,r=p.sid&&S.reviews[rkey(m.id,p.sid)];
+    return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
+        <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}</div>
+        ${p.sid?`<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):`<p class="sm">${empty}</p>`;
   return`<div class="panel-h"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span><h3 id="mt">${esc(m.hero)}</h3></div><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></div>${closeBtn()}</div>
   <div class="panel-b">
-    ${nt.length?`<div class="banner soft" role="note">${ico('users')}<p>${nt.map(x=>`<b>${esc(x.p.name)}</b>: вы уже играли вместе ${x.n} ${pl(x.n,'раз','раза','раз')}`).join('<br>')}</p></div>`:''}
-    <div><div class="lbl" style="margin-bottom:6px">Союзники</div>${al.length?al.map(p=>{
-      const n=p.sid?prior(p.sid,m):0,r=p.sid&&S.reviews[rkey(m.id,p.sid)];
-      return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
-        <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}</div>
-        ${p.sid?`<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):'<p class="sm">В матче не было других союзников.</p>'}</div>
-    <div><div class="lbl" style="margin-bottom:6px">Соперники</div>${en.length?en.map(p=>`<div class="erow"><span>${esc(p.name)}</span><span>${esc(p.hero)}</span></div>`).join(''):'<p class="sm">Состав соперников не указан.</p>'}</div>
+    ${nt.length?`<div class="banner soft" role="note">${ico('users')}<p>${nt.map(x=>`<b>${esc(x.p.name)}</b>: ${meetText(x.role,x.w,x.v)}`).join('<br>')}</p></div>`:''}
+    <div><div class="lbl" style="margin-bottom:6px">Союзники</div>${rows(al,'В матче не было других союзников.')}</div>
+    <div><div class="lbl" style="margin-bottom:6px">Соперники</div>${rows(en,'Состав соперников не указан.')}</div>
     <hr class="hr">
     <div class="actions">${V.confirm===k?`<button class="btn danger" data-a="delMatch" data-id="${esc(m.id)}">Да, удалить матч и оценки к нему</button><button class="btn" data-a="cancel">Отмена</button>`:`<button class="btn danger sm2" data-a="askDel" data-k="${k}">${ico('trash')}Удалить матч</button>`}</div>
   </div>`;
@@ -592,11 +617,11 @@ function mMatch(m){
 function mReview(){
   const d=V.draft,m=mById(d.mid);if(!m)return'';
   const p=m.players.find(x=>x.sid===d.sid);const has=S.reviews[rkey(d.mid,d.sid)];
-  return`<div class="panel-h"><div style="display:flex;gap:12px;align-items:center;min-width:0">${av(p?p.name:'?','md',d.sid)}<div style="min-width:0"><h3 id="mt" style="overflow-wrap:anywhere">Оценка: ${esc(p?p.name:'')}</h3><small>${esc(p?p.hero:'')} · ${fd(m.start)} · ${m.win?'победа':'поражение'}</small></div></div>${closeBtn()}</div>
+  return`<div class="panel-h"><div style="display:flex;gap:12px;align-items:center;min-width:0">${av(p?p.name:'?','md',d.sid)}<div style="min-width:0"><h3 id="mt" style="overflow-wrap:anywhere">Оценка: ${esc(p?p.name:'')}</h3><small>${p&&!p.ally?'Соперник':'Союзник'} · ${esc(p?p.hero:'')} · ${fd(m.start)} · ${m.win?'победа':'поражение'}</small></div></div>${closeBtn()}</div>
   <div class="panel-b">
     <div class="banner">${ico('lock')}<p class="sm" style="color:var(--fg-2)">Оценка добровольная и видна только вам. Можно оставить только заметку.</p></div>
     <div><div class="lbl">Общая оценка</div><div role="group" aria-label="Общая оценка">${[1,2,3,4,5].map(i=>`<button class="sbtn ${i<=d.rating?'on':''}" data-a="star" data-n="${i}" aria-label="${i} из 5" aria-pressed="${i<=d.rating}">${ico('star')}</button>`).join('')}</div></div>
-    <div><div class="lbl">Категории (необязательно)</div>${CATS.map(c=>`<div class="cat"><span>${c[1]}</span><div class="dots" role="group" aria-label="${c[1]}">${[1,2,3,4,5].map(i=>`<button class="dot ${d.cats[c[0]]===i?'on':''}" data-a="cat" data-c="${c[0]}" data-n="${i}" aria-pressed="${d.cats[c[0]]===i}">${i}</button>`).join('')}</div></div>`).join('')}</div>
+    <div><div class="lbl">Категории (необязательно)</div>${catsFor(p).map(c=>`<div class="cat"><span>${c[1]}</span><div class="dots" role="group" aria-label="${c[1]}">${[1,2,3,4,5].map(i=>`<button class="dot ${d.cats[c[0]]===i?'on':''}" data-a="cat" data-c="${c[0]}" data-n="${i}" aria-pressed="${d.cats[c[0]]===i}">${i}</button>`).join('')}</div></div>`).join('')}</div>
     <div class="field"><label for="rv-note">Личная заметка</label><textarea id="rv-note" placeholder="Например: хорошо коллил, предпочитает играть на саппорте" maxlength="600">${esc(d.note)}</textarea></div>
     <div class="actions"><button class="btn primary" data-a="saveReview">${ico('check')}Сохранить</button><button class="btn" data-a="close">Отмена</button>${has?`<button class="btn danger" data-a="delReview" data-mid="${esc(d.mid)}" data-sid="${esc(d.sid)}" style="margin-left:auto">${ico('trash')}Удалить</button>`:''}</div>
   </div>`;
@@ -620,8 +645,8 @@ function mAdd(){
     <div class="field"><label for="x-res">Результат</label><select id="x-res"><option value="win">Победа</option><option value="loss">Поражение</option></select></div>
     <div class="field"><label for="x-dur">Длительность, минут</label><input id="x-dur" type="number" min="1" max="240" value="35"></div></div>
     <div class="field"><label for="x-hero">Ваш герой</label><input id="x-hero" type="text" list="heroes" autocomplete="off" placeholder="Например: Juggernaut"></div>
-    <div><div class="lbl" style="margin-bottom:6px">Союзники (до четырёх)</div>${[0,1,2,3].map(i=>`<div class="grid2" style="grid-template-columns:2fr 2fr 2fr;margin-bottom:8px"><input id="a-n${i}" type="text" placeholder="Ник" aria-label="Ник союзника ${i+1}" autocomplete="off"><input id="a-s${i}" type="text" inputmode="numeric" placeholder="Steam ID, если знаете" aria-label="Steam ID союзника ${i+1}" autocomplete="off"><input id="a-h${i}" type="text" list="heroes" placeholder="Герой" aria-label="Герой союзника ${i+1}" autocomplete="off"></div>`).join('')}<p class="sm">Без Steam ID игрок отслеживается по нику.</p></div>
-    <div class="field"><label for="x-en">Соперники (через запятую, необязательно)</label><input id="x-en" type="text" autocomplete="off"></div>
+    <div><div class="lbl" style="margin-bottom:6px">Союзники (до четырёх)</div>${[0,1,2,3].map(i=>`<div class="trio"><input id="a-n${i}" type="text" placeholder="Ник" aria-label="Ник союзника ${i+1}" autocomplete="off"><input id="a-s${i}" type="text" inputmode="numeric" placeholder="Steam ID" aria-label="Steam ID союзника ${i+1}" autocomplete="off"><input id="a-h${i}" type="text" list="heroes" placeholder="Герой" aria-label="Герой союзника ${i+1}" autocomplete="off"></div>`).join('')}<p class="sm">Без Steam ID игрок отслеживается по нику.</p></div>
+    <div><div class="lbl" style="margin-bottom:6px">Соперники (необязательно, до пяти)</div>${[0,1,2,3,4].map(i=>`<div class="trio"><input id="e-n${i}" type="text" placeholder="Ник" aria-label="Ник соперника ${i+1}" autocomplete="off"><input id="e-s${i}" type="text" inputmode="numeric" placeholder="Steam ID" aria-label="Steam ID соперника ${i+1}" autocomplete="off"><input id="e-h${i}" type="text" list="heroes" placeholder="Герой" aria-label="Герой соперника ${i+1}" autocomplete="off"></div>`).join('')}</div>
     <datalist id="heroes">${HERO_NAMES.map(h=>`<option value="${esc(h)}">`).join('')}</datalist>
     <p class="sm" id="add-err" role="alert" style="color:#f0a0a4"></p>
     <div class="actions"><button class="btn primary" data-a="addManual">${ico('plus')}Добавить матч</button></div></div>`;
@@ -691,7 +716,14 @@ function readManual(){
     if(a.s){const acc=parseSteam(a.s);if(!acc)throw new Error(`Steam ID союзника «${a.n}» не распознан. Нужны цифры или ссылка вида /profiles/…`);sid=acc}
     pls.push({sid,name:a.n,hero:a.h||'—',ally:true,me:false});
   }
-  g('x-en').split(/[,\n]/).map(s=>s.trim()).filter(Boolean).slice(0,5).forEach(n=>pls.push({sid:null,name:n,hero:'—',ally:false,me:false}));
+  for(let i=0;i<5;i++){
+    const n=g('e-n'+i);if(!n)continue;
+    const raw=g('e-s'+i);let sid='nick:'+n.toLowerCase();
+    if(raw){const acc=parseSteam(raw);if(!acc)throw new Error(`Steam ID соперника «${n}» не распознан. Нужны цифры или ссылка вида /profiles/…`);sid=acc}
+    pls.push({sid,name:n,hero:g('e-h'+i)||'—',ally:false,me:false});
+  }
+  const seen=new Set();
+  for(const q of pls){if(!q.sid)continue;if(seen.has(q.sid))throw new Error(`Игрок «${q.name}» указан в матче дважды.`);seen.add(q.sid)}
   return{id:'m'+Date.now(),start:ts,mode:g('x-mode'),ranked:false,win:g('x-res')==='win',dur:Math.round(dur*60),hero,players:pls};
 }
 function wipe(kind){
@@ -760,7 +792,7 @@ document.addEventListener('click',e=>{
       const ta=document.getElementById('bk');if(!ta.value){V.bk=JSON.stringify(S);ta.value=V.bk}
       navigator.clipboard.writeText(ta.value).then(()=>setMsg('bk-msg','Скопировано.'),()=>{ta.focus();ta.select();setMsg('bk-msg','Текст выделен. Скопируйте его вручную.')});break}
     case'bkRestore':{
-      try{const j=JSON.parse(document.getElementById('bk').value);if(!j||j.v!==1||!Array.isArray(j.matches))throw 0;S=Object.assign(fresh(),j);save();V.bk='';paint();toast('Данные восстановлены.')}
+      try{const j=JSON.parse(document.getElementById('bk').value);if(!j||j.v!==1||!Array.isArray(j.matches))throw 0;S=migrate(Object.assign(fresh(),j));save();V.bk='';paint();toast('Данные восстановлены.')}
       catch(err){setMsg('bk-msg','Это не похоже на резервную копию Dota Mate.')}
       break}
   }
@@ -777,7 +809,8 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='set-av'){S.settings=S.settings||{};S.settings.avatars=t.checked;save();paint();if(t.checked)scanAvatars();return}
-  if(t.id==='sort'){V.sort=t.value;$('#plist').innerHTML=plistHtml()}
+  if(t.id==='prole'){V.role=t.value;$('#plist').innerHTML=plistHtml()}
+  else if(t.id==='sort'){V.sort=t.value;$('#plist').innerHTML=plistHtml()}
   else if(t.id==='f-res'||t.id==='f-mode'||t.id==='f-range'){V.f={res:$('#f-res').value,mode:$('#f-mode').value,range:$('#f-range').value};$('#mlist').innerHTML=mlistHtml()}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&V.modal)closeModal()});
@@ -832,7 +865,7 @@ paint();
       if(sj&&sj.state&&sj.state.v===1)S=sj.state;
       else if(local&&!local.demo&&local.matches.length)S=local;
       else S=fresh();
-      S.me=S.me||{};S.me.acc=SRV.acc;
+      migrate(S);S.me=S.me||{};S.me.acc=SRV.acc;
       if(!S.me.name||S.me.name==='Вы')S.me.name=SRV.name||'Вы';
       S.demo=false;
       try{localStorage.removeItem(LS)}catch(e){}
