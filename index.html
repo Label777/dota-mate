@@ -55,7 +55,7 @@ small,.sm{font-size:.84rem;color:var(--mute)}
 
 /* bottom nav (phones) */
 #nav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#nav .row{display:grid;grid-template-columns:repeat(4,1fr)}
+#nav .row{display:grid;grid-template-columns:repeat(5,1fr)}
 #nav .tab{flex-direction:column;gap:2px;font-size:.72rem;border-radius:0;padding:9px 4px 8px}
 #nav .tab .ic{width:1.35em;height:1.35em}
 #nav .tab[aria-current=page]{box-shadow:inset 0 2px 0 var(--red)}
@@ -230,6 +230,7 @@ img.av{object-fit:cover}
 .optin input{width:18px;height:18px;margin-top:3px;accent-color:#a8323a;flex:none}
 .me .btn{margin-left:4px}
 </style>
+<link rel="stylesheet" href="css/profile.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -262,6 +263,9 @@ img.av{object-fit:cover}
 <div id="modal"></div>
 <div id="toast" aria-live="polite"></div>
 
+<script src="js/analytics.js"></script>
+<script src="js/dotaapi.js"></script>
+<script src="js/profile-ui.js"></script>
 <script>
 (function(){
 'use strict';
@@ -407,7 +411,7 @@ function paintToast(){
 }
 
 /* ---------- views ---------- */
-const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['players','users','Игроки'],['settings','sliders','Настройки']];
+const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['players','users','Игроки'],['me','user','Профиль'],['settings','sliders','Настройки']];
 const cur=()=>V.page==='player'?'players':V.page;
 function navBtns(){return NAV.map(n=>`<button class="tab" data-a="go" data-p="${n[0]}" ${cur()===n[0]?'aria-current="page"':''}>${ico(n[1])}<span>${n[2]}</span></button>`).join('')}
 function meBlock(){
@@ -532,7 +536,7 @@ function vPlayer(){
     <h1 style="overflow-wrap:anywhere">${esc(e.name)}</h1>
     <div class="sm" style="margin-top:4px">${num?`Steam ID <span class="mono">${esc(e.sid)}</span> <button class="iconbtn" data-a="copy" data-t="${esc(e.sid)}" aria-label="Скопировать Steam ID">${ico('copy')}</button>`:'Steam ID не указан, игрок отслеживается по нику'}</div>
     <div class="statline" style="margin-top:8px">${e.withN?`<span><b>${e.withN}</b>${pl(e.withN,'матч вместе','матча вместе','матчей вместе')}</span>`:''}${e.vsN?`<span><b>${e.vsN}</b>${pl(e.vsN,'матч против','матча против','матчей против')}</span>`:''}${e.avg!=null?`<span class="avg">${stars(e.avg)}<b style="font-size:1.1rem;margin:0">${e.avg.toFixed(1)}</b>${e.rated} ${pl(e.rated,'оценка','оценки','оценок')}</span>`:'<span>Оценок пока нет</span>'}</div></div></div>
-    ${num?`<div class="links"><a href="https://steamcommunity.com/profiles/${steam64(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Профиль Steam</a><a href="https://www.opendota.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}OpenDota</a><a href="https://www.dotabuff.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Dotabuff</a></div>`:''}
+    ${num?`<div class="links"><button class="linkbtn" data-a="openProfile" data-id="${esc(e.sid)}">${ico('user')}Статистика игрока</button><a href="https://steamcommunity.com/profiles/${steam64(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Профиль Steam</a><a href="https://www.opendota.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}OpenDota</a><a href="https://www.dotabuff.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Dotabuff</a></div>`:''}
     <div class="field"><label for="pnote">Общая заметка об игроке (видите только вы)</label><textarea id="pnote" data-sid="${esc(e.sid)}" placeholder="Например: играет на саппорте, любит голосовой чат">${esc(note)}</textarea></div>
   </section>
   <section><div class="sec-h"><h2>История встреч</h2></div><div class="hist">${e.list.map(x=>{
@@ -591,8 +595,9 @@ function vSettings(){
     </div></section>`;
 }
 
-const VIEWS={dash:vDash,matches:vMatches,players:vPlayers,player:vPlayer,settings:vSettings};
-function paintMain(){$('#main').innerHTML=VIEWS[V.page]()}
+const vMe=()=>window.DMProfile?DMProfile.view():`<div class="empty">${ico('alert')}<b>Раздел не загрузился</b><p>Не удалось загрузить скрипты раздела «Профиль игрока». Обновите страницу.</p></div>`;
+const VIEWS={dash:vDash,matches:vMatches,players:vPlayers,player:vPlayer,me:vMe,settings:vSettings};
+function paintMain(){$('#main').innerHTML=VIEWS[V.page]();if(V.page==='me'&&window.DMProfile)DMProfile.mount()}
 function paint(){paintHdr();paintMain();paintModal()}
 
 /* ---------- modals ---------- */
@@ -775,6 +780,7 @@ document.addEventListener('click',e=>{
       Object.keys(S.reviews).forEach(k=>{if(k.endsWith('|'+d.sid))delete S.reviews[k]});delete S.pnotes[d.sid];save();V.confirm=null;paintMain();toast('Оценки и заметки об игроке удалены.');break}
     case'delMatch':{
       S.matches=S.matches.filter(m=>m.id!==d.id);Object.keys(S.reviews).forEach(k=>{if(k.startsWith(d.id+'|'))delete S.reviews[k]});save();V.modal=null;V.confirm=null;paintModal();paint();toast('Матч удалён.');break}
+    case'openProfile':V.page='me';V.pid=null;V.modal=null;V.confirm=null;paint();window.scrollTo(0,0);if(window.DMProfile)DMProfile.open(d.id);break;
     case'copy':navigator.clipboard.writeText(d.t).then(()=>toast('Скопировано.'),()=>toast('Не удалось скопировать. Выделите текст вручную.'));break;
     case'saveAcc':{
       const raw=document.getElementById('set-steam').value.trim(),name=document.getElementById('set-name').value.trim()||'Вы';
@@ -852,6 +858,12 @@ let avT=null;
 new MutationObserver(()=>{clearTimeout(avT);avT=setTimeout(scanAvatars,300)}).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('[data-av]'))t.remove()},true);
 paint();
+if(window.DMProfile)DMProfile.init({esc,ico,
+  base:()=>SERVER?'/api/od':'https://api.opendota.com/api',
+  server:()=>SERVER,
+  heroName:id=>HEROES[id]||'',
+  myAcc:()=>SRV&&SRV.acc?String(SRV.acc):(S&&S.me&&S.me.acc&&isNum(S.me.acc)?String(S.me.acc):''),
+  copy:t=>navigator.clipboard.writeText(t).then(()=>toast('Скопировано.'),()=>toast('Не удалось скопировать. Выделите текст вручную.'))});
 (async function init(){
   try{
     const r=await fetch('/api/session',{headers:{'X-DM':'1'}});

@@ -184,43 +184,86 @@ function upstream(url) {
 }
 const cache = new Map();
 const hits = new Map();
-function limited(acc, max) {
+function limited(acc, max, weight) {
   const now = Date.now(), arr = (hits.get(acc) || []).filter((t) => t > now - 600000);
   if (arr.length >= (max || 60)) { hits.set(acc, arr); return true; }
-  arr.push(now); hits.set(acc, arr); return false;
+  for (let i = 0; i < (weight || 1); i++) arr.push(now);
+  hits.set(acc, arr);
+  if (hits.size > 5000) hits.delete(hits.keys().next().value);
+  return false;
 }
-async function proxyOD(req, res, url, sess) {
-  let target, ttl, slim = false;
-  let m = /^\/api\/od\/players\/(\d+)\/matches$/.exec(url.pathname);
-  if (m) {
-    if (m[1] !== sess.acc) return json(res, 403, { error: 'forbidden' });
-    const n = Math.min(30, Math.max(1, parseInt(url.searchParams.get('limit'), 10) || 15));
-    target = `${OD}/players/${m[1]}/matches?limit=${n}`; ttl = 60000;
-  } else if ((m = /^\/api\/od\/players\/(\d{1,10})$/.exec(url.pathname))) {
-    target = `${OD}/players/${m[1]}`; ttl = 6 * 3600000; slim = true;
-  } else if ((m = /^\/api\/od\/matches\/(\d{6,13})$/.exec(url.pathname))) {
+const OD_KEY = process.env.OPENDOTA_API_KEY || '';   // необязательно: повышает лимиты OpenDota, в браузер не попадает
+const STEAM_KEY = process.env.STEAM_API_KEY || '';     // необязательно: нужен только для разбора ссылок вида /id/имя
+const PROJECTS = new Set(['gold_per_min', 'xp_per_min', 'last_hits', 'denies', 'lane_role', 'is_roaming', 'hero_id', 'start_time', 'duration', 'kills', 'deaths', 'assists']);
+const JSON_H = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
+const pick = (o, keys) => { const r = {}; keys.forEach((k) => { if (o && o[k] !== undefined) r[k] = o[k]; }); return r; };
+function slimPlayer(j) {
+  const pr = (j && j.profile) || null;
+  return {
+    profile: pr ? pick(pr, ['account_id', 'personaname', 'avatarmedium', 'avatarfull', 'profileurl', 'steamid', 'last_login']) : null,
+    rank_tier: j && j.rank_tier != null ? j.rank_tier : null,
+    leaderboard_rank: j && j.leaderboard_rank != null ? j.leaderboard_rank : null
+  };
+}
+/** Чистим и упорядочиваем параметры страницы матчей: наружу уходит только то, что мы сами разрешили. */
+function matchesQuery(sp) {
+  const limit = Math.min(500, Math.max(1, parseInt(sp.get('limit'), 10) || 100));
+  const offset = Math.min(100000, Math.max(0, parseInt(sp.get('offset'), 10) || 0));
+  const proj = sp.getAll('project').filter((f) => PROJECTS.has(f)).slice(0, 8);
+  return `limit=${limit}&offset=${offset}` + proj.map((f) => `&project=${f}`).join('');
+}
+async function proxyOD(req, res, url, who) {
+  let target, ttl, shape = null, weight = 1;
+  const pn = url.pathname;
+  let m;
+  if ((m = /^\/api\/od\/players\/(\d{1,10})\/matches$/.exec(pn))) {
+    target = `${OD}/players/${m[1]}/matches?${matchesQuery(url.searchParams)}`; ttl = 300000; weight = 2;
+  } else if ((m = /^\/api\/od\/players\/(\d{1,10})\/(wl|ratings)$/.exec(pn))) {
+    target = `${OD}/players/${m[1]}/${m[2]}`; ttl = m[2] === 'wl' ? 300000 : 3600000;
+  } else if ((m = /^\/api\/od\/players\/(\d{1,10})$/.exec(pn))) {
+    target = `${OD}/players/${m[1]}`; ttl = 3600000; shape = slimPlayer;
+  } else if (pn === '/api/od/heroes') {
+    target = `${OD}/heroes`; ttl = 86400000;
+  } else if ((m = /^\/api\/od\/matches\/(\d{6,13})$/.exec(pn))) {
     target = `${OD}/matches/${m[1]}`; ttl = 600000;
   } else return json(res, 404, { error: 'not found' });
 
-  if (slim ? limited(sess.acc + ':p', 200) : limited(sess.acc)) return json(res, 429, { error: 'rate' });
   const c = cache.get(target);
-  if (c && c.t > Date.now()) return send(res, 200, c.body, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  if (c && c.t > Date.now()) return send(res, 200, c.body, JSON_H);
+  if (limited(who, 300 * weight, weight)) return json(res, 429, { error: 'rate' }, { 'Retry-After': '60' });
   try {
-    const r = await upstream(target);
+    const r = await upstream(OD_KEY ? target + (target.includes('?') ? '&' : '?') + 'api_key=' + encodeURIComponent(OD_KEY) : target);
     let body = await r.text();
     if (r.ok) {
-      if (slim) {
-        try {
-          const j = JSON.parse(body), pr = (j && j.profile) || null;
-          body = JSON.stringify({ profile: pr ? { personaname: pr.personaname, avatarmedium: pr.avatarmedium, avatarfull: pr.avatarfull } : null });
-        } catch (e) { return json(res, 502, { error: 'bad upstream' }); }
+      if (shape) {
+        try { body = JSON.stringify(shape(JSON.parse(body))); } catch (e) { return json(res, 502, { error: 'bad upstream' }); }
       }
       cache.set(target, { t: Date.now() + ttl, body });
-      if (cache.size > 300) cache.delete(cache.keys().next().value);
-      return send(res, 200, body, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      if (cache.size > 400) cache.delete(cache.keys().next().value);
+      return send(res, 200, body, JSON_H);
     }
-    return json(res, r.status === 429 ? 429 : r.status === 404 ? 404 : 502, { error: 'upstream ' + r.status });
+    const ra = r.headers.get('retry-after');
+    return json(res, r.status === 429 ? 429 : r.status === 404 ? 404 : 502, { error: 'upstream ' + r.status }, r.status === 429 && ra ? { 'Retry-After': ra } : undefined);
   } catch (e) { return json(res, 502, { error: 'upstream unreachable' }); }
+}
+
+/** Ссылка вида steamcommunity.com/id/имя -> SteamID64. Работает только с STEAM_API_KEY (официальный Steam Web API). */
+const vanityCache = new Map();
+async function resolveVanity(res, name, who) {
+  if (!STEAM_KEY) return json(res, 501, { error: 'no_key' });
+  if (!/^[A-Za-z0-9_-]{2,32}$/.test(name)) return json(res, 400, { error: 'bad name' });
+  const hit = vanityCache.get(name);
+  if (hit && hit.t > Date.now()) return json(res, 200, hit.v);
+  if (limited(who + ':v', 30)) return json(res, 429, { error: 'rate' });
+  try {
+    const r = await fetch(`https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${encodeURIComponent(STEAM_KEY)}&vanityurl=${encodeURIComponent(name)}`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return json(res, 502, { error: 'steam ' + r.status });
+    const j = (await r.json()).response || {};
+    const v = j.success === 1 && /^\d{17}$/.test(String(j.steamid)) ? { steam64: String(j.steamid) } : { steam64: null };
+    vanityCache.set(name, { t: Date.now() + 3600000, v });
+    if (vanityCache.size > 500) vanityCache.delete(vanityCache.keys().next().value);
+    return json(res, 200, v);
+  } catch (e) { return json(res, 502, { error: 'steam unreachable' }); }
 }
 
 /* ---------- маршруты ---------- */
@@ -232,6 +275,12 @@ async function handle(req, res) {
 
   if (method === 'GET' && (p === '/' || p === '/index.html')) {
     return send(res, 200, fs.readFileSync(INDEX), { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+  }
+  const asset = method === 'GET' && /^\/(js|css)\/[A-Za-z0-9._-]+\.(js|css)$/.exec(p);
+  if (asset) {
+    const f = path.join(__dirname, p);
+    if (!f.startsWith(path.join(__dirname, asset[1]) + path.sep) || !fs.existsSync(f)) return send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+    return send(res, 200, fs.readFileSync(f), { 'Content-Type': (asset[2] === 'js' ? 'text/javascript' : 'text/css') + '; charset=utf-8', 'Cache-Control': 'no-cache' });
   }
   if (method === 'GET' && p === '/auth/steam') {
     return send(res, 302, '', { Location: steamRedirectUrl() });
@@ -268,10 +317,17 @@ async function handle(req, res) {
     return json(res, 200, { server: true, user: { acc: s.acc, name: meta.name || '', avatar: meta.avatar || '' } });
   }
 
+  /* Публичные данные OpenDota доступны и без входа (для поиска любого игрока), лимит считается по адресу или по аккаунту. */
+  if (method === 'GET' && (p.startsWith('/api/od/') || p === '/api/steam/resolve')) {
+    const s0 = session(req);
+    const who = s0 ? s0.acc : 'ip:' + (req.socket.remoteAddress || '');
+    if (p === '/api/steam/resolve') return resolveVanity(res, url.searchParams.get('vanity') || '', who);
+    return proxyOD(req, res, url, who);
+  }
+
   if (p.startsWith('/api/')) {
     const s = session(req);
     if (!s) return json(res, 401, { error: 'no session' });
-    if (p.startsWith('/api/od/') && method === 'GET') return proxyOD(req, res, url, s);
 
     if (p === '/api/state' && method === 'GET') {
       return json(res, 200, { state: readUser(s.acc).state || null });
