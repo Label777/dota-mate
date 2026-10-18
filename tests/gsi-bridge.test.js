@@ -60,7 +60,8 @@ test('cfg содержит порт, токен и только нужные р�
   assert.match(c, /"uri"\s+"http:\/\/127\.0\.0\.1:7777\/gsi"/);
   assert.match(c, /"token"\s+"abc12345"/);
   assert.match(c, /"draft"\s+"1"/);
-  for (const off of ['hero', 'items', 'abilities', 'buildings', 'wearables']) assert.equal(new RegExp('"' + off + '"').test(c), false, off + ' не запрашивается');
+  assert.match(c, /"hero"\s+"1"/);          // id героев нужны режиму наблюдателя; других данных о героях не запрашиваем
+  for (const off of ['items', 'abilities', 'buildings', 'wearables']) assert.equal(new RegExp('"' + off + '"').test(c), false, off + ' не запрашивается');
   assert.throws(() => createHub({ token: 'short' }), /токен/);
 });
 
@@ -77,7 +78,8 @@ test('пакет GSI принимается, в поток уходит толь
   const g = s.events.find((e) => e.event === 'gsi').data.gsi;
   assert.deepEqual(Object.keys(g).sort(), ['draft', 'map', 'player']);
   const txt = JSON.stringify(g);
-  for (const leak of ['76561197960265729', 'item_blink', 'xpos', 'gold', 'kills', TOKEN, 'customgamename']) assert.equal(txt.includes(leak), false, leak);
+  assert.equal(g.player.steamid, '76561197960265729');       // свой Steam ID: нужен оверлею, идёт только на локальный адрес с токеном
+  for (const leak of ['item_blink', 'xpos', 'gold', 'kills', TOKEN, 'customgamename']) assert.equal(txt.includes(leak), false, leak);
   const parsed = Draft.fromGSI(g);
   assert.equal(parsed.hasDraft, true);
   assert.deepEqual(parsed.state.picks.radiant, [2]); assert.deepEqual(parsed.state.bans.dire, [14]);

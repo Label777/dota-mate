@@ -82,9 +82,52 @@
     if (!p || typeof p !== 'object') return out;
     if (p.draft && typeof p.draft === 'object') out.draft = p.draft;
     if (p.map && typeof p.map === 'object') out.map = { game_state: p.map.game_state, matchid: p.map.matchid, game_time: p.map.game_time, clock_time: p.map.clock_time };
-    if (p.player && typeof p.player === 'object') out.player = { team_name: p.player.team_name, team: p.player.team };
+    if (p.player && typeof p.player === 'object') {
+      const pl = p.player, o = { team_name: pl.team_name, team: pl.team };
+      /* Игрок за себя: steamid, ник и место в команде. Наблюдатель: те же поля по всем десяти игрокам (team2 / team3, player0..player4). */
+      const one = (x) => {
+        if (!x || typeof x !== 'object') return null;
+        const r = {};
+        if (isSteam64(x.steamid)) r.steamid = String(x.steamid);
+        if (typeof x.name === 'string' && x.name.trim()) r.name = cleanName(x.name);
+        const ts = slotNum(x.team_slot), ps = slotNum(x.player_slot);
+        if (ts != null && ts < 5) r.team_slot = ts;
+        if (ps != null) r.player_slot = ps;
+        return Object.keys(r).length ? r : null;
+      };
+      const mine = one(pl); if (mine) Object.assign(o, mine);
+      for (const t of ['team2', 'team3']) {
+        const src = pl[t]; if (!src || typeof src !== 'object') continue;
+        const dst = {};
+        for (let i = 0; i < 5; i++) { const r = one(src['player' + i]); if (r) dst['player' + i] = r; }
+        if (Object.keys(dst).length) o[t] = dst;
+      }
+      out.player = o;
+    }
+    /* Герои: у наблюдателя по игрокам, у играющего только свой. Больше из блока hero ничего не берём. */
+    if (p.hero && typeof p.hero === 'object') {
+      const h = {}, hid = (x) => (x && typeof x === 'object' ? heroId(x.id) : 0);
+      if (hid(p.hero)) h.id = hid(p.hero);
+      for (const t of ['team2', 'team3']) {
+        const src = p.hero[t]; if (!src || typeof src !== 'object') continue;
+        const dst = {};
+        for (let i = 0; i < 5; i++) { const id = hid(src['player' + i]); if (id) dst['player' + i] = { id }; }
+        if (Object.keys(dst).length) h[t] = dst;
+      }
+      if (Object.keys(h).length) out.hero = h;
+    }
     return out;
   }
+  /* steamid64 обычных аккаунтов: 17 цифр, от 76561197960265729 (accountid 1) до 76561202255233023 (accountid 4294967295). */
+  function isSteam64(v) {
+    if (typeof v !== 'string' && typeof v !== 'number') return false;
+    const s = String(v);
+    if (!/^\d{17}$/.test(s)) return false;
+    const n = BigInt(s) - 76561197960265728n;
+    return n > 0n && n <= 4294967295n;
+  }
+  const slotNum = (v) => { const n = num(v); return n != null && Number.isInteger(n) && n >= 0 && n <= 20 ? n : null; };
+  const cleanName = (v) => String(v).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 64);
 
   /* Обратное преобразование: состояние -> тело GSI. Нужно демо-режиму моста и тестам. */
   function toGSI(s) {
@@ -223,5 +266,5 @@
     return sanitizeHistory([h].concat(rest));
   }
 
-  return { SIDES, MAX_PICKS, MAX_BANS, MAX_HISTORY, other, empty, clone, heroId, fromGSI, toGSI, pickGSI, taken, isTaken, pickCount, isComplete, isEmpty, addPick, addBan, removeHero, diff, suggest, composition, demoFrames, toHistory, sanitizeHistory, pushHistory, SMOOTH };
+  return { SIDES, MAX_PICKS, MAX_BANS, MAX_HISTORY, other, empty, clone, heroId, fromGSI, toGSI, pickGSI, isSteam64, taken, isTaken, pickCount, isComplete, isEmpty, addPick, addBan, removeHero, diff, suggest, composition, demoFrames, toHistory, sanitizeHistory, pushHistory, SMOOTH };
 });

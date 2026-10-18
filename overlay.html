@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://cdn.cloudflare.steamstatic.com; connect-src 'self' http://127.0.0.1:* http://localhost:* https://api.opendota.com; base-uri 'none'; form-action 'none'">
+<title>Dota Mate · Оверлей драфта</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/overlay.css">
+</head>
+<body class="ov-body">
+<div id="ov-root">
+  <section id="ov-panel" class="ov" aria-label="Dota Mate: игроки матча"></section>
+  <button type="button" id="ov-show" class="ov-fab" hidden aria-label="Показать оверлей Dota Mate" data-a="ov-show">Dota Mate</button>
+</div>
+<noscript>Для оверлея нужен JavaScript.</noscript>
+<script src="js/draft.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/reputation.js"></script>
+<script src="js/dotaapi.js"></script>
+<script src="js/live-match.js"></script>
+<script src="js/live-stats.js"></script>
+<script src="js/overlay.js"></script>
+</body>
+</html>

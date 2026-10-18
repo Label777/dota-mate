@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test tests/*.test.js",
-    "test:e2e": "python3 tests/e2e/rep_e2e.py && python3 tests/e2e/assistant_e2e.py && python3 tests/e2e/social_e2e.py && python3 tests/e2e/draft_e2e.py && python3 tests/e2e/home_perf_e2e.py"
+    "test:e2e": "python3 tests/e2e/rep_e2e.py && python3 tests/e2e/assistant_e2e.py && python3 tests/e2e/social_e2e.py && python3 tests/e2e/draft_e2e.py && python3 tests/e2e/home_perf_e2e.py && python3 tests/e2e/overlay_e2e.py"
   },
   "engines": {
     "node": ">=18 (для сообщества: >=22.5)"

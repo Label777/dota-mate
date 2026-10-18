@@ -1,0 +1,9 @@
+{
+  "name": "dota-mate-overlay",
+  "version": "0.1.0",
+  "description": "Окно поверх игры для Dota Mate: Live Draft Overlay (тонкая обёртка Electron вокруг overlay.html)",
+  "private": true,
+  "main": "main.js",
+  "scripts": { "start": "electron ." },
+  "devDependencies": { "electron": "^33.0.0" }
+}

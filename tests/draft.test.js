@@ -58,9 +58,10 @@ test('GSI: терпим к отсутствию полей и к мусору', 
 test('GSI: pickGSI оставляет только нужное и не передаёт чужие данные игрока', () => {
   const p = D.pickGSI(Object.assign(gsi(), { items: { slot0: { name: 'item_blink' } }, hero: { xpos: 5 }, auth: { token: 'секрет' }, previously: { x: 1 } }));
   assert.deepEqual(Object.keys(p).sort(), ['draft', 'map', 'player']);
-  assert.deepEqual(p.player, { team_name: 'dire', team: undefined });
+  assert.deepEqual(p.player, { team_name: 'dire', team: undefined, steamid: '76561197960265729' });   // свой Steam ID нужен оверлею; золото, предметы и позиция не передаются
   assert.equal(JSON.stringify(p).includes('секрет'), false);
-  assert.equal(JSON.stringify(p).includes('76561197960265729'), false, 'Steam ID игрока наружу не уходит');
+  assert.equal(JSON.stringify(p).includes('item_blink'), false);
+  assert.equal(JSON.stringify(p).includes('xpos'), false);
   assert.deepEqual(D.pickGSI(null), {});
 });
 
@@ -189,4 +190,21 @@ test('toGSI и fromGSI взаимно обратимы', () => {
   assert.equal(back.active, s.active); assert.equal(back.mySide, s.mySide); assert.equal(back.timeLeft, s.timeLeft);
   assert.deepEqual(back.bonus, s.bonus); assert.equal(back.matchId, s.matchId);
   for (const f of D.demoFrames()) { const x = D.fromGSI(D.toGSI(f)); assert.deepEqual(x.state.picks, f.picks); assert.deepEqual(x.state.bans, f.bans); }
+});
+
+test('GSI: pickGSI пропускает Steam ID и ник только в проверенном виде, героев только по id, остальное отбрасывает', () => {
+  const sid = (n) => String(76561197960265728n + BigInt(n));
+  const p = D.pickGSI({
+    player: { steamid: sid(5), name: 'Я\u0000\u0001', team_name: 'radiant', team_slot: 2, gold: 900, kills: 7,
+      team2: { player0: { steamid: sid(10), name: 'A', kills: 3, gold: 5 }, player1: { steamid: 'не-число', name: 'B' }, player9: { steamid: sid(11) } },
+      team3: { player4: { steamid: sid(12), name: 'D', team_slot: 4 } } },
+    hero: { id: 74, health: 500, xpos: 1, team2: { player0: { id: 9, mana: 4 } } }, items: { slot0: { name: 'item_blink' } }
+  });
+  assert.equal(p.player.steamid, sid(5)); assert.equal(p.player.name, 'Я'); assert.equal(p.player.team_slot, 2);
+  assert.deepEqual(p.player.team2, { player0: { steamid: sid(10), name: 'A' }, player1: { name: 'B' } });
+  assert.deepEqual(p.player.team3, { player4: { steamid: sid(12), name: 'D', team_slot: 4 } });
+  assert.deepEqual(p.hero, { id: 74, team2: { player0: { id: 9 } } });
+  const txt = JSON.stringify(p);
+  for (const leak of ['gold', 'kills', 'health', 'mana', 'xpos', 'item_blink']) assert.equal(txt.includes(leak), false, leak);
+  assert.equal(D.isSteam64(sid(1)), true); assert.equal(D.isSteam64('76561197960265728'), false); assert.equal(D.isSteam64('1'), false);
 });

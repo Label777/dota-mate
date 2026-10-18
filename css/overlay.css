@@ -1,0 +1,99 @@
+/* Dota Mate: оверлей драфта. Цвета, шрифты и радиусы берутся из tokens.css. Панель компактная: информация читается за секунды. */
+html,body{margin:0;height:100%}
+.ov-body{background:var(--bg);color:var(--text);font:400 calc(13px * var(--ov-scale,1))/1.4 var(--f-ui);overflow:hidden}
+#ov-root{--ov-scale:1;--ov-op:.96;position:fixed;inset:0;font-size:calc(13px * var(--ov-scale))}
+.ov-body:has(#ov-panel.embed),html.embed .ov-body{background:transparent}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ov{position:fixed;left:50%;top:8px;transform:none;display:flex;flex-direction:column;max-width:calc(100vw - 8px);max-height:calc(100vh - 16px);background:color-mix(in srgb,var(--surface) calc(var(--ov-op) * 100%),transparent);
+  border:1px solid var(--border);border-radius:var(--r-3);box-shadow:var(--shadow-pop);overflow:hidden;min-width:min(420px,100vw - 8px)}
+html.embed .ov{inset:0;left:0;top:0;width:auto;max-width:none;max-height:none;border-radius:var(--r-2)}
+.ov[data-collapsed="1"]{min-width:0}
+#ov-root[data-anim="0"] *{transition:none!important;animation:none!important}
+@media (prefers-reduced-motion:reduce){#ov-root *{transition:none!important;animation:none!important}}
+
+/* шапка */
+.ov-h{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border-soft);background:var(--surface-sunk);cursor:grab;-webkit-app-region:drag;user-select:none}
+.ov-h button,.ov-h a{-webkit-app-region:no-drag}
+.ov-brand{display:flex;align-items:baseline;gap:6px;white-space:nowrap}.ov-brand b{font-weight:700;color:var(--accent)}.ov-brand span{color:var(--text-2);font-size:.9em}
+.ov-status{display:flex;align-items:center;gap:6px;flex:1;min-width:0;color:var(--text-2);font-size:.92em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ov-status i{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex:none}
+.ov-status.ok i{background:var(--success)}.ov-status.bad i{background:var(--danger)}
+.ov-ctl{display:flex;gap:4px;flex:none}
+.ov-btn{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);color:var(--text);cursor:pointer;text-decoration:none;font-size:.92em;transition:border-color var(--ease),background var(--ease)}
+.ov-btn:hover{border-color:var(--border-hover);background:var(--surface-raise)}
+.ov-btn.ic{min-width:26px;padding:3px 6px;font-size:1.05em;line-height:1}
+.ov-btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.ov-btn[disabled]{opacity:.5;cursor:default}
+.ov-fab{position:fixed;right:12px;bottom:12px;padding:8px 12px;border:1px solid var(--accent-dim);border-radius:var(--r-2);background:var(--surface);color:var(--accent);cursor:pointer;box-shadow:var(--shadow-pop)}
+
+/* основное */
+.ov-main{display:flex;gap:8px;padding:8px;overflow:auto;min-height:0}
+.ov-teams{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-width:0}
+.ov[data-mode="compact"] .ov-teams{gap:6px}
+.ov-team{min-width:0;display:flex;flex-direction:column;gap:6px}
+.ov-th{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ov-th h2{margin:0;font-size:1em;font-weight:600}
+.ov-team.radiant .ov-th h2{color:var(--success)}.ov-team.dire .ov-th h2{color:var(--danger-text)}
+.ov-picks,.ov-bans{display:flex;gap:3px;align-items:center}.ov-picks small,.ov-bans small{color:var(--text-3)}
+.ov-cards{display:flex;flex-direction:column;gap:5px}
+.ov-card{position:relative;padding:7px 8px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface-sunk);display:flex;flex-direction:column;gap:4px;min-width:0;transition:border-color var(--ease)}
+.ov-card:hover{border-color:var(--border-hover)}
+.ov-card.sel{border-color:var(--accent)}
+.ov-card.me{box-shadow:inset 2px 0 0 var(--accent)}
+.ov-card.st-unavailable,.ov-card.st-pending{background:transparent;border-style:dashed}
+.ov-open{all:unset;display:block;cursor:pointer;border-radius:var(--r-1)}
+.ov-open:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ov-top{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.ov-nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.ov-nm.muted{color:var(--text-2);font-weight:500}
+.ov-sub{display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:var(--text-3);font-size:.85em}
+.ov-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ov-m{display:inline-flex;align-items:baseline;gap:4px}.ov-m em{font-style:normal;color:var(--text-3);font-size:.85em}.ov-m b{font-variant-numeric:tabular-nums}.ov-m small{color:var(--text-3)}
+.ov-heroes{display:flex;gap:8px;flex-wrap:wrap}.ov-hr{display:inline-flex;align-items:center;gap:4px}.ov-hr b{font-variant-numeric:tabular-nums}.ov-hr small{color:var(--text-3)}
+.ov-chip{display:inline-block;padding:1px 7px;border:1px solid var(--border);border-radius:99px;background:var(--surface);color:var(--text-2);font-size:.82em;white-space:nowrap}
+.ov-chip.ok{color:var(--success);border-color:rgba(72,214,160,.35);background:var(--success-soft)}
+.ov-chip.warn{color:var(--warn);border-color:rgba(240,166,74,.4);background:var(--warn-soft)}
+.ov-note{margin:0;color:var(--text-2);font-size:.88em}.ov-note.err{color:var(--danger-text)}
+.ov-fresh{margin:0;color:var(--text-3);font-size:.8em}.ov-fresh.stale{color:var(--warn)}
+.ov-act{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.ov-act small{color:var(--text-3)}
+.ov-foot{margin:0;padding:0 10px 8px;color:var(--text-3);font-size:.85em}
+/* форма: победа выше, поражение ниже (различимо без цвета) */
+.ov-form{display:flex;align-items:flex-end;gap:2px;height:16px}
+.ov-form i{flex:1;max-width:9px;min-width:3px;border-radius:1px}
+.ov-form i.w{height:100%;background:var(--success)}.ov-form i.l{height:45%;background:var(--danger)}
+/* портреты */
+.ov-hi{position:relative;display:inline-block;width:46px;aspect-ratio:16/9;border-radius:4px;overflow:hidden;background:var(--surface-raise);border:1px solid var(--border);flex:none}
+.ov-hi.sm{width:34px}.ov-hi.xs{width:24px}
+.ov-hi img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ov-ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--text-3);font-size:.7em}
+.ov-skel{display:grid;gap:5px}.ov-skel i{height:10px;border-radius:3px;background:linear-gradient(90deg,var(--surface-raise),var(--border),var(--surface-raise));background-size:200% 100%;animation:ovsk 1.4s linear infinite}
+.ov-skel i:nth-child(2){width:70%}.ov-skel i:nth-child(3){width:45%}
+@keyframes ovsk{to{background-position:-200% 0}}
+/* баннеры, настройки, подробности */
+.ov-banner{margin:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface-sunk)}
+.ov-banner.bad{border-color:rgba(240,68,82,.5)}.ov-banner p{margin:4px 0 8px;color:var(--text-2)}.ov-banner code{font-family:var(--f-mono)}
+.ov-set,.ov-detail{padding:10px;border-bottom:1px solid var(--border-soft);overflow:auto;display:flex;flex-direction:column;gap:8px}
+.ov-set h3,.ov-detail h3,.ov-modal h3{margin:0;font-size:1.05em}
+.ov-detail{border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface-sunk);width:min(360px,45%);flex:none;max-height:100%}
+.ov-detail h4{margin:6px 0 0;font-size:.95em}.ov-detail h4 small,.ov-dh small{color:var(--text-3);font-weight:400}
+.ov-dh{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.ov-dact{display:flex;gap:4px}
+.ov-src{margin:0;color:var(--text-3);font-size:.85em}
+.ov-fm{display:grid;gap:8px}.ov-fm label,.ov-set>label{display:grid;gap:3px;color:var(--text-2);font-size:.9em}
+input[type=text],input:not([type]),input[type=password]{min-height:28px;padding:3px 8px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface-sunk);color:var(--text)}
+.ov-set fieldset{border:1px solid var(--border-soft);border-radius:var(--r-1);display:grid;gap:4px}.ov-set legend{color:var(--text-2);padding:0 4px}
+.ov-ck{display:flex!important;grid-auto-flow:column;gap:6px;align-items:center}
+.ov-tb{width:100%;border-collapse:collapse;font-size:.88em}.ov-tb th,.ov-tb td{padding:3px 4px;text-align:left;border-bottom:1px solid var(--border-soft);font-variant-numeric:tabular-nums}.ov-tb thead th{color:var(--text-3);font-weight:500}
+.ov-tb td.w{color:var(--success)}.ov-tb td.l{color:var(--danger-text)}
+.ov-hl{list-style:none;margin:0;padding:0;display:grid;gap:4px}.ov-hl li{display:flex;gap:6px;align-items:center}.ov-hl b{flex:1;font-weight:600}.ov-hl span{color:var(--text-3)}
+.ov-sg{list-style:none;margin:0;padding:0;display:grid;gap:8px}.ov-sg>li{padding:6px 8px;border:1px solid var(--border);border-left:3px solid var(--warn);border-radius:var(--r-1);display:grid;gap:3px}
+.ov-sg>li.ft{border-left-color:var(--info)}.ov-sg small{color:var(--text-3)}.ov-sg ul{margin:0;padding-left:16px}
+.ov-modal{position:absolute;inset:0;display:grid;place-items:center;background:rgba(8,13,18,.7);z-index:5;padding:12px}.ov-modal .ov-fm{width:min(380px,100%);padding:12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface)}
+.ov-toast{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);max-width:90%;padding:6px 12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface-raise);font-size:.9em;pointer-events:none}.ov-toast:empty{display:none}
+#ov-tip{position:fixed;z-index:50;max-width:260px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface-raise);color:var(--text);font-size:12px;box-shadow:var(--shadow-pop);pointer-events:none}
+.ov a{color:var(--accent-strong)}
+@media (max-width:720px){.ov-teams{grid-template-columns:1fr}.ov-main{flex-direction:column}.ov-detail{width:auto}}
+
+.ov-btn.sm{min-height:22px;padding:1px 7px;font-size:.82em}
+.ov-card.st-unavailable,.ov-card.st-pending{padding:5px 8px}
+.ov-card.st-unavailable .ov-top,.ov-card.st-pending .ov-top{gap:8px}.ov-card.st-unavailable .ov-nm,.ov-card.st-pending .ov-nm{flex:1;font-size:.92em}

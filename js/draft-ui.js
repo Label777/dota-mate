@@ -227,7 +227,7 @@
     const turn = a && !D().isComplete(s) ? `<span class="dr-turn ${a}">Ход: ${SIDE_LABEL[a]} <b id="dr-timer">${fmtT(remaining())}</b></span>` : D().isComplete(s) ? '<span class="dr-turn done">Драфт завершён</span>' : '';
     const bonus = (s.bonus.radiant != null || s.bonus.dire != null) && a ? `<span class="sm">Запас времени: Radiant ${fmtT(s.bonus.radiant)}, Dire ${fmtT(s.bonus.dire)}</span>` : '';
     return `<div class="dr-head-in"><div class="dr-st"><span class="pill ${modeCls()}">${esc(modeLabel())}</span><p class="sm">${status}</p></div><div class="dr-turnbox">${turn}${bonus}</div>
-      <div class="actions"><button class="btn sm2 dr-popbtn" data-a="d-pop" title="Откроется компактное окно, его можно поставить рядом с игрой">Отдельное окно</button><button class="btn sm2" data-a="d-conn" aria-expanded="${P.connOpen}">${ico('lock')}Подключить Dota 2</button>${P.mode === 'demo' ? `<button class="btn sm2" data-a="d-demostop">Остановить демо</button>` : `<button class="btn sm2" data-a="d-demo">Демо</button>`}
+      <div class="actions"><button class="btn sm2 dr-popbtn" data-a="d-pop" title="Откроется компактное окно, его можно поставить рядом с игрой">Отдельное окно</button><button class="btn sm2" data-a="d-overlay" title="Оверлей с игроками матча: статистика, любимые герои и сигналы для проверки. Использует то же подключение к мосту">Оверлей игроков</button><button class="btn sm2" data-a="d-conn" aria-expanded="${P.connOpen}">${ico('lock')}Подключить Dota 2</button>${P.mode === 'demo' ? `<button class="btn sm2" data-a="d-demostop">Остановить демо</button>` : `<button class="btn sm2" data-a="d-demo">Демо</button>`}
       ${P.mode === 'manual' ? `<button class="btn sm2" data-a="d-undo" ${P.undo.length ? '' : 'disabled'}>Отменить</button>` : ''}
       <button class="btn sm2" data-a="d-save" ${D().isEmpty(s) ? 'disabled' : ''}>${ico('check')}Сохранить</button><button class="btn danger sm2" data-a="d-reset" ${D().isEmpty(s) && !P.log.length ? 'disabled' : ''}>Новый драфт</button></div></div>
       ${P.connOpen ? connHtml() : ''}`;
@@ -402,6 +402,7 @@
     const a = t.dataset.a, d = t.dataset;
     switch (a) {
       case 'd-pop': popout(); break;
+      case 'd-overlay': { let w = null; try { w = window.open(new URL('overlay.html', location.href).toString(), 'dotamate-overlay', 'popup=yes,width=860,height=720,left=40,top=40'); } catch (e) { w = null; } if (!w) H.toast('Браузер заблокировал новое окно. Разрешите всплывающие окна для этого сайта.'); break; }
       case 'd-conn': P.connOpen = !P.connOpen; renderHead(); break;
       case 'd-connect': { const ok = connect(($('#dr-host') || {}).value.trim(), ($('#dr-token') || {}).value.trim()); if (ok) P.connOpen = false; renderHead(); break; }
       case 'd-disconnect': disconnect(false); P.manualChosen = true; renderAll(); break;

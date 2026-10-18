@@ -1,6 +1,6 @@
 'use strict';
 /* Локальный мост GSI: принимает данные от клиента Dota 2 на 127.0.0.1 и отдаёт их странице Dota Mate потоком событий (SSE).
-   Ничего не уходит в интернет: страница сама подключается к этому адресу. Из пакета GSI передаются только draft, часть map и team_name игрока. */
+   Ничего не уходит в интернет: страница сама подключается к этому адресу. Из пакета GSI передаются только draft, часть map, сторона и Steam ID игрока (у наблюдателя всех игроков) и id героев. */
 const http = require('node:http');
 const crypto = require('node:crypto');
 const Draft = require('../js/draft.js');
@@ -27,6 +27,7 @@ function cfgText(o) {
         "provider"      "0"
         "map"           "1"
         "player"        "1"
+        "hero"          "1"
         "draft"         "1"
     }
     "auth"
