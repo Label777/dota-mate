@@ -166,3 +166,17 @@ test('таймаут', async () => {
   const a = create({ fetch: (u, o) => new Promise((_, rej) => o.signal.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' })))), minInterval: 0, timeout: 20, sleep: async () => { } });
   await assert.rejects(a.getPlayer('1'), (e) => e.code === 'timeout');
 });
+
+test('requestParse: POST без повторов, без заголовков при прямом доступе, проверка номера', async () => {
+  const seen = [];
+  const a = create({ fetch: async (u, o) => { seen.push([u, o]); return resp(200, { job: { jobId: 1 } }); }, minInterval: 0, sleep: async () => { } });
+  await a.requestParse('9025128045');
+  assert.equal(seen[0][0], 'https://api.opendota.com/api/request/9025128045');
+  assert.equal(seen[0][1].method, 'POST');
+  assert.equal(seen[0][1].headers, undefined);
+  assert.throws(() => a.requestParse('abc'), (e) => e.code === 'invalid');
+  let n = 0;
+  const b = create({ base: '/api/od', fetch: async (u, o) => { n++; assert.equal(o.headers['X-DM'], '1'); throw new TypeError('x'); }, minInterval: 0, sleep: async () => { } });
+  await assert.rejects(b.requestParse('9025128045'), (e) => e.code === 'network');
+  assert.equal(n, 1, 'POST при сетевой ошибке не повторяется');
+});

@@ -105,6 +105,7 @@
         seen[m.id] = 1;
         var p = P.posMap[m.id];
         m.pos = p >= 1 && p <= 5 ? p : null;
+        m.role = p === 'c' ? 'core' : p === 's' ? 'support' : null;
         list.push(m);
       });
     });
@@ -163,6 +164,7 @@
       P.mstate = P.matches.length ? 'ok' : 'empty';
       P.moreLoading = false;
       if (P.ratings === undefined) loadRatings(tok);
+      if (!Object.keys(P.posMap).length) setTimeout(function () { if (active(tok)) runPosJob(20); }, 0);
     } catch (x) {
       if (!active(tok)) return;
       P.moreLoading = false; P.enrich = null;
@@ -175,19 +177,23 @@
     api().getRatings(P.acc).then(function (r) { if (active(tok)) { P.ratings = r || []; render(); } }).catch(function () { if (active(tok)) { P.ratings = []; render(); } });
   }
 
-  async function runPosJob() {
+  async function runPosJob(limit) {
     if (P.job) return;
     var tok = P.token, a = api(), acc = P.acc;
-    var todo = P.matches.filter(function (m) { return !(m.id in P.posMap); }).slice(0, 30);
-    if (!todo.length) { P.posMsg = 'Для всех загруженных матчей позиция уже проверена.'; render(); return; }
-    P.job = { done: 0, total: todo.length, found: 0, stop: false }; P.posMsg = ''; render();
+    var todo = P.matches.filter(function (m) { return !(m.id in P.posMap); })    .slice(0, limit || 30);
+    if (!todo.length) { if (!limit) P.posMsg = 'Для всех загруженных матчей позиция уже проверена.'; render(); return; }
+    P.job = { done: 0, total: todo.length, found: 0, roles: 0, stop: false }; P.posMsg = ''; render();
     for (var i = 0; i < todo.length; i++) {
       if (!active(tok) || P.job.stop) break;
       try {
         var d = await a.getMatchDetail(todo[i].id);
         var r = A.inferPosition(d && d.players, acc);
-        P.posMap[todo[i].id] = r.pos >= 1 && r.pos <= 5 ? r.pos : 0;
-        if (r.pos) P.job.found++;
+        if (r.pos >= 1 && r.pos <= 5) { P.posMap[todo[i].id] = r.pos; P.job.found++; }
+        else {
+          var ro = A.inferRole(d && d.players, acc);
+          P.posMap[todo[i].id] = ro.role === 'core' ? 'c' : ro.role === 'support' ? 's' : 0;
+          if (ro.role) P.job.roles++;
+        }
       } catch (x) {
         if (x.code === 'not_found') P.posMap[todo[i].id] = 0;
         else { P.posMsg = x.code === 'rate_limit' ? 'Лимит запросов OpenDota исчерпан. Продолжите чуть позже: уже найденные позиции сохранены.' : 'Не удалось получить часть матчей. Попробуйте ещё раз.'; break; }
@@ -198,7 +204,26 @@
     }
     if (!active(tok)) return;
     var job = P.job; P.job = null; savePos(); rebuild();
-    if (!P.posMsg) P.posMsg = 'Проверено матчей: ' + job.done + ', позиция определена в ' + job.found + '. ' + (job.found < job.done ? 'У остальных нет данных разбора (OpenDota парсит не все матчи) или картина неоднозначна.' : '');
+    if (!P.posMsg && !limit) P.posMsg = 'Проверено матчей: ' + job.done + '. Точная позиция определена в ' + job.found + (job.roles ? ', только роль «кор» или «саппорт» по золоту команды — в ' + job.roles : '') + '. ' + (job.found < job.done ? 'Остальные матчи OpenDota не разобрал, поэтому линии неизвестны. Их можно отправить на разбор кнопкой ниже.' : '');
+    render();
+  }
+
+  /** Отправляет до 10 самых свежих неразобранных матчей на разбор OpenDota (по клику; повтор не раньше чем через сутки). */
+  async function requestParses() {
+    if (P.job || P.parsing) return;
+    var tok = P.token, a = api(), key = 'dotamate.parsereq.' + P.acc, sent = store(key) || {}, t = now();
+    var todo = P.matches.filter(function (m) { return !(P.posMap[m.id] >= 1) && m.id in P.posMap && !(sent[m.id] > t - 86400); }).slice(0, 10);
+    if (!todo.length) { P.posMsg = 'Нет матчей, которые стоит отправлять на разбор: либо всё определено, либо запрос уже отправлялся за последние сутки.'; render(); return; }
+    P.parsing = true; P.posMsg = 'Отправляю матчи на разбор…'; render();
+    var ok = 0, msg = '';
+    for (var i = 0; i < todo.length; i++) {
+      try { await a.requestParse(todo[i].id); sent[todo[i].id] = t; ok++; }
+      catch (x) { msg = x.code === 'rate_limit' ? 'Лимит запросов исчерпан.' : 'Не удалось отправить часть запросов.'; break; }
+    }
+    store(key, sent);
+    if (!active(tok)) return;
+    P.parsing = false;
+    P.posMsg = 'Отправлено на разбор: ' + ok + ' ' + pl(ok, 'матч', 'матча', 'матчей') + '. ' + msg + (ok ? ' OpenDota разбирает матчи в очереди, обычно это занимает от нескольких минут до часа. Потом нажмите «Перепроверить неточные».' : '');
     render();
   }
 
@@ -476,10 +501,18 @@
   function secPositions(list) {
     var ps = A.positionStats(list, { minMatches: P.minMatches });
     var head = '<div class="sec-h"><h2>Позиции <small>' + e(periodName()) + '</small></h2></div>';
-    var rows = [1, 2, 3, 4, 5, 0].map(function (p) {
+    var unkList = list.filter(function (m) { return !m.pos; });
+    var coreL = unkList.filter(function (m) { return m.role === 'core'; }), supL = unkList.filter(function (m) { return m.role === 'support'; });
+    var rest = unkList.filter(function (m) { return !m.role; });
+    var xr = function (name, l, hint) {
+      var r = A.summarize(l);
+      return '<tr class="unk"><td title="' + e(hint) + '">' + e(name) + '</td><td>' + r.n + '</td><td>' + (r.n ? pct(r.winrate) + '<span class="bar2" aria-hidden="true"><i style="width:' + Math.round(r.winrate * 100) + '%"></i></span>' : '—') + '</td><td>' + (r.kdaN ? f1(r.k) + ' / ' + f1(r.d) + ' / ' + f1(r.a) : '—') + '</td><td>' + (r.gpmN ? Math.round(r.gpm) : '—') + '</td><td>' + (r.xpmN ? Math.round(r.xpm) : '—') + '</td><td></td></tr>';
+    };
+    var extra = (coreL.length ? xr('Кор (1–3), точная позиция неизвестна', coreL, 'Оценка по золоту команды: матч не разобран OpenDota') : '') + (supL.length ? xr('Саппорт (4–5), точная позиция неизвестна', supL, 'Оценка по золоту команды: матч не разобран OpenDota') : '') + xr('Не определена', rest, 'Нет данных или матч ещё не проверен');
+    var rows = [1, 2, 3, 4, 5].map(function (p) {
       var r = ps.rows[p], isBest = ps.best === p, sel = P.cmp.indexOf(p) >= 0;
       return '<tr class="' + (isBest ? 'best' : '') + (p === 0 ? ' unk' : '') + '"><td>' + (p ? '<b>' + p + '</b> · ' + A.POS_NAMES[p] : 'Не определена') + (isBest ? ' <span class="tag">лучшая</span>' : '') + '</td><td>' + r.n + '</td><td>' + (r.n ? pct(r.winrate) + '<span class="bar2" aria-hidden="true"><i style="width:' + Math.round(r.winrate * 100) + '%"></i></span>' : '—') + '</td><td>' + (r.kdaN ? f1(r.k) + ' / ' + f1(r.d) + ' / ' + f1(r.a) : '—') + '</td><td>' + (r.gpmN ? Math.round(r.gpm) : '—') + '</td><td>' + (r.xpmN ? Math.round(r.xpm) : '—') + '</td><td>' + (p && r.n ? '<button class="btn sm2" type="button" data-pa="cmp" data-p="' + p + '" aria-pressed="' + sel + '"' + (sel ? ' style="border-color:var(--red-hi)"' : '') + '>' + (sel ? 'Выбрана' : 'Сравнить') + '</button>' : '') + '</td></tr>';
-    }).join('');
+    }).join('') + extra;
     var table = '<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Позиция</th><th>Матчей</th><th>Винрейт</th><th>K / D / A</th><th>GPM</th><th>XPM</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     var cmp = '';
     if (P.cmp.length === 2) {
@@ -498,8 +531,8 @@
     var best = ps.best ? '<p style="margin-top:12px">Лучшие результаты в этот период: <b>' + e(posLabel(ps.best)) + '</b>, ' + pct(ps.rows[ps.best].winrate) + ' побед за ' + cnt(ps.rows[ps.best].n) + (ps.rows[ps.best].n < 10 ? ' (выборка небольшая)' : '') + '. Сравнение учитывает размер выборки: позиции с малым числом игр не выигрывают случайно.</p>' :
       '<p class="sm" style="margin-top:12px">' + (ps.known === 0 ? 'Позиции пока не определены, поэтому сравнивать нечего.' : ps.qualifying.length === 1 ? 'Достаточно данных только по одной позиции, сравнивать пока не с чем.' : 'Ни по одной позиции нет ' + cnt(P.minMatches) + ': данных для сравнения недостаточно.') + '</p>';
     var job = P.job ? '<div class="jobline"><div class="prog" role="progressbar" aria-valuemin="0" aria-valuemax="' + P.job.total + '" aria-valuenow="' + P.job.done + '"><i style="width:' + Math.round(100 * P.job.done / P.job.total) + '%"></i></div><span class="sm">Проверяю матчи ' + P.job.done + ' из ' + P.job.total + '</span><button class="btn sm2" type="button" data-pa="job-stop">Остановить</button></div>' :
-      '<div class="jobline"><button class="btn" type="button" data-pa="job">' + ico('search') + 'Определить позиции</button>' + (Object.keys(P.posMap).some(function (k) { return P.posMap[k] === 0; }) ? '<button class="btn ghost" type="button" data-pa="job-reset">Перепроверить неопределённые</button>' : '') + '<span class="sm">Определено: ' + ps.known + ' из ' + P.matches.filter(function (m) { return true; }).length + ' загруженных матчей. За один запуск проверяется до 30 новых матчей.</span></div>';
-    return '<section class="card">' + head + '<p class="me-note" style="margin-bottom:12px">OpenDota не отдаёт позицию напрямую. Сайт определяет её по разбору матча: три героя команды с наибольшим золотом считаются кор-ролями, линии из разбора распределяют их по 1, 2 и 3, остальные двое получают 4 и 5. Если матч не разобран или картина неоднозначна, позиция остаётся «Не определена».</p>' + table + best + cmp + job +
+      '<div class="jobline"><button class="btn" type="button" data-pa="job">' + ico('search') + 'Определить позиции</button>' + (Object.keys(P.posMap).some(function (k) { return !(P.posMap[k] >= 1); }) ? '<button class="btn ghost" type="button" data-pa="job-reset">Перепроверить неточные</button><button class="btn ghost" type="button" data-pa="parse-req">Отправить на разбор в OpenDota</button>' : '') + '<span class="sm">Определено: ' + ps.known + ' из ' + P.matches.filter(function (m) { return true; }).length + ' загруженных матчей. Новые матчи проверяются автоматически (по 20), кнопка проверяет ещё до 30.</span></div>';
+    return '<section class="card">' + head + '<p class="me-note" style="margin-bottom:12px">OpenDota не отдаёт позицию напрямую. Сайт определяет её по разбору матча: три героя команды с наибольшим золотом считаются кор-ролями, линии из разбора распределяют их по 1, 2 и 3, остальные двое получают 4 и 5. Если матч не разобран, линий нет: тогда показывается только роль «кор» или «саппорт» по золоту команды (со знаком ≈, это оценка), а точная позиция остаётся неизвестной. Разбор можно запросить у OpenDota: он занимает несколько минут, затем нажмите «Перепроверить неточные».</p>' + table + best + cmp + job +
       (P.posMsg ? '<div class="banner soft" style="margin-top:12px" role="status">' + ico('info') + '<p>' + e(P.posMsg) + '</p></div>' : '') + '</section>';
   }
 
@@ -510,13 +543,13 @@
     if (f.period !== 'all') o.periodDays = Number(f.period);
     if (f.hero !== 'all') o.hero = f.hero;
     if (f.result !== 'all') o.result = f.result;
-    if (f.pos !== 'all') o.pos = Number(f.pos);
+    if (f.pos !== 'all') o.pos = (f.pos === 'core' || f.pos === 'support') ? f.pos : Number(f.pos);
     var list = A.filterMatches(P.matches, o), vis = list.slice(0, P.shown);
     var sel = function (key, label, opts) { return '<label>' + label + '<select class="sel" data-pf="tf.' + key + '">' + opts.map(function (x) { return '<option value="' + e(x[0]) + '"' + (String(f[key]) === String(x[0]) ? ' selected' : '') + '>' + e(x[1]) + '</option>'; }).join('') + '</select></label>'; };
     var filters = '<div class="filters me-f">' +
       sel('hero', 'Герой', [['all', 'Все герои']].concat(hopts.map(function (id) { return [id, heroName(id)]; }))) +
       sel('result', 'Результат', [['all', 'Все'], ['win', 'Победы'], ['loss', 'Поражения']]) +
-      sel('pos', 'Позиция', [['all', 'Любая'], ['1', '1 · Carry'], ['2', '2 · Mid'], ['3', '3 · Offlane'], ['4', '4 · Soft Support'], ['5', '5 · Hard Support'], ['0', 'Не определена']]) +
+      sel('pos', 'Позиция', [['all', 'Любая'], ['1', '1 · Carry'], ['2', '2 · Mid'], ['3', '3 · Offlane'], ['4', '4 · Soft Support'], ['5', '5 · Hard Support'], ['core', 'Кор (по золоту)'], ['support', 'Саппорт (по золоту)'], ['0', 'Не определена']]) +
       sel('period', 'Период', [['all', 'Всё загруженное'], ['7', '7 дней'], ['30', '30 дней']]) +
       '<button class="btn ghost sm2" type="button" data-pa="tf-reset">Сбросить</button></div>';
     var head = '<div class="mt-h"><span>Герой</span><span>Результат</span><span>Дата</span><span>Время</span><span>K / D / A</span><span>GPM / XPM</span><span>Добито</span><span>Позиция</span></div>';
@@ -527,7 +560,7 @@
         '<span class="kda"><span class="c-lab">K/D/A</span>' + (m.k != null && m.d != null && m.a != null ? m.k + '<i> / </i>' + m.d + '<i> / </i>' + m.a : na()) + '</span>' +
         '<span><span class="c-lab">GPM/XPM</span>' + (gx || (P.enrich ? '<span class="na">…</span>' : na('OpenDota не отдал GPM/XPM для этого матча'))) + '</span>' +
         '<span><span class="c-lab">Добито</span>' + (m.lh != null ? m.lh + (m.dn != null ? ' <span class="na">/ ' + m.dn + '</span>' : '') : (P.enrich ? '<span class="na">…</span>' : na())) + '</span>' +
-        '<span><span class="c-lab">Поз.</span>' + (m.pos ? '<span title="' + e(A.POS_NAMES[m.pos]) + '">' + m.pos + ' · ' + e(A.POS_NAMES[m.pos]) + '</span>' : '<span class="na">Не определена</span>') + '</span></div></div>';
+        '<span><span class="c-lab">Поз.</span>' + (m.pos ? '<span title="' + e(A.POS_NAMES[m.pos]) + '">' + m.pos + ' · ' + e(A.POS_NAMES[m.pos]) + '</span>' : m.role ? '<span title="Оценка по золоту команды: матч не разобран OpenDota, точная позиция неизвестна">≈ ' + (m.role === 'core' ? 'Кор' : 'Саппорт') + '</span>' : '<span class="na">Не определена</span>') + '</span></div></div>';
     }).join('');
     var more = '';
     if (list.length > vis.length) more = '<button class="btn" type="button" data-pa="show-more">Показать ещё ' + Math.min(25, list.length - vis.length) + '</button>';
@@ -627,8 +660,9 @@
       case 'tf-reset': P.tf = { hero: 'all', result: 'all', pos: 'all', period: 'all' }; P.shown = 25; renderBody(); break;
       case 'cmp': { var p = Number(t.dataset.p), i = P.cmp.indexOf(p); if (i >= 0) P.cmp.splice(i, 1); else P.cmp = P.cmp.concat(p).slice(-2); renderBody(); break; }
       case 'job': runPosJob(); break;
+      case 'parse-req': requestParses(); break;
       case 'job-stop': if (P.job) P.job.stop = true; break;
-      case 'job-reset': Object.keys(P.posMap).forEach(function (k) { if (P.posMap[k] === 0) delete P.posMap[k]; }); savePos(); rebuild(); P.posMsg = ''; renderBody(); break;
+      case 'job-reset': Object.keys(P.posMap).forEach(function (k) { if (!(P.posMap[k] >= 1)) delete P.posMap[k]; }); savePos(); rebuild(); P.posMsg = ''; renderBody(); break;
       case 'copy': H.copy(t.dataset.t); break;
     }
   });

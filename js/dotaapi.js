@@ -8,6 +8,7 @@
  *   getMatches(acc, {limit, offset}) -> [{match_id, player_slot, radiant_win, start_time, ...}]
  *   getRatings(acc)                  -> [{time, solo_competitive_rank, competitive_rank, match_id}]
  *   getMatchDetail(matchId)          -> подробный матч с players[]
+ *   requestParse(matchId)            -> просит источник разобрать матч (позиции, линии)
  *   clearCache()
  * Ошибки: ApiError с полем code: invalid | not_found | rate_limit | network | timeout | api | bad_data.
  *
@@ -73,7 +74,7 @@
       return run;
     }
 
-    function request(path) {
+    function request(path, init) {
       var url = o.base + path;
       return schedule(function () {
         var attempt = 0;
@@ -81,7 +82,7 @@
           var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
           var timer = ctl ? setTimeout(function () { ctl.abort(); }, o.timeout) : null;
           stats.requests++;
-          return Promise.resolve().then(function () { return o.fetch(url, ctl ? { signal: ctl.signal } : undefined); })
+          return Promise.resolve().then(function () { var opt = Object.assign({}, init || {}); if (ctl) opt.signal = ctl.signal; return o.fetch(url, opt); })
             .then(function (res) {
               if (timer) clearTimeout(timer);
               if (res.status === 429) {
@@ -94,7 +95,7 @@
               return res.json().catch(function () { throw new ApiError('bad_data', 'Ответ API не удалось разобрать.'); });
             }, function (err) {
               if (timer) clearTimeout(timer);
-              if (attempt < 1) { attempt++; return o.sleep(800).then(once); }
+              if (attempt < 1 && !(init && init.method === 'POST')) { attempt++; return o.sleep(800).then(once); }
               var aborted = err && err.name === 'AbortError';
               throw new ApiError(aborted ? 'timeout' : 'network', aborted ? 'Сервер не ответил вовремя.' : 'Нет связи с сервером данных.');
             });
@@ -226,6 +227,12 @@
       getMatchDetail: function (id, c) {
         if (!/^\d{4,13}$/.test(String(id))) throw new ApiError('invalid', 'Некорректный номер матча.');
         return cached('detail:' + id, TTL.detail, '/matches/' + id, Object.assign({ persist: false }, c || {}));
+      },
+      /** Просит OpenDota разобрать матч (POST /request/{id}). Разбор занимает минуты; результат ничем не кэшируется. */
+      requestParse: function (id) {
+        if (!/^\d{4,13}$/.test(String(id))) throw new ApiError('invalid', 'Некорректный номер матча.');
+        var h = o.base === DIRECT_BASE ? undefined : { 'X-DM': '1' };
+        return request('/request/' + id, { method: 'POST', headers: h });
       },
       clearCache: function () { mem.clear(); multi = null; dropStored(); }
     };

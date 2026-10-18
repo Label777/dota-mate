@@ -309,3 +309,20 @@ test('rankTier: названия рангов', () => {
   assert.equal(A.rankTier(null), null);
   assert.equal(A.rankTier(0), null);
 });
+
+test('inferRole: по золоту команды кор или саппорт, спорные границы не назначаются', () => {
+  const { inferRole, filterMatches } = require('../js/analytics.js');
+  const team = (golds, meIdx) => golds.map((g, i) => ({ account_id: i === meIdx ? 7 : 100 + i, isRadiant: true, net_worth: g })).concat(
+    [1, 2, 3, 4, 5].map((i) => ({ account_id: 900 + i, isRadiant: false, net_worth: 1000 * i })));
+  assert.equal(inferRole(team([30000, 20000, 15000, 8000, 6000], 0), 7).role, 'core');
+  assert.equal(inferRole(team([30000, 20000, 15000, 8000, 6000], 4), 7).role, 'support');
+  assert.equal(inferRole(team([30000, 20000, 10000, 9900, 6000], 2), 7).role, null, 'третий и четвёртый почти равны: не назначаем');
+  assert.equal(inferRole(team([30000, 20000, 15000, 8000, 6000], 0), 8).role, null, 'игрока нет в матче');
+  assert.equal(inferRole(null, 7).role, null);
+  const list = [
+    { id: '1', start: 3, win: true, pos: null, role: 'core' }, { id: '2', start: 2, win: true, pos: 2, role: null },
+    { id: '3', start: 1, win: false, pos: null, role: 'support' }, { id: '4', start: 0, win: false, pos: null, role: null }];
+  assert.deepEqual(filterMatches(list, { pos: 'core' }).map((m) => m.id), ['1']);
+  assert.deepEqual(filterMatches(list, { pos: 'support' }).map((m) => m.id), ['3']);
+  assert.deepEqual(filterMatches(list, { pos: 0 }).map((m) => m.id), ['1', '3', '4'], 'без точной позиции: 0 включает и оценки ролей');
+});

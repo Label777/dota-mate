@@ -83,7 +83,7 @@
       gpm: num(r.gold_per_min), xpm: num(r.xp_per_min), lh: num(r.last_hits), dn: num(r.denies),
       laneRole: num(r.lane_role), roam: typeof r.is_roaming === 'boolean' ? r.is_roaming : null,
       mode: num(r.game_mode), lobby: num(r.lobby_type), party: num(r.party_size), leaver: num(r.leaver_status),
-      pos: null
+      pos: null, role: null
     };
   }
 
@@ -107,8 +107,8 @@
       if (opts.result === 'win' && !m.win) return false;
       if (opts.result === 'loss' && m.win) return false;
       if (opts.pos != null && opts.pos !== 'all') {
-        var p = m.pos || 0;
-        if (p !== Number(opts.pos)) return false;
+        if (opts.pos === 'core' || opts.pos === 'support') { if (m.pos || m.role !== opts.pos) return false; }
+        else if ((m.pos || 0) !== Number(opts.pos)) return false;
       }
       return true;
     });
@@ -262,6 +262,28 @@
     var hi = sups[0], lo = sups[1], posHi = 4, posLo = 5;
     if (hi.lane_role === 1 && lo.lane_role === 3) { posHi = 5; posLo = 4; }
     return { pos: me === hi ? posHi : posLo, why: 'support' };
+  }
+
+  /**
+   * Грубая роль, когда матч не разобран и линий нет: по золоту внутри команды трое с наибольшим считаются кор-игроками,
+   * двое остальных саппортами. Это оценка по золоту, а не точная позиция 1–5; точная позиция остаётся неизвестной.
+   * Возвращает {role: 'core'|'support'|null, why}.
+   */
+  function inferRole(players, accountId) {
+    if (!Array.isArray(players)) return { role: null, why: 'no_players' };
+    var isRad = function (p) { return p.isRadiant != null ? !!p.isRadiant : num(p.player_slot) != null && p.player_slot < 128; };
+    var me = players.filter(function (p) { return String(p.account_id) === String(accountId); })[0];
+    if (!me) return { role: null, why: 'not_in_match' };
+    var team = players.filter(function (p) { return isRad(p) === isRad(me); });
+    if (team.length !== 5) return { role: null, why: 'team_size' };
+    var gold = function (p) { var g = num(p.net_worth); if (g == null) g = num(p.total_gold); return g != null ? g : num(p.gold_per_min); };
+    for (var i = 0; i < 5; i++) if (gold(team[i]) == null) return { role: null, why: 'no_gold' };
+    var sorted = team.slice().sort(function (a, b) { return gold(b) - gold(a); });
+    var rank = sorted.indexOf(me);
+    // граница между третьим и четвёртым должна быть заметной, иначе роль спорная
+    var gap = gold(sorted[2]) - gold(sorted[3]);
+    if ((rank === 2 || rank === 3) && gap < 0.03 * gold(sorted[2])) return { role: null, why: 'close_gold' };
+    return { role: rank < 3 ? 'core' : 'support', why: 'gold' };
   }
 
   function positionStats(list, opts) {
@@ -464,7 +486,7 @@
     parsePlayerInput: parsePlayerInput, normalizeMatch: normalizeMatch, chrono: chrono, newestFirst: newestFirst,
     filterMatches: filterMatches, summarize: summarize, streaks: streaks, wilson: wilson,
     heroStats: heroStats, classifyHeroes: classifyHeroes, explainHero: explainHero,
-    inferPosition: inferPosition, positionStats: positionStats, posName: posName,
+    inferPosition: inferPosition, inferRole: inferRole, positionStats: positionStats, posName: posName,
     timeSeries: timeSeries, kdaSeries: kdaSeries, compareWindows: compareWindows,
     coverage: coverage, coversPeriod: coversPeriod, buildInsights: buildInsights, recommendHeroes: recommendHeroes,
     rankTier: rankTier, plural: plural, pct: pct

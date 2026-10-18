@@ -325,6 +325,19 @@ async function handle(req, res) {
     return proxyOD(req, res, url, who);
   }
 
+  /* Запрос разбора матча у OpenDota: открытая операция, только с этого же сайта, строго ограниченная по частоте. */
+  const rq = method === 'POST' && /^\/api\/od\/request\/(\d{6,13})$/.exec(p);
+  if (rq) {
+    if (!sameSiteOk(req)) return json(res, 403, { error: 'forbidden' });
+    const s0 = session(req), who = (s0 ? s0.acc : 'ip:' + (req.socket.remoteAddress || '')) + ':req';
+    if (limited(who, 30)) return json(res, 429, { error: 'rate' }, { 'Retry-After': '60' });
+    try {
+      const r = await fetch(`${OD}/request/${rq[1]}` + (OD_KEY ? '?api_key=' + encodeURIComponent(OD_KEY) : ''), { method: 'POST', signal: AbortSignal.timeout(15000), headers: { 'User-Agent': 'dota-mate/1.0' } });
+      const t = await r.text();
+      return r.ok ? send(res, 200, t, JSON_H) : json(res, r.status === 429 ? 429 : 502, { error: 'upstream ' + r.status });
+    } catch (e) { return json(res, 502, { error: 'upstream unreachable' }); }
+  }
+
   if (p.startsWith('/api/')) {
     const s = session(req);
     if (!s) return json(res, 401, { error: 'no session' });
