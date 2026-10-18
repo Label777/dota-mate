@@ -70,8 +70,8 @@ const session = (req) => verify(cookies(req).dm_session);
 
 const SEC_HEADERS = {
   'Content-Security-Policy':
-    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src https://fonts.gstatic.com; img-src 'self' data: https://*.steamstatic.com https://*.akamaihd.net; " +
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
+    "font-src 'self'; img-src 'self' data: https://*.steamstatic.com https://*.akamaihd.net; " +
     "connect-src 'self' http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'none'; object-src 'none'",
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
@@ -235,6 +235,11 @@ async function proxyOD(req, res, url, who) {
   } else if ((m = /^\/api\/od\/players\/(\d{1,10})\/heroes$/.exec(pn))) {
     target = `${OD}/players/${m[1]}/heroes`; ttl = 1800000;
     shape = (a) => (Array.isArray(a) ? a.slice(0, 400).map((r) => ({ hero_id: r.hero_id, games: r.games, win: r.win, last_played: r.last_played })) : []);
+  } else if (pn === '/api/od/search') {
+    const q = (url.searchParams.get('q') || '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 40);
+    if (q.length < 2) return json(res, 400, { error: 'q' });
+    target = `${OD}/search?q=${encodeURIComponent(q)}`; ttl = 600000; weight = 2;
+    shape = (a) => (Array.isArray(a) ? a.slice(0, 15).map((r) => pick(r, ['account_id', 'personaname', 'avatarfull', 'last_match_time'])) : []);
   } else if (pn === '/api/od/benchmarks') {
     const hid = /^\d{1,4}$/.test(url.searchParams.get('hero_id') || '') ? url.searchParams.get('hero_id') : '';
     if (!hid) return json(res, 400, { error: 'hero_id' });
@@ -302,6 +307,9 @@ async function handle(req, res) {
     const f = path.join(__dirname, p);
     if (!f.startsWith(path.join(__dirname, asset[1]) + path.sep) || !fs.existsSync(f)) return send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
     return send(res, 200, fs.readFileSync(f), { 'Content-Type': (asset[2] === 'js' ? 'text/javascript' : 'text/css') + '; charset=utf-8', 'Cache-Control': 'no-cache' });
+  }
+  if (method === 'GET' && /^\/fonts\/inter-(400|500|600|700)\.woff$/.test(p)) {
+    return send(res, 200, fs.readFileSync(path.join(__dirname, p)), { 'Content-Type': 'font/woff', 'Cache-Control': 'public, max-age=604800' });
   }
   if (method === 'GET' && p === '/bridge/dota-mate-bridge.js') {
     const f = path.join(__dirname, 'bridge', 'dota-mate-bridge.js');

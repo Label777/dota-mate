@@ -19,7 +19,7 @@
       input: '', phase: 'idle', err: null, acc: null, steam64: null, profile: null, rank: null, lb: null, wl: null,
       pages: {}, matches: [], hasMore: true, nextOffset: 0, mstate: 'idle', merr: null, enrich: null, moreLoading: false,
       period: '30', minMatches: 5, tf: { hero: 'all', result: 'all', pos: 'all', period: 'all', flag: 'all' }, shown: 25, recPos: 'all',
-      cmp: [], open: {}, posMap: {}, job: null, posMsg: '', ratings: undefined, heroes: null, token: 0, formErr: ''
+      cmp: [], open: {}, posMap: {}, job: null, posMsg: '', ratings: undefined, heroes: null, token: 0, formErr: '', nq: '', nres: null, nerr: null
     };
   }
 
@@ -239,10 +239,37 @@
   }
 
   /* ---------- ввод и поиск ---------- */
+  /** Поиск по нику: OpenDota ищет среди публичных профилей. Это кандидаты, а не подтверждённая личность. */
+  async function searchName(q) {
+    var tok = ++P.token, keep = { input: P.input, minMatches: P.minMatches };
+    P = Object.assign(blank(), keep, { token: tok, phase: 'names', nq: q });
+    render();
+    try {
+      var list = await api().searchPlayers(q);
+      if (!active(tok)) return;
+      P.nres = (list || []).filter(function (r) { return r && /^\d{1,10}$/.test(String(r.account_id)); });
+    } catch (x) {
+      if (!active(tok)) return;
+      P.nerr = errInfo(x);
+    }
+    render();
+  }
+  function namesView() {
+    if (P.nerr) return '<div class="banner" role="alert">' + ico('alert') + '<div style="flex:1"><b>' + e(P.nerr.t) + '</b><p class="sm" style="margin-top:2px">' + e(P.nerr.d) + '</p></div><button class="btn sm2" data-pa="retry-n">Повторить</button></div>';
+    if (!P.nres) return '<div class="sk-row" aria-busy="true" role="status"><span class="sm">Ищу «' + e(P.nq) + '» в OpenDota…</span><div class="skel h1"></div><div class="skel h2"></div></div>';
+    if (!P.nres.length) return '<div class="empty">' + ico('search') + '<b>По нику «' + e(P.nq) + '» никого не нашли</b><p>OpenDota ищет только среди открытых профилей и учитывает ник целиком. Попробуйте другой вариант написания или вставьте Steam ID либо ссылку на профиль.</p></div>';
+    return '<section class="card stack"><div class="sec-h" style="margin:0"><h2>Найдено по нику «' + e(P.nq) + '»: ' + P.nres.length + '</h2></div><p class="sm">Это совпадения по нику, они не подтверждают личность. Проверьте Steam ID и дату последнего матча.</p><ul class="me-names">' +
+      P.nres.map(function (r) {
+        var last = r.last_match_time ? new Date(r.last_match_time) : null, lt = last && !isNaN(last) ? last.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : 'нет данных';
+        return '<li><button type="button" class="me-name" data-pa="open" data-acc="' + e(r.account_id) + '">' + pic(r.avatarfull, r.personaname) + '<span class="mn-t"><b>' + e(r.personaname || ('Игрок ' + r.account_id)) + '</b><small>Steam ID ' + e(r.account_id) + ' · последний матч: ' + e(lt) + '</small></span><span class="mn-go">Открыть профиль</span></button></li>';
+      }).join('') + '</ul></section>';
+  }
   async function submit(raw) {
     var r = A.parsePlayerInput(raw);
     P.formErr = '';
     if (r.ok) { P.input = raw; await lookup(r.acc); return; }
+    var nick = String(raw || '').trim();
+    if (r.code === 'invalid' && nick.length >= 2 && !/[\/:]/.test(nick)) { P.input = raw; await searchName(nick); return; }
     if (r.code === 'vanity') {
       if (H.server()) {
         try {
@@ -392,10 +419,10 @@
     (s.recent || []).filter(function (x) { return x.acc !== P.acc && x.acc !== mine; }).slice(0, 4).forEach(function (x, i) {
       chips += '<button type="button" class="chip" data-pa="open" data-acc="' + e(x.acc) + '" title="Steam ID ' + e(x.acc) + '">' + pic(x.avatar, x.name) + e(x.name || x.acc) + (i === 0 && s.last && s.last.acc === x.acc ? '<span class="sm">&nbsp;последний</span>' : '') + '</button>';
     });
-    return '<section class="card me-search"><form id="me-form" novalidate><label for="me-in">Steam ID, SteamID64 или ссылка на профиль Steam</label>' +
-      '<div class="me-row"><input id="me-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="7656119… или steamcommunity.com/profiles/…" value="' + e(P.input) + '"' + (P.formErr ? ' aria-invalid="true" aria-describedby="me-ferr"' : '') + '>' +
+    return '<section class="card me-search"><form id="me-form" novalidate><label for="me-in">Ник, Steam ID, SteamID64 или ссылка на профиль</label>' +
+      '<div class="me-row"><input id="me-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ник, 7656119… или steamcommunity.com/profiles/…" value="' + e(P.input) + '"' + (P.formErr ? ' aria-invalid="true" aria-describedby="me-ferr"' : '') + '>' +
       '<button class="btn primary" type="submit"' + (P.phase === 'finding' ? ' disabled' : '') + '>' + ico('search') + 'Найти игрока</button></div>' +
-      (P.formErr ? '<div class="banner soft me-err" id="me-ferr" role="alert">' + ico('alert') + '<p>' + e(P.formErr) + '</p></div>' : '<p class="sm hint">Данные берутся у OpenDota из публичных профилей. Пароль Steam не нужен и не запрашивается.</p>') +
+      (P.formErr ? '<div class="banner soft me-err" id="me-ferr" role="alert">' + ico('alert') + '<p>' + e(P.formErr) + '</p></div>' : '<p class="sm hint">Данные берутся у OpenDota из публичных профилей. Ник ищется только среди открытых профилей и даёт варианты, а не точный ответ; надёжнее Steam ID. Пароль Steam не нужен.</p>') +
       '</form>' + (chips ? '<div class="me-quick"><span class="lbl">Быстро открыть:</span>' + chips + '</div>' : '') + '</section>';
   }
 
@@ -644,7 +671,8 @@
     var el = document.getElementById('me-body');
     if (!el) return;
     var h;
-    if (P.phase === 'idle') h = '<div class="empty">' + ico('user') + '<b>Найдите игрока</b><p>Введите Steam ID или ссылку на профиль Steam, чтобы увидеть историю матчей, статистику по героям и позициям и персональные рекомендации. Все цифры считаются из реальных данных OpenDota.</p></div>';
+    if (P.phase === 'names') h = namesView();
+    else if (P.phase === 'idle') h = '<div class="empty">' + ico('user') + '<b>Найдите игрока</b><p>Введите Steam ID или ссылку на профиль Steam, чтобы увидеть историю матчей, статистику по героям и позициям и персональные рекомендации. Все цифры считаются из реальных данных OpenDota.</p></div>';
     else if (P.phase === 'finding') h = '<div class="sk-row" aria-busy="true" role="status"><span class="sm">Ищу игрока в OpenDota…</span><div class="skel h1"></div><div class="skel k"></div><div class="skel h2"></div></div>';
     else if (P.phase === 'error') h = '<div class="banner" role="alert">' + ico('alert') + '<div style="flex:1"><b>' + e(P.err.t) + '</b><p class="sm" style="margin-top:2px">' + e(P.err.d) + '</p></div>' + (P.err.retry ? '<button class="btn sm2" type="button" data-pa="retry">Повторить</button>' : '') + '</div>';
     else h = secHead() + secMatchesState();
@@ -701,6 +729,7 @@
     switch (a) {
       case 'open': P.input = ''; lookup(t.dataset.acc); break;
       case 'retry': lookup(P.acc); break;
+      case 'retry-n': searchName(P.nq); break;
       case 'refresh': lookup(P.acc, { refresh: true }); break;
       case 'retry-m': P.mstate = 'loading'; loadMatches(P.token); break;
       case 'more': loadMatches(P.token); break;
@@ -724,8 +753,12 @@
     view: function () { return '<div id="me-root" class="pf"></div>'; },
     mount: mount,
     current: function () { return P.acc; },
+    /** Недавно открытые профили (из браузера): [{acc, name, avatar}]. */
+    recent: function () { return (saved().recent || []).filter(function (x) { return x && /^\d{1,10}$/.test(String(x.acc)); }); },
     /** Вкладка «Найти профиль»: чистый поиск. Запросы идущего поиска отменяются, число матчей для статистики сохраняется. */
     reset: function () { var t = P.token + 1, mm = P.minMatches; P = blank(); P.token = t; P.minMatches = mm; },
+    /** Поиск из других мест сайта (главная): число, ссылка и ник обрабатываются так же, как в форме. */
+    search: function (q) { P.input = String(q || ''); var go = function () { submit(P.input); }; if ($r()) go(); else setTimeout(go, 0); },
     open: function (acc) { P.input = ''; if ($r()) lookup(String(acc)); else setTimeout(function () { lookup(String(acc)); }, 0); },
     _state: function () { return P; }
   };

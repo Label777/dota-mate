@@ -367,5 +367,5 @@
     if (t.classList && t.classList.contains('sx-qnote') && X.qr && X.qr.rows[t.dataset.sid]) X.qr.rows[t.dataset.sid].note = t.value;
   });
 
-  window.DMSocialUI = { init, view, body, tabs, filterBar, filter, search, rowExtra, rowBadges, tagChips: chips, recTxt, playerBlocks, matchTop, rateAllModal, dashBlock, settingsBlock, isAll, state: X };
+  window.DMSocialUI = { init, view, body, tabs, filterBar, filter, search, rowExtra, rowBadges, tagChips: chips, tagNames: (sid) => D().tagsOf(S(), sid).map(D().tagLabel).join(' '), recTxt, playerBlocks, matchTop, rateAllModal, dashBlock, settingsBlock, isAll, state: X };
 })();

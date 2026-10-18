@@ -1,27 +1,27 @@
 /* Теги, списки игроков, быстрая оценка, напоминания. Цвет тега: зелёный хорошее, красный предупреждение, золотой осторожность, серый нейтральное. */
 .sx-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
 .sx-tab{flex:none;display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border:1px solid var(--line);border-radius:999px;color:var(--fg-2);background:var(--card);font-weight:600;font-size:.92rem}
-.sx-tab:hover{border-color:#434b58;color:var(--fg)}
-.sx-tab[aria-selected=true]{background:var(--red-soft);border-color:#6a2f35;color:var(--fg)}
+.sx-tab:hover{border-color:var(--border-hover);color:var(--fg)}
+.sx-tab[aria-selected=true]{background:var(--accent-soft);border-color:var(--accent-dim);color:var(--accent-strong)}
 .sx-n{font-size:.76rem;min-width:20px;text-align:center;border-radius:999px;padding:0 6px;background:var(--card-2);color:var(--fg-2)}
 .sx-body{display:flex;flex-direction:column;gap:14px;margin-top:14px;min-width:0}
 .sx-lead{color:var(--fg-2);max-width:68ch}
 
 .sx-tag,.sx-pill{font-size:.76rem;line-height:1.5;border-radius:6px;padding:0 8px;border:1px solid var(--line);background:var(--card-2);color:var(--fg-2);white-space:nowrap}
-.sx-tag.pos,.sx-pill.pos{color:#8fd0ae;border-color:#2f5a45;background:var(--win-soft)}
-.sx-tag.neg,.sx-pill.neg{color:#f0a0a4;border-color:#6a2f35;background:rgba(168,50,58,.14)}
-.sx-tag.warn,.sx-pill.warn{color:#e0c07c;border-color:#6b5a30;background:rgba(207,169,90,.1)}
+.sx-tag.pos,.sx-pill.pos{color:var(--success);border-color:rgba(72,214,160,.35);background:var(--win-soft)}
+.sx-tag.neg,.sx-pill.neg{color:var(--danger-text);border-color:rgba(240,68,82,.4);background:var(--danger-soft)}
+.sx-tag.warn,.sx-pill.warn{color:var(--warn);border-color:rgba(240,166,74,.4);background:var(--warn-soft)}
 .sx-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
 .sx-hit{display:block;margin-top:3px;font-size:.82rem;color:var(--fg-2);overflow-wrap:anywhere}
 .sx-hnline{display:flex;gap:6px;align-items:flex-start;margin-top:4px;font-size:.84rem;color:var(--fg-2);overflow-wrap:anywhere}
 .sx-hnline .ic{width:14px;height:14px;margin-top:3px;flex:none;color:var(--mute)}
 
 .sx-pill{cursor:pointer;font-size:.88rem;padding:4px 12px;border-radius:999px;min-height:32px;transition:background .15s,border-color .15s}
-.sx-pill:hover{border-color:#5a6372}
-.sx-pill[aria-pressed=true]{font-weight:600;color:var(--fg);border-color:#8a93a3;background:#2a303a}
-.sx-pill.pos[aria-pressed=true]{background:rgba(88,166,125,.28);border-color:#58a67d}
-.sx-pill.neg[aria-pressed=true]{background:rgba(217,92,99,.28);border-color:#d95c63}
-.sx-pill.warn[aria-pressed=true]{background:rgba(207,169,90,.26);border-color:#cfa95a}
+.sx-pill:hover{border-color:var(--text-3)}
+.sx-pill[aria-pressed=true]{font-weight:600;color:var(--fg);border-color:var(--text-3);background:var(--surface-raise)}
+.sx-pill.pos[aria-pressed=true]{background:rgba(72,214,160,.22);border-color:var(--success)}
+.sx-pill.neg[aria-pressed=true]{background:var(--danger-soft);border-color:var(--danger)}
+.sx-pill.warn[aria-pressed=true]{background:var(--warn-soft);border-color:var(--accent)}
 .sx-te{display:flex;gap:8px;flex-wrap:wrap}
 .sx-add{display:flex;gap:8px;max-width:360px}
 .sx-add input{flex:1;min-width:0}
@@ -40,12 +40,12 @@
 .sx-filters .field{min-width:130px;flex:1 1 130px;max-width:220px}
 .sx-list{display:flex;flex-direction:column;gap:8px}
 .sx-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
-.sx-row:hover{border-color:#434b58}
+.sx-row:hover{border-color:var(--border-hover)}
 .sx-rm{display:grid;grid-template-columns:40px minmax(0,1fr);gap:14px;align-items:center;text-align:left;background:none;border:0;padding:0;min-width:0;color:inherit}
 .sx-rt{display:flex;flex-direction:column;min-width:0}
 .sx-rt small{color:var(--fg-2)}
 .sx-sc{display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums}
-.sx-bar{width:84px;height:8px;border-radius:999px;background:#12151a;border:1px solid var(--line);overflow:hidden}
+.sx-bar{width:84px;height:8px;border-radius:999px;background:var(--surface-sunk);border:1px solid var(--line);overflow:hidden}
 .sx-bar i{display:block;height:100%;background:var(--bronze,var(--gold))}
 .sx-how{color:var(--fg-2)}
 .sx-how summary{cursor:pointer;font-weight:600}
@@ -55,7 +55,7 @@
 .sx-stat li{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);color:var(--fg-2);font-variant-numeric:tabular-nums}
 .sx-stat li:first-child{border-top:0}
 
-.sx-nudge{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid #5a4c2d;background:rgba(207,169,90,.08);border-radius:12px;padding:12px 14px}
+.sx-nudge{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid rgba(240,166,74,.4);background:var(--warn-soft);border-radius:12px;padding:12px 14px}
 .sx-nudge>.ic{color:var(--gold);flex:none}
 .sx-nudge>div:nth-child(2){flex:1;min-width:200px}
 .sx-nudge p{margin:2px 0 0}
@@ -68,11 +68,11 @@
 .sx-qn b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sx-qn small{color:var(--fg-2)}
 .sx-qs{display:flex;gap:2px}
-.sx-star{background:none;border:0;padding:2px;color:#454c58;border-radius:6px;min-width:34px;min-height:34px;display:inline-grid;place-items:center}
+.sx-star{background:none;border:0;padding:2px;color:#34424F;border-radius:6px;min-width:34px;min-height:34px;display:inline-grid;place-items:center}
 .sx-star .ic{width:26px;height:26px}
 .sx-star.on{color:var(--gold)}
 .sx-star.on .ic{fill:var(--gold)}
-.sx-star:hover{color:#e2c07a}
+.sx-star:hover{color:var(--accent-strong)}
 .sx-qnote{grid-column:1/-1}
 .sx-qt{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 

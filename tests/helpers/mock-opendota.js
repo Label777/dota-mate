@@ -44,6 +44,11 @@ function create() {
       const me = Number(m[1]);
       return send(HEROES.filter((h) => h[0] !== me).map((h) => ({ hero_id: h[0], games_played: 400 + h[0], wins: 150 + ((me * 7 + h[0] * 13) % 120), extra: 'лишнее поле' })));
     }
+    if (p === '/search') {
+      const q = (new URL(req.url, 'http://x').searchParams.get('q') || '').toLowerCase();
+      const all = [2002, 3003, 4004, 5005].map((a, i) => ({ account_id: a, personaname: 'Player ' + a, avatarfull: '', last_match_time: new Date((NOW - i * 86400) * 1000).toISOString(), similarity: 1 }));
+      return send(all.filter((r) => r.personaname.toLowerCase().includes(q)));
+    }
     if ((m = /^\/players\/(\d+)\/heroes$/.exec(p))) return send(HEROES.slice(0, 4).map((h, i) => ({ hero_id: h[0], games: 40 - i * 8, win: 22 - i * 3, last_played: NOW - i * 86400, with_games: 1 })));
     if ((m = /^\/players\/(\d+)\/matches$/.exec(p))) {
       const limit = Math.min(500, Number(u.searchParams.get('limit')) || 100), proj = u.searchParams.getAll('project');

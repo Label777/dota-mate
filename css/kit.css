@@ -1,0 +1,80 @@
+/* Общие блоки: метрики, панели, значки, графики, распределение, пустые состояния (js/ui-kit.js) */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* значки */
+.kb{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;font-weight:600;line-height:1.5;border-radius:var(--r-1);padding:0 8px;border:1px solid var(--border);color:var(--text-2);background:var(--surface-sunk);white-space:nowrap}
+.kb-ok{color:var(--success);background:var(--success-soft);border-color:rgba(72,214,160,.35)}
+.kb-warn{color:var(--warn);background:var(--warn-soft);border-color:rgba(240,166,74,.4)}
+.kb-bad{color:#FF7480;background:var(--danger-soft);border-color:rgba(240,68,82,.4)}
+.kb-info{color:var(--info);background:var(--info-soft);border-color:rgba(111,168,220,.35)}
+.kb-accent{color:var(--accent-strong);background:var(--accent-soft);border-color:var(--accent-dim)}
+
+/* панели */
+.kp{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);min-width:0}
+.kp-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--border-soft)}
+.kp-t{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap;min-width:0}
+.kp-t h2{margin:0}
+.kp-m{color:var(--text-3);font-size:var(--fs-2)}
+.kp-a{display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap}
+.kp-b{padding:var(--s-4);min-width:0}
+.kp-b.flush{padding:0}
+
+/* метрики */
+.kms{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--s-3)}
+.km{display:flex;flex-direction:column;gap:2px;min-width:0;padding:var(--s-3) var(--s-4);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3)}
+.km-l{color:var(--text-3);font-size:var(--fs-1);font-weight:500}
+.km-v{font-size:1.65rem;font-weight:650;letter-spacing:-.02em;line-height:1.15;font-variant-numeric:tabular-nums;color:var(--text)}
+.km-s{color:var(--text-2);font-size:var(--fs-1);min-height:1.2em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.km-ok .km-v{color:var(--success)}
+.km-bad .km-v{color:#FF7480}
+.km-warn .km-v{color:var(--warn)}
+.km-accent .km-v{color:var(--accent-strong)}
+
+/* распределение */
+.kd{display:flex;flex-direction:column;gap:var(--s-3)}
+.kd-bar{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden;background:var(--surface-sunk)}
+.kd-s{display:block;min-width:4px}
+.kd-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.kd-l li{display:grid;grid-template-columns:10px minmax(0,1fr) auto 42px;gap:var(--s-2);align-items:center;padding:5px 0;font-size:var(--fs-2);color:var(--text-2)}
+.kd-l b{color:var(--text);font-variant-numeric:tabular-nums}
+.kd-p{text-align:right;color:var(--text-3);font-variant-numeric:tabular-nums}
+.kd-d{width:8px;height:8px;border-radius:2px}
+.kd-ok{background:var(--success)}.kd-warn{background:var(--warn)}.kd-bad{background:var(--danger)}.kd-info{background:var(--info)}.kd-accent{background:var(--accent)}.kd-neutral{background:#4A5A6A}
+
+/* графики */
+.ks-svg{display:block;width:100%;height:auto;overflow:visible}
+.ks-g{stroke:var(--border-soft);stroke-width:1}
+.ks-r{stroke:var(--text-3);stroke-width:1;stroke-dasharray:3 4}
+.ks-t{fill:var(--text-3);font-size:9px;font-variant-numeric:tabular-nums}
+.ks-l{fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.ks-pt{fill:var(--surface);stroke:var(--accent);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.ks-pt:hover{fill:var(--accent)}
+.kr{display:flex;gap:3px;align-items:flex-end;height:26px}
+.kr-c{flex:0 0 auto;width:calc((100% - 87px) / 30);max-width:22px;min-width:5px;height:26px;border-radius:3px;background:var(--border)}
+.kr-c.w{background:var(--success)}
+.kr-c.l{background:var(--danger);opacity:.85;height:14px}
+.kc{display:flex;flex-direction:column;gap:var(--s-2)}
+.kc-h{display:flex;justify-content:space-between;gap:var(--s-2);align-items:baseline}
+.kc-h b{font-weight:600;font-size:.93rem}
+.kc-h span{color:var(--text-3);font-size:var(--fs-1)}
+.kc-x{display:flex;justify-content:space-between;color:var(--text-3);font-size:var(--fs-1)}
+
+/* пустые состояния, скелетоны, пейджер */
+.ke{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--s-2);padding:var(--s-5) var(--s-4);color:var(--text-2)}
+.ke .ic{width:26px;height:26px;color:var(--text-3)}
+.ke b{color:var(--text)}
+.ke p{max-width:46ch;font-size:var(--fs-2)}
+.ke .actions{justify-content:center;margin-top:var(--s-1)}
+.ks{display:flex;flex-direction:column;gap:var(--s-2)}
+.kg{display:flex;justify-content:space-between;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-4);border-top:1px solid var(--border-soft)}
+.kg-n{font-variant-numeric:tabular-nums;color:var(--text-2);font-size:var(--fs-2);min-width:4ch;text-align:center}
+.flip{display:inline-flex;transform:scaleX(-1)}
+
+/* Профиль: полоса качества данных и список сигналов */
+.kms.k4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.dq-strip,.sig-list{margin-top:var(--s-4)}
+.sig-list{display:grid;gap:var(--s-3)}
+.sig-list .rp-ep{margin:0}
+@media (max-width:1100px){.kms.k4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1100px){.kms{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.kms{grid-template-columns:repeat(2,minmax(0,1fr))}.km{padding:var(--s-3)}.km-v{font-size:1.4rem}}

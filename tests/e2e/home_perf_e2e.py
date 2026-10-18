@@ -58,25 +58,25 @@ with sync_playwright() as p:
     b = p.chromium.launch(executable_path=os.environ.get('CHROMIUM', '/opt/pw-browsers/chromium'), args=['--no-sandbox'])
 
     # ---------- главная и меню ----------
-    c, pg, errs = setup(b, S=state()); pg.goto(URL); pg.wait_for_selector('.tile')
-    check('приветствие с именем', 'Роман' in pg.inner_text('.home-hero h1'), pg.inner_text('.home-hero h1'))
-    check('на главной шесть плиток разделов', pg.locator('.tile').count() == 6)
-    check('четыре показателя, винрейт 50%', pg.locator('.kpi').count() == 4 and '50%' in pg.inner_text('.kpis'), pg.inner_text('.kpis'))
+    c, pg, errs = setup(b, S=state()); pg.goto(URL); pg.wait_for_selector('.dsr')
+    check('дашборд: заголовок «Обзор», поиск игрока и строка про последний матч', 'Обзор' in pg.inner_text('#main h1') and pg.locator('#d-q').count() == 1 and 'Последний матч' in pg.inner_text('#main'), pg.inner_text('#main h1'))
+    check('в «Быстром доступе» есть переходы в разделы', pg.locator('.dq-i').count() >= 4, pg.locator('.dq-i').count())
+    check('шесть показателей из реальных данных, винрейт 50%', pg.locator('.km').count() == 6 and '50%' in pg.inner_text('.kms'), pg.inner_text('.kms'))
     check('в шапке семь вкладок и поиск', pg.locator('.top .tabs .tab').count() == 7 and pg.locator('.srch').count() == 1)
-    pg.click('.tile[data-p=draft]'); pg.wait_for_selector('#dr-board'); check('плитка «Драфт» ведёт на драфт', pg.get_attribute('.tabs [aria-current=page]', 'data-p') == 'draft')
+    pg.click('.dq-i[data-p=draft]'); pg.wait_for_selector('#dr-board'); check('плитка «Драфт» ведёт на драфт', pg.get_attribute('.tabs [aria-current=page]', 'data-p') == 'draft')
     for w in (1280, 1100, 1024):
         c.close(); c, pg, errs = setup(b, w=w, S=state())
-        for tab, sel in [('Главная', '.tile'), ('Матчи', '#mlist'), ('Игроки', '#plist'), ('Драфт', '#dr-board'), ('Настройки', '.card')]:
+        for tab, sel in [('Главная', '.dsr'), ('Матчи', '#mlist'), ('Игроки', '#plist'), ('Драфт', '#dr-board'), ('Настройки', '.card')]:
             pg.goto(URL) if tab == 'Главная' else pg.click(f'.tabs [data-p={ {"Матчи":"matches","Игроки":"players","Драфт":"draft","Настройки":"settings"}[tab] }]')
             pg.wait_for_selector(sel); pg.wait_for_timeout(150)
             ov = overflow(pg); check(f'ширина {w}: «{tab}» без горизонтальной прокрутки', ov <= 0, ov)
     c.close()
-    c, pg, errs = setup(b, w=1100, S=state()); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, w=1100, S=state()); pg.goto(URL); pg.wait_for_selector('.dsr')
     check('на ширине 1100 вкладки только с иконками, названия в aria-label', not pg.locator('.top .tabs .tab span').first.is_visible() and pg.get_attribute('.top .tabs .tab >> nth=2', 'aria-label') == 'Игроки')
     c.close()
 
     # ---------- телефон: «Ещё» ----------
-    c, pg, errs = setup(b, 390, 800, S=state()); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, 390, 800, S=state()); pg.goto(URL); pg.wait_for_selector('.dsr')
     check('телефон: пять пунктов нижнего меню', pg.locator('#nav .tab').count() == 5)
     tops = pg.evaluate("()=>[...document.querySelectorAll('#nav .tab')].map(t=>Math.round(t.getBoundingClientRect().top))"); check('телефон: меню в один ряд', len(set(tops)) == 1, tops)
     pg.click('#nav [data-a=more]'); pg.wait_for_selector('#nav .more')
@@ -89,7 +89,7 @@ with sync_playwright() as p:
     check('без JS-ошибок (меню)', not errs, errs[:2]); c.close()
 
     # ---------- быстрый поиск ----------
-    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.dsr')
     pg.keyboard.press('Control+k'); pg.wait_for_selector('.qk'); check('Ctrl+K открывает быстрый поиск, фокус в поле', pg.evaluate("document.activeElement.tagName") == 'INPUT')
     check('без запроса есть разделы и действия', 'Драфт' in pg.inner_text('.qk') and 'Синхронизировать матчи' in pg.inner_text('.qk'))
     pg.keyboard.type('3003'); pg.wait_for_timeout(100)
@@ -108,15 +108,15 @@ with sync_playwright() as p:
     check('без JS-ошибок (поиск)', not errs, errs[:2]); c.close()
 
     # ---------- подсказки ----------
-    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.dsr')
     pg.hover('.tabs [data-p=players]'); pg.wait_for_selector('#dm-tip.on', timeout=3000)
     check('подсказка у вкладки «Игроки» появляется при наведении', 'теги' in pg.inner_text('#dm-tip'), pg.inner_text('#dm-tip'))
     r = pg.evaluate("(()=>{const t=document.querySelector('#dm-tip').getBoundingClientRect();return [t.left,t.top,t.right,innerWidth,t.bottom,innerHeight]})()")
     check('подсказка целиком в окне', r[0] >= 0 and r[2] <= r[3] and r[1] >= 0 and r[4] <= r[5], r)
     pg.mouse.move(5, 500); pg.wait_for_timeout(200); check('подсказка исчезает, когда курсор уходит', pg.locator('#dm-tip.on').count() == 0)
     pg.hover('[data-a=sync] >> nth=0'); pg.wait_for_selector('#dm-tip.on'); check('подсказка у кнопки синхронизации', 'OpenDota' in pg.inner_text('#dm-tip'))
-    pg.hover('.kpi >> nth=1'); pg.wait_for_timeout(600); check('подсказка у показателя (data-tip)', '20' in pg.inner_text('#dm-tip'), pg.inner_text('#dm-tip'))
-    pg.hover('.mrow .av >> nth=0'); pg.wait_for_timeout(700)
+    pg.hover('.km >> nth=1'); pg.wait_for_timeout(600); check('подсказка у показателя (data-tip)', '20' in pg.inner_text('#dm-tip'), pg.inner_text('#dm-tip'))
+    pg.click('.tabs [data-p=matches]'); pg.wait_for_selector('#mlist .mrow'); pg.hover('.mrow .av >> nth=0'); pg.wait_for_timeout(700)
     check('родной title заменён нашей подсказкой (атрибута title не осталось)', pg.get_attribute('.mrow .av >> nth=0', 'title') is None and pg.locator('#dm-tip.on').count() == 1)
     pg.mouse.move(5, 500); pg.keyboard.press('Tab')
     pg.evaluate("document.querySelector('.tabs [data-p=matches]').focus()"); pg.keyboard.press('Shift+Tab'); pg.keyboard.press('Tab'); pg.wait_for_selector('#dm-tip.on', timeout=3000)
@@ -128,7 +128,7 @@ with sync_playwright() as p:
     check('без JS-ошибок (подсказки)', not errs, errs[:2]); c.close()
 
     # словарь: у каждого интерактивного элемента на основных страницах есть подсказка или он самоочевиден (список из аудита)
-    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.dsr')
     JS = """()=>{const miss=[];const sel='button[data-a],select,input:not([type=checkbox]),textarea';document.querySelectorAll(sel).forEach(e=>{const r=e.getBoundingClientRect();if(!r.width)return;if(!window.DMTips.find(e))miss.push((e.dataset.a||e.id||e.tagName)+':'+(e.innerText||'').trim().slice(0,20))});return miss}"""
     miss_all = {}
     for tab, key in [('Главная', 'dash'), ('Матчи', 'matches'), ('Игроки', 'players'), ('Драфт', 'draft'), ('Настройки', 'settings')]:
@@ -140,12 +140,12 @@ with sync_playwright() as p:
 
     # ---------- автооценка по игре ----------
     hits.clear()
-    c, pg, errs = setup(b, S=state()); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, S=state()); pg.goto(URL); pg.wait_for_selector('.dsr')
     until(pg, "DMPerfUI.state().st==='done'", 40000)
     check('анализ запустился сам, без нажатия кнопки', True)
     nm = [x for x in hits if x.startswith('/matches/')]; nb = [x for x in hits if x.startswith('/benchmarks')]
     check('загружены 4 матча и бенчмарки героев (по одному запросу на героя)', len(nm) == 4 and len(nb) == len(set(nb)) and len(nb) >= 5, (len(nm), nb))
-    check('на главной статус: «Готово»', 'Готово' in pg.inner_text('.home-hero'), pg.inner_text('.home-hero'))
+    check('на главной статус: «Готово»', 'Готово' in pg.inner_text('#main'), pg.inner_text('#main')[:300])
     pg.click('.tabs [data-p=players]'); pg.wait_for_selector('#plist .prow')
     chips = pg.locator('#plist .pf-chip').count(); check('в списке игроков у каждого есть значок оценки по игре', chips == 4, chips)
     pg.select_option('#sort', 'auto'); pg.wait_for_timeout(200)
@@ -173,7 +173,7 @@ with sync_playwright() as p:
     pg.click('#modal [data-a=openMatch]'); pg.wait_for_selector('.arow'); check('«К матчу» возвращает в состав', pg.locator('.arow').count() >= 9)
     check('без JS-ошибок (автооценка)', not errs, errs[:2])
     # повторная загрузка: кэш, ни одного запроса за подробностями
-    hits.clear(); pg.reload(); pg.wait_for_selector('.tile'); pg.wait_for_timeout(3500)
+    hits.clear(); pg.reload(); pg.wait_for_selector('.dsr'); pg.wait_for_timeout(3500)
     check('после перезагрузки данные берутся из кэша: запросов подробностей нет', not [x for x in hits if x.startswith('/matches/') or x.startswith('/benchmarks')], hits[:4])
     # настройки: отключение и очистка
     pg.click('.tabs [data-p=settings]'); pg.wait_for_selector('#pf-auto'); check('в настройках есть переключатель автоанализа (включён)', pg.is_checked('#pf-auto'))
@@ -184,15 +184,15 @@ with sync_playwright() as p:
 
     # автоанализ выключен: запросов нет, ручной запуск работает
     hits.clear()
-    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.tile'); pg.wait_for_timeout(4000)
+    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.dsr'); pg.wait_for_timeout(4000)
     check('при выключенном автоанализе запросов к OpenDota нет', not [x for x in hits if x.startswith('/matches/') or x.startswith('/benchmarks')], hits[:3])
-    pg.click('.home-hero [data-a=pf-scan]'); until(pg, "DMPerfUI.state().st==='done'", 40000); check('кнопка «Проанализировать» запускает анализ вручную', len([x for x in hits if x.startswith('/matches/')]) == 4)
+    pg.click('#main [data-a=pf-scan] >> nth=0'); until(pg, "DMPerfUI.state().st==='done'", 40000); check('кнопка «Проанализировать» запускает анализ вручную', len([x for x in hits if x.startswith('/matches/')]) == 4)
     c.close()
 
     # новый матч из JSON OpenDota: статистика уже в ответе, лишних запросов нет
     hits.clear()
     detail = json.loads(urllib.request.urlopen(f'http://127.0.0.1:{mock_port}/matches/7000000005').read())
-    c, pg, errs = setup(b, S=state(0), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, S=state(0), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.dsr')
     pg.click('.hero-x, [data-a=add] >> nth=0'); pg.wait_for_selector('[data-a=tab][data-t=link]'); pg.click('[data-a=tab][data-t=link]'); pg.fill('#m-json', json.dumps(detail)); pg.click('[data-a=importJson]'); pg.wait_for_selector('.arow')
     check('импорт матча из JSON сохраняет статистику без запроса подробностей', pg.evaluate("Object.keys(DMPerfUI.cache().m)") == ['7000000005'] and not [x for x in hits if x.startswith('/matches/')], hits)
     check('без JS-ошибок (импорт)', not errs, errs[:2]); c.close()
@@ -201,7 +201,7 @@ with sync_playwright() as p:
     hits.clear()
     S2 = state(); S2['tags'] = {'2002': ['toxic'], '3003': ['party']}
     init = "localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"
-    c, pg, errs = setup(b, S=S2, init=init); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, S=S2, init=init); pg.goto(URL); pg.wait_for_selector('.dsr')
     pg.click('.tabs [data-p=players]'); pg.wait_for_selector('#plist .prow')
     check('у каждого игрока в списке значок репутации рядом с ником', pg.locator('#plist .prow .nm-line .rq').count() == 4, pg.locator('#plist .rq').count())
     check('тег стоит в той же строке, что и ник', pg.locator('#plist .prow .nm-line .sx-tag').count() == 2, pg.locator('#plist .sx-tag').count())
@@ -222,7 +222,7 @@ with sync_playwright() as p:
     check('без JS-ошибок (репутация у ников)', not errs, errs[:2]); c.close()
 
     # ---------- аватар в шапке и вкладка «Найти профиль» ----------
-    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.tile')
+    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.dsr')
     check('вкладка называется «Найти профиль» (на узких экранах название в подсказке)', 'Найти профиль' in pg.evaluate("document.querySelector('.tabs [data-p=me]').textContent"))
     check('аватар с ником в шапке — кнопка', pg.locator('.top button.me-btn[data-a=myProfile]').count() == 1)
     pg.click('.top .me-btn'); pg.wait_for_selector('.profile-hd, #me-body .kpis, #me-body .kpi, #me-body h2', timeout=20000)
@@ -231,11 +231,11 @@ with sync_playwright() as p:
     check('вкладка «Найти профиль» открывает чистый поиск без чужого профиля', 'Найдите игрока' in pg.inner_text('#me-body') and '#/profile' not in pg.url, pg.url)
     check('в поиске есть заголовок «Найти профиль»', 'Найти профиль' in pg.inner_text('#main h1'))
     pg.hover('.top .me-btn'); pg.wait_for_selector('#dm-tip.on'); check('у аватара есть подсказка', 'профиль' in pg.inner_text('#dm-tip').lower())
-    c2, pg2, e2 = setup(b, w=390, hh=800, S=state()); pg2.goto(URL); pg2.wait_for_selector('.tile')
+    c2, pg2, e2 = setup(b, w=390, hh=800, S=state()); pg2.goto(URL); pg2.wait_for_selector('.dsr')
     check('на телефоне аватар в шапке нажимается', pg2.locator('.top .me-btn').is_visible() and overflow(pg2) <= 0, overflow(pg2))
     c2.close()
     nos = state(); nos['me'] = {'acc': '', 'name': 'Гость'}
-    c3, pg3, e3 = setup(b, S=nos); pg3.goto(URL); pg3.wait_for_selector('.tile'); pg3.click('.top .me-btn'); pg3.wait_for_timeout(300)
+    c3, pg3, e3 = setup(b, S=nos); pg3.goto(URL); pg3.wait_for_selector('.dsr'); pg3.click('.top .me-btn'); pg3.wait_for_timeout(300)
     check('без своего Steam ID аватар ведёт в настройки', pg3.locator('#set-acc, #set-name').count() > 0 or pg3.get_attribute('.tabs [aria-current=page]', 'data-p') == 'settings')
     c3.close()
     check('без JS-ошибок (профиль из шапки)', not errs, errs[:2]); c.close()

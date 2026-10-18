@@ -6,9 +6,9 @@
 .nb .sx-chips{display:inline-flex;gap:4px;flex-wrap:wrap;margin:0}
 .rq{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;font-weight:600;line-height:1.5;border-radius:999px;padding:0 8px 0 6px;border:1px solid var(--line);background:var(--card-2);color:var(--fg-2);white-space:nowrap}
 .rq .ic{width:.95em;height:.95em;fill:none;stroke:currentColor;stroke-width:2;flex:none}
-.rq-ok{color:#8fd0ae;border-color:#2f5a45;background:var(--win-soft)}
-.rq-warn{color:#e0c07c;border-color:#6b5a30;background:rgba(207,169,90,.1)}
-.rq-bad{color:#f0a0a4;border-color:#6a2f35;background:rgba(168,50,58,.14)}
+.rq-ok{color:var(--success);border-color:rgba(72,214,160,.35);background:var(--win-soft)}
+.rq-warn{color:var(--warn);border-color:rgba(240,166,74,.4);background:var(--warn-soft)}
+.rq-bad{color:var(--danger-text);border-color:rgba(240,68,82,.4);background:var(--danger-soft)}
 .rq-neutral,.rq-wait{color:var(--mute)}
 .rq-wait{font-weight:500;border-style:dashed}
 .panel-h h3+.nb{margin-left:2px}

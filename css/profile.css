@@ -17,7 +17,7 @@
 .me-quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;align-items:center}
 .me-quick .lbl{font-size:.84rem;color:var(--mute)}
 .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card-2);border-radius:999px;padding:4px 12px 4px 4px;font-size:.88rem;font-weight:600;min-height:34px}
-.chip:hover{border-color:#434b58;background:#2a303a}
+.chip:hover{border-color:var(--border-hover);background:var(--surface-raise)}
 .chip .pic{width:26px;height:26px}
 
 /* аватар профиля и иконки героев */
@@ -33,7 +33,7 @@
 .me-head h2{font-size:1.5rem;color:var(--fg);overflow-wrap:anywhere;text-transform:none;letter-spacing:.01em}
 .me-ids{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px;align-items:center}
 .me-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.rank{display:inline-flex;align-items:center;gap:6px;border:1px solid #5d4d2a;background:rgba(207,169,90,.1);color:var(--gold);border-radius:999px;padding:3px 10px;font-size:.84rem;font-weight:600}
+.rank{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(240,166,74,.4);background:var(--warn-soft);color:var(--gold);border-radius:999px;padding:3px 10px;font-size:.84rem;font-weight:600}
 
 /* переключатель периода */
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
@@ -48,17 +48,17 @@
 .kpi .k{font-size:.8rem;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
 .kpi .v{font-family:var(--f-disp);font-size:1.7rem;line-height:1.2;margin-top:2px;white-space:nowrap}
 .kpi .s{font-size:.84rem;color:var(--fg-2);margin-top:2px}
-.kpi .v.w{color:#8fd1ae}.kpi .v.l{color:#f0a0a4}
-.kpi.main{border-color:#3a4150}
+.kpi .v.w{color:var(--success)}.kpi .v.l{color:var(--danger-text)}
+.kpi.main{border-color:var(--border-hover)}
 
 /* предупреждения о данных */
-.banner.warn{background:rgba(207,169,90,.08);border-color:#5d4d2a}
+.banner.warn{background:var(--warn-soft);border-color:rgba(240,166,74,.4)}
 
 /* анализ */
 .ins{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
 .ins li{display:flex;gap:10px;align-items:flex-start}
 .ins .ic{margin-top:3px}
-.ins .good .ic{color:#8fd1ae}.ins .warn .ic{color:var(--gold)}.ins .info .ic{color:var(--mute)}
+.ins .good .ic{color:var(--success)}.ins .warn .ic{color:var(--gold)}.ins .info .ic{color:var(--mute)}
 .recs{display:flex;flex-direction:column;gap:10px}
 .rec{display:flex;gap:12px;align-items:flex-start}
 .rec b{font-weight:600}
@@ -75,8 +75,8 @@
 .chart svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
 .chart text{fill:var(--mute);font:400 11px var(--f-body)}
 .chart .grid{stroke:var(--line);stroke-width:1}
-.chart .axis{stroke:#3a4150;stroke-width:1}
-.chart .xh{stroke:#566073;stroke-width:1;stroke-dasharray:3 3}
+.chart .axis{stroke:var(--border-hover);stroke-width:1}
+.chart .xh{stroke:var(--text-3);stroke-width:1;stroke-dasharray:3 3}
 .chart .hit{fill:transparent;cursor:crosshair}
 .chart .hit:hover,.chart .hit:focus{fill:rgba(255,255,255,.05);outline:none}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--fg-2);margin:6px 0 0}
@@ -93,13 +93,13 @@
 .strip i.w{background:#4a93c6}.strip i.l{background:#d36c43}
 .runs{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:.88rem;color:var(--fg-2)}
 .runs b{color:var(--fg);font-family:var(--f-disp);font-size:1.15rem;font-weight:500}
-#me-tip{position:fixed;z-index:60;pointer-events:none;background:#0e1014;border:1px solid #3a4150;border-radius:8px;padding:6px 10px;font-size:.84rem;max-width:260px;box-shadow:0 6px 20px rgba(0,0,0,.45);white-space:pre-line;display:none}
+#me-tip{position:fixed;z-index:60;pointer-events:none;background:var(--surface-sunk);border:1px solid var(--border-hover);border-radius:8px;padding:6px 10px;font-size:.84rem;max-width:260px;box-shadow:0 6px 20px rgba(0,0,0,.45);white-space:pre-line;display:none}
 
 /* герои */
 .hgroups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
 .hgroup h3{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .hgroup h3 .ic{width:1.1em;height:1.1em}
-.hgroup.best h3 .ic{color:#8fd1ae}.hgroup.worst h3 .ic{color:#f0a0a4}.hgroup.dev h3 .ic{color:var(--gold)}
+.hgroup.best h3 .ic{color:var(--success)}.hgroup.worst h3 .ic{color:var(--danger-text)}.hgroup.dev h3 .ic{color:var(--gold)}
 .hrow{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px solid var(--line)}
 .hrow:first-of-type{border-top:0;padding-top:0}
 .hrow .top1{display:flex;align-items:center;gap:10px}
@@ -110,12 +110,12 @@
 .dots10{display:inline-flex;gap:2px;align-items:center}
 .dots10 i{display:block;width:6px;height:12px;border-radius:2px}
 .dots10 i.w{background:#4a93c6}.dots10 i.l{background:#d36c43}
-.wbar{height:5px;border-radius:3px;background:#2a303a;overflow:hidden;display:flex}
+.wbar{height:5px;border-radius:3px;background:var(--surface-raise);overflow:hidden;display:flex}
 .wbar i{display:block;height:100%;background:#4a93c6}
 .empty.sm-empty{padding:18px}
 .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:9px;overflow:hidden}
 .stepper button{background:var(--card-2);border:0;width:34px;min-height:34px;font-weight:700}
-.stepper button:hover{background:#2a303a}
+.stepper button:hover{background:var(--surface-raise)}
 .stepper output{min-width:38px;text-align:center;font-variant-numeric:tabular-nums}
 
 /* позиции */
@@ -128,11 +128,11 @@
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;width:0;min-width:100%}
 .cmp{display:grid;grid-template-columns:1fr auto auto auto;gap:6px 14px;margin-top:12px;font-variant-numeric:tabular-nums;align-items:center}
 .cmp .h{font-size:.78rem;color:var(--mute);text-transform:uppercase}
-.cmp .d.up{color:#8fd1ae}.cmp .d.dn{color:#f0a0a4}
-.bar2{display:inline-block;width:70px;height:6px;background:#2a303a;border-radius:3px;vertical-align:middle;margin-left:8px;overflow:hidden}
+.cmp .d.up{color:var(--success)}.cmp .d.dn{color:var(--danger-text)}
+.bar2{display:inline-block;width:70px;height:6px;background:var(--surface-raise);border-radius:3px;vertical-align:middle;margin-left:8px;overflow:hidden}
 .bar2 i{display:block;height:100%;background:#4a93c6}
 .jobline{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
-.prog{height:6px;border-radius:3px;background:#2a303a;overflow:hidden;flex:1;min-width:120px}
+.prog{height:6px;border-radius:3px;background:var(--surface-raise);overflow:hidden;flex:1;min-width:120px}
 .prog i{display:block;height:100%;background:var(--red-hi);transition:width .3s}
 
 /* таблица матчей */
@@ -187,4 +187,13 @@
 #me-root,#me-body{min-width:0;max-width:100%}
 #me-body>*{min-width:0}
 
-.sc{font-weight:700;font-variant-numeric:tabular-nums;cursor:help}.sc.up{color:#8fd1ae}.sc.dn{color:#f0a0a4}
+.sc{font-weight:700;font-variant-numeric:tabular-nums;cursor:help}.sc.up{color:var(--success)}.sc.dn{color:var(--danger-text)}
+
+/* поиск по нику: список кандидатов */
+.me-names{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.me-name{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface-sunk);color:inherit}
+.me-name:hover{border-color:var(--accent-dim);background:var(--surface-raise)}
+.me-name .mn-t{display:flex;flex-direction:column;min-width:0}
+.me-name .mn-t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me-name .mn-go{color:var(--accent);font-weight:600;font-size:.88rem;white-space:nowrap}
+@media (max-width:560px){.me-name{grid-template-columns:auto minmax(0,1fr)}.me-name .mn-go{grid-column:2}}

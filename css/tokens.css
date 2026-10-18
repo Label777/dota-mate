@@ -1,0 +1,61 @@
+/* Dota Mate: дизайн-токены. Единственное место, где заданы цвета, шрифт, отступы, радиусы и тени.
+   Остальные файлы берут значения отсюда. Старые имена (--card, --fg, --bronze и т. д.) оставлены
+   как псевдонимы, чтобы разделы, написанные раньше, подхватили новую систему без переписывания. */
+
+@font-face{font-family:Inter;font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/inter-400.woff) format("woff")}
+@font-face{font-family:Inter;font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/inter-500.woff) format("woff")}
+@font-face{font-family:Inter;font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/inter-600.woff) format("woff")}
+@font-face{font-family:Inter;font-style:normal;font-weight:700;font-display:swap;src:url(../fonts/inter-700.woff) format("woff")}
+
+:root{
+  /* поверхности */
+  --bg:#080D12;            /* фон страницы */
+  --surface:#101820;       /* карточки, панели */
+  --surface-sunk:#0C131B;  /* поля ввода, шапки таблиц, вложенные блоки */
+  --surface-raise:#15202B; /* наведение, выбранная строка, чипы */
+  --border:#283440;
+  --border-soft:#1D2833;
+
+  /* текст */
+  --text:#E8EDF3;
+  --text-2:#8B9AA9;
+  --text-3:#7A8B9C;
+
+  /* акцент и состояния */
+  --accent:#C9A66B;        /* золото: активные состояния, главный призыв к действию */
+  --accent-strong:#DDBE88;
+  --accent-dim:#7C6842;
+  --accent-soft:rgba(201,166,107,.12);
+  --danger:#F04452;        /* только реальный риск и ошибки */
+  --danger-soft:rgba(240,68,82,.12);
+  --success:#48D6A0;
+  --success-soft:rgba(72,214,160,.12);
+  --warn:#F0A64A;
+  --warn-soft:rgba(240,166,74,.12);
+  --info:#6FA8DC;
+  --info-soft:rgba(111,168,220,.12);
+  --on-accent:#0B0F14;
+  --danger-text:#FF7480;   /* красный для мелкого текста на тёмном: контраст выше, чем у --danger */
+  --border-hover:#3A4958;
+
+  /* типографика */
+  --f-ui:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --fs-1:.8rem; --fs-2:.867rem; --fs-3:1rem; --fs-4:1.2rem; --fs-5:1.6rem; --fs-6:2rem;
+
+  /* отступы, радиусы, тени, высота элементов */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px;
+  --r-1:6px; --r-2:8px; --r-3:10px;
+  --shadow-pop:0 12px 32px rgba(0,0,0,.45);
+  --ctl:38px;
+  --ease:.14s ease;
+
+  /* псевдонимы прежних имён */
+  --card:var(--surface); --card-2:var(--surface-raise); --line:var(--border);
+  --fg:var(--text); --fg-2:var(--text-2); --mute:var(--text-3);
+  --red:var(--danger); --red-hi:var(--danger); --red-soft:var(--danger-soft);
+  --win:var(--success); --win-soft:var(--success-soft); --gold:var(--accent);
+  --bronze:var(--accent); --bronze-hi:var(--accent-strong); --bronze-lo:var(--accent-dim); --bronze-soft:var(--accent-soft);
+  --f-disp:var(--f-ui); --f-body:var(--f-ui);
+  color-scheme:dark;
+}

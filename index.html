@@ -5,25 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <title>Dota Mate</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Philosopher:wght@400;700&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
 <style>
 /* Layout: sticky top bar (bottom tab bar on phones), one content column with a two-column dashboard.
    Deliberately a single dark look: graphite surfaces, muted red accent, gold only for ratings. */
-:root{
-  --bg:#13151a; --card:#1b1e25; --card-2:#232831; --line:#2d333d;
-  --fg:#e8e6e1; --fg-2:#aeb4bf; --mute:#7d8592;
-  --red:#a8323a; --red-hi:#d95c63; --red-soft:rgba(168,50,58,.16);
-  --win:#58a67d; --win-soft:rgba(88,166,125,.14); --gold:#cfa95a;
-  --f-disp:'Philosopher',Georgia,serif;
-  --f-body:'Source Sans 3','Segoe UI',system-ui,-apple-system,sans-serif;
-  --f-mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
-  color-scheme:dark;
-}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:radial-gradient(900px 420px at 8% -8%,rgba(168,50,58,.15),transparent 60%),var(--bg);color:var(--fg);font:400 15.5px/1.5 var(--f-body);min-height:100%}
+body{margin:0;background:radial-gradient(900px 420px at 8% -8%,var(--danger-soft),transparent 60%),var(--bg);color:var(--fg);font:400 15.5px/1.5 var(--f-body);min-height:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:#13151a;z-index:30}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -66,12 +54,12 @@ main{padding-top:24px;padding-bottom:56px;display:flex;flex-direction:column;gap
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--card-2);border-radius:9px;padding:9px 14px;font-weight:600;min-height:40px;transition:background .15s,border-color .15s}
-.btn:hover{border-color:#434b58;background:#2a303a}
+.btn:hover{border-color:var(--border-hover);background:var(--surface-raise)}
 .btn.primary{background:var(--red);border-color:#c04048;color:#fff}
 .btn.primary:hover{background:#bb3a43}
 .btn.ghost{background:none}
-.btn.danger{color:#f0a0a4;border-color:#5b2a2f;background:rgba(168,50,58,.1)}
-.btn.danger:hover{background:rgba(168,50,58,.22)}
+.btn.danger{color:var(--danger-text);border-color:rgba(240,68,82,.4);background:var(--danger-soft)}
+.btn.danger:hover{background:var(--danger-soft)}
 .btn.sm2{padding:5px 10px;min-height:32px;font-size:.88rem}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 .iconbtn{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:none;color:var(--fg-2)}
@@ -87,8 +75,8 @@ main{padding-top:24px;padding-bottom:56px;display:flex;flex-direction:column;gap
 
 /* status pill */
 .pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:5px 12px;font-size:.88rem;background:var(--card-2);color:var(--fg-2);border:1px solid var(--line)}
-.pill.ok{color:#8fd1ae;background:var(--win-soft);border-color:#2c5d45}
-.pill.err{color:#f0a0a4;background:var(--red-soft);border-color:#5b2a2f}
+.pill.ok{color:var(--success);background:var(--win-soft);border-color:rgba(72,214,160,.35)}
+.pill.err{color:var(--danger-text);background:var(--red-soft);border-color:rgba(240,68,82,.4)}
 .spin{width:14px;height:14px;border-radius:50%;border:2px solid #4a515d;border-top-color:var(--red-hi);animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .skel{height:64px;border-radius:12px;background:linear-gradient(90deg,var(--card) 25%,var(--card-2) 50%,var(--card) 75%);background-size:200% 100%;animation:sh 1.3s linear infinite}
@@ -97,19 +85,19 @@ main{padding-top:24px;padding-bottom:56px;display:flex;flex-direction:column;gap
 /* match rows */
 .mlist{display:flex;flex-direction:column;gap:10px}
 .mrow{display:grid;grid-template-columns:96px minmax(0,1fr) auto 20px;align-items:center;gap:14px;text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.mrow:hover{border-color:#434b58;background:#20242c}
+.mrow:hover{border-color:var(--border-hover);background:#20242c}
 .res{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.05em;font-size:.82rem;padding:4px 10px;border-radius:6px;text-align:center}
-.res.win{background:var(--win-soft);color:#8fd1ae}
-.res.loss{background:var(--red-soft);color:#f0a0a4}
+.res.win{background:var(--win-soft);color:var(--success)}
+.res.loss{background:var(--red-soft);color:var(--danger-text)}
 .mmain{display:flex;flex-direction:column;min-width:0}
 .mmain b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mallies{display:flex}
-.mallies .av{margin-left:-6px;box-shadow:0 0 0 2px var(--card)}
+.mallies .av{margin-left:-4px;box-shadow:0 0 0 2px var(--card)}
 .mallies .av:first-child{margin-left:0}
 .mrow .ch{color:var(--mute)}
 
 /* avatars */
-.av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;font-weight:700;font-size:.82rem;color:#e8e6e1;flex:none;position:relative}
+.av{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;font-weight:700;font-size:.82rem;color:var(--text);flex:none;position:relative}
 .av.lg{width:64px;height:64px;font-size:1.4rem}
 .av.md{width:40px;height:40px;font-size:.95rem}
 .av.known::after{content:"";position:absolute;right:-1px;top:-1px;width:9px;height:9px;border-radius:50%;background:var(--red-hi);border:2px solid var(--card)}
@@ -122,21 +110,21 @@ main{padding-top:24px;padding-bottom:56px;display:flex;flex-direction:column;gap
 .prow-prof{flex:none;display:flex;align-items:center;gap:6px;padding:0 14px;background:rgba(201,164,92,.06);border:0;border-left:1px solid var(--line);color:var(--bronze-hi);font-weight:600;font-size:.88rem}
 .prow-prof:hover{background:var(--bronze-soft)}
 .prow-prof .ic{width:16px;height:16px}
-.prow:hover{border-color:#434b58;background:#20242c}
+.prow:hover{border-color:var(--border-hover);background:#20242c}
 .prow-main:focus-visible,.prow-prof:focus-visible{outline-offset:-3px}
 @media (max-width:560px){.arow{grid-template-columns:40px minmax(0,1fr)}.arow>.arow-act,.arow>.sm{grid-column:2;justify-content:flex-start}.prow-prof span{display:none}.prow-prof{padding:0 12px}}
 .pname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stars{display:inline-flex;gap:1px;vertical-align:middle}
-.stars .ic{width:14px;height:14px;color:#454c58}
+.stars .ic{width:14px;height:14px;color:#34424F}
 .stars .ic.on{color:var(--gold);fill:var(--gold)}
 .avg{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;color:var(--fg-2)}
 
 /* forms */
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field>label,.lbl{font-size:.8rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mute)}
-input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;background:#12151a;border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-height:40px}
+input[type=text],input[type=number],input[type=datetime-local],select,textarea{width:100%;background:var(--surface-sunk);border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-height:40px}
 textarea{resize:vertical;min-height:84px}
-input::placeholder,textarea::placeholder{color:#5f6672}
+input::placeholder,textarea::placeholder{color:var(--text-3)}
 .searchbox{position:relative}
 .searchbox .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mute)}
 .searchbox input{padding-left:38px}
@@ -148,21 +136,21 @@ input::placeholder,textarea::placeholder{color:#5f6672}
 
 /* banners, notes */
 .banner{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px}
-.banner.soft{background:var(--red-soft);border-color:#4d2a2f}
-.banner.demo{background:rgba(207,169,90,.09);border-color:#5a4c2d}
+.banner.soft{background:var(--red-soft);border-color:rgba(240,68,82,.4)}
+.banner.demo{background:var(--warn-soft);border-color:rgba(240,166,74,.4)}
 .banner .ic{margin-top:3px;color:var(--red-hi)}
 .banner.demo .ic{color:var(--gold)}
 .banner p{flex:1;min-width:0}
 
 /* empty */
-.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:36px 16px;border:1px dashed #3a414d;border-radius:12px;color:var(--fg-2)}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:36px 16px;border:1px dashed var(--border-hover);border-radius:12px;color:var(--fg-2)}
 .empty .ic{width:30px;height:30px;color:var(--mute)}
 .empty b{color:var(--fg)}
 
 /* modal */
 #modal:empty{display:none}
 .ov{position:fixed;inset:0;z-index:50;background:rgba(8,9,12,.74);display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.panel{width:min(680px,100%);max-height:100%;overflow:auto;background:var(--card);border:1px solid #3a414d;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.panel{width:min(680px,100%);max-height:100%;overflow:auto;background:var(--card);border:1px solid var(--border-hover);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
 .panel-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 12px;position:sticky;top:0;background:var(--card);z-index:1;border-bottom:1px solid var(--line)}
 .panel-b{padding:16px 18px 20px;display:flex;flex-direction:column;gap:16px}
 .arow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
@@ -170,21 +158,21 @@ input::placeholder,textarea::placeholder{color:#5f6672}
 .arow-act{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .erow{display:flex;justify-content:space-between;gap:12px;padding:6px 0;color:var(--fg-2);border-top:1px solid var(--line)}
 .erow:first-child{border-top:0}
-.tag{display:inline-block;font-size:.76rem;border-radius:6px;padding:1px 8px;background:var(--red-soft);color:#f0a0a4}
+.tag{display:inline-block;font-size:.76rem;border-radius:6px;padding:1px 8px;background:var(--red-soft);color:var(--danger-text)}
 .tag.n{background:var(--card-2);color:var(--fg-2)}
 .linkbtn{background:none;border:0;padding:0;color:var(--fg);font-weight:600;text-align:left;text-decoration:underline;text-decoration-color:#555c68;text-underline-offset:3px}
 .linkbtn:hover{text-decoration-color:var(--red-hi)}
-a{color:#e9a2a6}
+a{color:var(--accent)}
 
 /* rating editor */
-.sbtn{background:none;border:0;padding:3px;color:#454c58;border-radius:6px}
+.sbtn{background:none;border:0;padding:3px;color:#34424F;border-radius:6px}
 .sbtn .ic{width:30px;height:30px}
 .sbtn.on{color:var(--gold)}
 .sbtn.on .ic{fill:var(--gold)}
-.sbtn:hover{color:#e2c07a}
+.sbtn:hover{color:var(--accent-strong)}
 .cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
 .dots{display:flex;gap:6px}
-.dot{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#12151a;color:var(--fg-2);font-weight:600}
+.dot{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface-sunk);color:var(--fg-2);font-weight:600}
 .dot.on{background:var(--red);border-color:#c04048;color:#fff}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-size:.78rem;border-radius:999px;padding:2px 10px;background:var(--card-2);color:var(--fg-2);border:1px solid var(--line)}
@@ -199,7 +187,7 @@ a{color:#e9a2a6}
 
 /* toast */
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:60;width:min(520px,calc(100% - 32px));pointer-events:none}
-.toast{pointer-events:auto;display:flex;gap:12px;align-items:center;justify-content:space-between;background:#262b34;border:1px solid #444c59;border-radius:12px;padding:12px 14px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.toast{pointer-events:auto;display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--surface-raise);border:1px solid var(--border-hover);border-radius:12px;padding:12px 14px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
 
 .kv{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px 16px}
 .kv dt{color:var(--mute)}
@@ -234,9 +222,9 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;c
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
 a.btn{text-decoration:none}
 img.av{object-fit:cover}
-.av img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;background:#2a303a}
+.av img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;background:var(--surface-raise)}
 .optin{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
-.optin input{width:18px;height:18px;margin-top:3px;accent-color:#a8323a;flex:none}
+.optin input{width:18px;height:18px;margin-top:3px;accent-color:var(--danger);flex:none}
 .me .btn{margin-left:4px}
 .me-btn{display:flex;align-items:center;gap:8px;background:none;border:1px solid transparent;border-radius:12px;padding:3px 10px 3px 4px;color:var(--fg-2);font:inherit;cursor:pointer;min-height:40px}
 .me-btn:hover{border-color:var(--line);background:rgba(255,255,255,.04);color:var(--fg)}
@@ -248,6 +236,7 @@ img.av{object-fit:cover}
 <link rel="stylesheet" href="css/perf.css">
 <link rel="stylesheet" href="css/repchip.css">
 <link rel="stylesheet" href="css/tips.css">
+<link rel="stylesheet" href="css/kit.css">
 <link rel="stylesheet" href="css/home.css">
 <link rel="stylesheet" href="css/theme.css">
 </head>
@@ -299,6 +288,8 @@ img.av{object-fit:cover}
 <script src="js/perf-ui.js"></script>
 <script src="js/repchip.js"></script>
 <script src="js/tips.js"></script>
+<script src="js/ui-kit.js"></script>
+<script src="js/dash-ui.js"></script>
 <script src="js/quick.js"></script>
 <script src="js/assistant.js"></script>
 <script>
@@ -518,40 +509,7 @@ function homeNote(ms,total){
   if(!m)return'Добавьте первый матч, и здесь появятся знакомые игроки, оценки и подсказки.';
   return`Последний матч: ${m.win?'победа':'поражение'} на ${esc(m.hero)}, ${esc(ago(m.start))}.${total?` Знакомых игроков: ${total}.`:''}`;
 }
-function vDash(){
-  const ms=sorted(),idx=pIndex(),list=Object.values(idx),known=list.slice().sort(cmpP(V.dsort)).slice(0,6);
-  const loading=V.sync.st==='loading';
-  const total=list.length,rated=Object.keys(S.reviews).length,unrated=list.filter(e=>!e.rated).length;
-  const recent=ms.slice(0,20),w=recent.filter(m=>m.win).length,wr=recent.length?Math.round(w/recent.length*100):null;
-  const name=S.me.name&&S.me.name!=='Вы'?S.me.name:(SRV&&SRV.name)||'';
-  const tiles=[
-    ['draft','rune','Драфт','Выбор героев в реальном времени и подсказки против врагов',''],
-    ['players','users','Игроки',total?`${total} ${pl(total,'знакомый','знакомых','знакомых')}, оценки, теги, пати`:'Теги, оценки и пати из ваших матчей',unrated?`${unrated} без оценки`:''],
-    ['matches','list','Матчи',ms.length?`${ms.length} в истории, фильтры по режиму и периоду`:'Пока пусто: добавьте первый матч',''],
-    ['me','search','Найти профиль','Герои, динамика и позиции любого игрока по Steam ID',''],
-    ['rep','shield','Репутация','Проверка игрока или матча по открытым данным',''],
-    ['settings','sliders','Настройки','Аккаунт, резервная копия, приватность','']];
-  return`<section class="card home-hero" aria-label="Приветствие">
-    <div class="hh-main"><h1>${greet()}${name?', '+esc(name):''}</h1><p>${homeNote(ms,total)}</p>
-      <div class="actions"><button class="btn primary" data-a="sync" ${loading?'disabled':''}>${ico('refresh')}Синхронизировать матчи</button><button class="btn" data-a="add">${ico('plus')}Добавить матч</button>${window.DMSocialUI&&ms.length&&!S.demo?`<button class="btn" data-a="s-rateall" data-mid="${esc(ms[0].id)}">${ico('star')}Оценить игроков</button>`:''}</div></div>
-    <div class="hh-status">${syncStatus()}${window.DMPerfUI?DMPerfUI.statusBox():''}</div>
-  </section>
-  ${demoBanner()}
-  <nav class="tiles" aria-label="Разделы сайта">${tiles.map(t=>`<button class="tile" data-a="go" data-p="${t[0]}"><span class="tile-ic">${ico(t[1])}</span><span class="tile-t"><b>${t[2]}</b><small>${t[3]}</small></span>${t[4]?`<span class="tile-n">${t[4]}</span>`:''}<span class="ch">${ico('chev')}</span></button>`).join('')}</nav>
-  <div class="kpis" role="list">
-    <div class="kpi" role="listitem" data-tip="Сколько матчей в вашей истории на этом сайте."><b>${ms.length}</b><span>${pl(ms.length,'матч','матча','матчей')}</span></div>
-    <div class="kpi" role="listitem" data-tip="Доля побед в последних 20 матчах вашей истории."><b>${wr==null?'—':wr+'%'}</b><span>${recent.length?`побед в последних ${recent.length}`:'винрейт'}</span></div>
-    <div class="kpi" role="listitem" data-tip="Игроки, с которыми вы играли вместе или друг против друга."><b>${total}</b><span>${pl(total,'знакомый игрок','знакомых игрока','знакомых игроков')}</span></div>
-    <div class="kpi" role="listitem" data-tip="Ваши оценки игрокам в матчах. Видны только вам."><b>${rated}</b><span>${pl(rated,'оценка','оценки','оценок')}</span></div>
-  </div>
-  ${window.DMSocialUI?DMSocialUI.dashBlock():''}
-  <div class="cols">
-    <section><div class="sec-h"><h2>Последние матчи</h2>${ms.length?`<button class="btn ghost sm2" data-a="go" data-p="matches">Все матчи</button>`:''}</div>
-      <div class="mlist">${loading?'<div class="skel"></div><div class="skel"></div><div class="skel"></div>':ms.length?ms.slice(0,5).map(mrow).join(''):emptyMatches()}</div></section>
-    <section><div class="sec-h"><h2>Недавно встречавшиеся</h2>${known.length?`<div class="actions" style="align-items:center"><select id="dsort" class="dsel" aria-label="Сортировка игроков">${Object.entries(SORTS).map(([k,v])=>`<option value="${k}" ${V.dsort===k?'selected':''}>${v}</option>`).join('')}</select><button class="btn ghost sm2" data-a="go" data-p="players">Все игроки</button></div>`:''}</div>
-      <div class="plist">${loading?'<div class="skel"></div><div class="skel"></div>':known.length?known.map(prow).join(''):'<div class="empty">'+ico('users')+'<b>Здесь появятся игроки</b><p>После первого матча вы увидите, с кем играли.</p></div>'}</div></section>
-  </div>`;
-}
+function vDash(){return window.DMDash?DMDash.view():`<div class="empty">${ico('alert')}<b>Раздел не загрузился</b><p>Обновите страницу.</p></div>`}
 
 function filteredMatches(){
   const f=V.f,now=Date.now()/1000;
@@ -1000,6 +958,10 @@ if(window.DMQuick)DMQuick.init({esc,ico,fd,parse:parseSteam,pages:()=>NAV,player
     else if(x.id==='add'){V.tab='link';openModal('add')}
     else if(x.id==='rateall'){const m=sorted()[0];if(!m){toast('Сначала добавьте матч.');return}const b=document.createElement('button');b.dataset.a='s-rateall';b.dataset.mid=m.id;b.hidden=true;document.body.appendChild(b);b.click();b.remove()}
     else if(x.id==='settings')go('settings')}});
+if(window.DMDash)DMDash.init({S:()=>S,matches:()=>sorted(),pIndex,av,stars,pl,ago,fd,fday,rec:(e,r)=>sxRec(e,r),myAcc:()=>SRV&&SRV.acc?String(SRV.acc):(S&&S.me&&S.me.acc&&isNum(S.me.acc)?String(S.me.acc):''),
+  loading:()=>V.sync.st==='loading',syncStatus,demoBanner,toast:m=>toast(m),paintMain,server:()=>SERVER,
+  searchProfile:q=>{go('me');if(window.DMProfile)DMProfile.search(q)},
+  openWatchlist:()=>{location.hash='#/watchlist'}});
 if(window.DMRepChip)DMRepChip.init({ico,toast:m=>toast(m),refresh:()=>{if(V.page==='settings')paintMain()}});
 if(window.DMPerfUI)DMPerfUI.init({V:()=>V,esc,ico,stars,pl,fd,av,
   base:()=>SERVER?'/api/od':'https://api.opendota.com/api',server:()=>SERVER,

@@ -121,13 +121,14 @@
     var rep = d.rep, W = R.WEIGHTS;
     var unc = rep.hiddenReports ? 'скрыты (мало)' : d.communityAvailable === false ? 'нет данных' : String(rep.unconfirmedReports || 0);
     var uncHint = rep.hiddenReports ? 'счётчик показывается при ≥2 авторах и ≥2 матчах' : d.communityAvailable === false ? 'нужен сервер Dota Mate' : 'жалобы без решения модератора';
+    var OB = '<span class="kb kb-info" data-tip="Наблюдение: то, что видно в данных матчей и решениях модераторов">наблюдение</span> ', IN = '<span class="kb kb-accent" data-tip="Вывод: расчёт Dota Mate по открытым правилам, он может ошибаться">вывод</span> ';
     var grid = '<div class="rp-grid">' +
-      kv('Уровень риска', rep.risk ? e(rep.risk) : '<span class="na">не оценивается</span>', rep.risk ? 'ориентир, не приговор' : 'нет оснований для оценки') +
-      kv('Достоверность', e(rep.confidence.label), e(rep.confidence.reason)) +
-      kv('Матчей с сигналами', String(rep.uniqueSignalMatches), 'уникальные матчи') +
-      kv('Подтверждено модератором', d.communityAvailable === false ? '<span class="na">нет данных</span>' : String(rep.confirmedCount), d.communityAvailable === false ? 'нужен сервер Dota Mate' : 'эпизодов') +
-      kv('Неподтверждённые жалобы', unc, uncHint) +
-      kv('Последняя проверка', e(dt(rep.lastCheck)), 'данные OpenDota на этот момент') + '</div>';
+      kv(IN + 'Уровень риска', rep.risk ? e(rep.risk) : '<span class="na">не оценивается</span>', rep.risk ? 'ориентир, не приговор' : 'нет оснований для оценки') +
+      kv(IN + 'Достоверность', e(rep.confidence.label), e(rep.confidence.reason)) +
+      kv(OB + 'Матчей с сигналами', String(rep.uniqueSignalMatches), 'уникальные матчи') +
+      kv(OB + 'Подтверждено модератором', d.communityAvailable === false ? '<span class="na">нет данных</span>' : String(rep.confirmedCount), d.communityAvailable === false ? 'нужен сервер Dota Mate' : 'эпизодов') +
+      kv(OB + 'Неподтверждённые жалобы', unc, uncHint) +
+      '</div>';
     var exp = rep.score == null ? '<p class="sm">Экспериментальный индекс не рассчитан: недостаточно данных.</p>' :
       '<div class="rp-score" title="Экспериментальный индекс, метод открыт ниже"><span class="lbl">Экспериментальный индекс</span><div class="bar"><i style="width:' + rep.score + '%"></i></div><b>' + rep.score + ' / 100</b></div><p class="sm">' + e(rep.scoreNote) + '</p>';
     var why = '<details class="rp-why"><summary>Почему сформирована эта оценка?</summary>' +
@@ -159,7 +160,37 @@
     var comm = c.sum === undefined ? { available: false } : C.toComm(c.sum);
     var rep = R.computeReputation({ matches: matches, now: nowS, anomalies: an, fetchedAt: nowS, comm: comm });
     var d = { acc: acc, rep: rep, an: an, communityAvailable: c.sum !== undefined ? !!c.sum : false };
-    return repCard(d) + anomalyBox(an, acc, matches);
+    return dataQuality(d, matches) + repCard(d) + signalsBox(an, acc, d);
+  }
+  /** Откуда данные и насколько им можно верить: размер выборки, свежесть, достоверность, источники. */
+  function dataQuality(d, matches) {
+    var K = window.DMKit, rep = d.rep, n = matches.length;
+    var asc = matches.filter(function (m) { return m.start != null; }).map(function (m) { return m.start; }).sort(function (a, b) { return a - b; });
+    var newest = asc.length ? asc[asc.length - 1] : null, oldest = asc.length ? asc[0] : null, nowS = now();
+    var days = newest ? Math.floor((nowS - newest) / 86400) : null;
+    var fresh = days == null ? '—' : days < 1 ? 'сегодня' : days === 1 ? 'вчера' : days + ' ' + pl(days, 'день', 'дня', 'дней') + ' назад';
+    var conf = rep.confidence, ctone = conf.level === 'high' ? 'ok' : conf.level === 'medium' ? 'accent' : 'warn';
+    var comm = d.communityAvailable === false ? 'нет (нужен сервер Dota Mate)' : d.communityAvailable ? 'подключены' : 'проверяются';
+    return '<section class="kp dq-strip" aria-label="Качество данных"><header class="kp-h"><div class="kp-t"><h2>Качество данных</h2><span class="kp-m">всё, что ниже, опирается на эту выборку</span></div></header>' +
+      '<div class="kp-b"><div class="kms k4" role="list">' + [
+        K.metric({ label: 'Выборка', value: String(n), sub: asc.length ? dday(oldest) + ' – ' + dday(newest) : 'нет дат', tone: n >= 60 ? 'ok' : n >= 20 ? 'accent' : 'warn', tip: 'Сколько матчей загружено для расчёта. Для оценки нужно хотя бы 20, для поиска отклонений хотя бы 15 с длительностью и смертями; чем больше, тем надёжнее.' }),
+        K.metric({ label: 'Свежесть', value: fresh, sub: 'данные на ' + dt(rep.lastCheck), tone: days != null && days > 90 ? 'warn' : 'neutral', tip: 'Когда сыгран последний загруженный матч и на какой момент получены данные OpenDota. Старше 90 дней: сигналы могут не отражать текущее поведение.' }),
+        K.metric({ label: 'Достоверность', value: conf.label, sub: rep.uniqueSignalMatches + ' ' + pl(rep.uniqueSignalMatches, 'матч', 'матча', 'матчей') + ' с сигналами', tone: ctone, tip: conf.reason }),
+        K.metric({ label: 'Источники', value: 'OpenDota', sub: 'сообщество: ' + comm, tip: 'Статистика матчей берётся из открытых данных OpenDota. Решения модераторов и жалобы доступны только с сервером Dota Mate.' })
+      ].join('') + '</div></div></section>';
+  }
+
+  /** Сигналы с датами и матчами-доказательствами. Это наблюдения и отклонения от собственной нормы игрока, а не вывод о намерении. */
+  function signalsBox(an, acc, d) {
+    var K = window.DMKit;
+    var list = an.items.filter(function (i) { return i.group !== 'info' || i.kind === 'performance_low'; });
+    var head = '<header class="kp-h"><div class="kp-t"><h2>Сигналы и подтверждающие матчи</h2><span class="kp-m">' + list.length + ' ' + pl(list.length, 'сигнал', 'сигнала', 'сигналов') + '</span></div><div class="kp-a">' + link('episodes/' + acc, 'Все эпизоды', 'btn ghost sm2') + '</div></header>';
+    if (!list.length) {
+      var why = !an.ready ? 'Для поиска статистических отклонений нужно хотя бы 15 матчей с длительностью и смертями; загружено ' + an.baselineN + '.' : 'Отклонений от собственных обычных показателей среди загруженных матчей не найдено.';
+      return '<section class="kp">' + head + '<div class="kp-b">' + K.empty({ icon: 'shield', title: 'Сигналов нет', text: why + ' Это не гарантия хорошего поведения: анализ видит только публичную статистику.' }) + '</div></section>';
+    }
+    return '<section class="kp">' + head + '<div class="kp-b sig-list">' + list.slice(0, 4).map(function (i) { return episodeCard(i, d); }).join('') +
+      (list.length > 4 ? '<p class="sm">Показаны 4 самых свежих из ' + list.length + '. ' + link('episodes/' + acc, 'Открыть все', 'rp-a') + '</p>' : '') + '</div></section>';
   }
   function anomalyBox(an, acc) {
     var list = an.items.filter(function (i) { return i.group !== 'info' || i.kind === 'performance_low'; }).slice(0, 5);
