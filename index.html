@@ -134,6 +134,7 @@ input::placeholder,textarea::placeholder{color:#5f6672}
 .searchbox .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mute)}
 .searchbox input{padding-left:38px}
 .filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) ;gap:12px}
+.dsel{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 10px;min-height:32px;font-size:.88rem;max-width:100%}
 .toolbar{display:grid;grid-template-columns:minmax(0,1fr) 170px 220px;gap:12px}
 .trio{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,3fr) minmax(0,2fr);gap:8px;margin-bottom:8px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -337,7 +338,7 @@ function migrate(st){for(const m of st.matches||[])for(const p of m.players||[])
 let S=migrate(load()||demoData());
 if(!load())save();
 
-const V={page:'dash',pid:null,f:{res:'all',mode:'all',range:'all'},q:'',sort:'count',role:'all',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
+const V={page:'dash',pid:null,f:{res:'all',mode:'all',range:'all'},q:'',sort:'count',dsort:'recent',role:'all',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
 
 /* ---------- data helpers ---------- */
 const rkey=(mid,sid)=>mid+'|'+sid;
@@ -462,7 +463,7 @@ function emptyMatches(){
 }
 
 function vDash(){
-  const ms=sorted(),idx=pIndex(),known=Object.values(idx).sort((a,b)=>b.last-a.last).slice(0,6);
+  const ms=sorted(),idx=pIndex(),known=Object.values(idx).sort(cmpP(V.dsort)).slice(0,6);
   const loading=V.sync.st==='loading';
   const total=Object.keys(idx).length,rated=Object.keys(S.reviews).length;
   return`<div class="pagehead"><div><h1>Панель управления</h1><p>Запоминайте тех, с кем играли: оценки и заметки видны только вам.</p></div></div>
@@ -475,7 +476,7 @@ function vDash(){
   <div class="cols">
     <section><div class="sec-h"><h2>Последние матчи</h2>${ms.length?`<button class="btn ghost sm2" data-a="go" data-p="matches">Все матчи</button>`:''}</div>
       <div class="mlist">${loading?'<div class="skel"></div><div class="skel"></div><div class="skel"></div>':ms.length?ms.slice(0,5).map(mrow).join(''):emptyMatches()}</div></section>
-    <section><div class="sec-h"><h2>Недавно встречавшиеся</h2>${known.length?`<button class="btn ghost sm2" data-a="go" data-p="players">Все игроки</button>`:''}</div>
+    <section><div class="sec-h"><h2>Недавно встречавшиеся</h2>${known.length?`<div class="actions" style="align-items:center"><select id="dsort" class="dsel" aria-label="Сортировка игроков">${Object.entries(SORTS).map(([k,v])=>`<option value="${k}" ${V.dsort===k?'selected':''}>${v}</option>`).join('')}</select><button class="btn ghost sm2" data-a="go" data-p="players">Все игроки</button></div>`:''}</div>
       <div class="plist">${loading?'<div class="skel"></div><div class="skel"></div>':known.length?known.map(prow).join(''):'<div class="empty">'+ico('users')+'<b>Здесь появятся игроки</b><p>После первого матча вы увидите, с кем играли.</p></div>'}</div></section>
   </div>`;
 }
@@ -501,13 +502,14 @@ function vMatches(){
   <div class="mlist" id="mlist">${mlistHtml()}</div>`;
 }
 
+const SORTS={recent:'По последней встрече',count:'По числу встреч',rating:'По моей оценке',name:'По имени'};
+const cmpP=s=>(a,b)=>s==='count'?b.count-a.count||b.last-a.last:s==='recent'?b.last-a.last:s==='rating'?((b.avg||0)-(a.avg||0))||b.count-a.count:a.name.localeCompare(b.name,'ru');
 function playersFiltered(){
   const idx=Object.values(pIndex());let q=V.q.trim().toLowerCase();
   const acc=parseSteam(V.q);
   let l=idx.filter(e=>!q||e.name.toLowerCase().includes(q)||e.sid.includes(q)||(acc&&e.sid===acc)||(isNum(e.sid)&&steam64(e.sid).includes(q)));
   if(V.role==='ally')l=l.filter(e=>e.withN>0);else if(V.role==='enemy')l=l.filter(e=>e.vsN>0);
-  const s=V.sort;
-  l.sort((a,b)=>s==='count'?b.count-a.count||b.last-a.last:s==='recent'?b.last-a.last:s==='rating'?((b.avg||0)-(a.avg||0))||b.count-a.count:a.name.localeCompare(b.name,'ru'));
+  l.sort(cmpP(V.sort));
   return l;
 }
 function plistHtml(){
@@ -817,6 +819,7 @@ document.addEventListener('change',e=>{
   if(t.id==='set-av'){S.settings=S.settings||{};S.settings.avatars=t.checked;save();paint();if(t.checked)scanAvatars();return}
   if(t.id==='prole'){V.role=t.value;$('#plist').innerHTML=plistHtml()}
   else if(t.id==='sort'){V.sort=t.value;$('#plist').innerHTML=plistHtml()}
+  else if(t.id==='dsort'){V.dsort=t.value;paintMain()}
   else if(t.id==='f-res'||t.id==='f-mode'||t.id==='f-range'){V.f={res:$('#f-res').value,mode:$('#f-mode').value,range:$('#f-range').value};$('#mlist').innerHTML=mlistHtml()}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&V.modal)closeModal()});
