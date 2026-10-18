@@ -218,3 +218,6 @@ input::placeholder,textarea::placeholder{color:#5B6B7A}
 }
 @media (prefers-reduced-motion:reduce){.as-typing i{animation:none}.btn,.mrow,.prow{transition:none}}
 @media (min-width:761px){.brand,.tab,.top .btn,.me .nm{white-space:nowrap}}
+
+/* Аватар с классом sm (маленький) не должен наследовать приглушённый цвет вспомогательного текста .sm */
+.av.sm,.av.md,.av.lg{color:var(--text)}

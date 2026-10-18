@@ -173,7 +173,7 @@ with sync_playwright() as p:
     pg.click('#modal [data-a=openMatch]'); pg.wait_for_selector('.arow'); check('«К матчу» возвращает в состав', pg.locator('.arow').count() >= 9)
     check('без JS-ошибок (автооценка)', not errs, errs[:2])
     # повторная загрузка: кэш, ни одного запроса за подробностями
-    hits.clear(); pg.reload(); pg.wait_for_selector('.dsr'); pg.wait_for_timeout(3500)
+    hits.clear(); pg.reload(); pg.wait_for_selector('.tabs'); pg.wait_for_timeout(3500)
     check('после перезагрузки данные берутся из кэша: запросов подробностей нет', not [x for x in hits if x.startswith('/matches/') or x.startswith('/benchmarks')], hits[:4])
     # настройки: отключение и очистка
     pg.click('.tabs [data-p=settings]'); pg.wait_for_selector('#pf-auto'); check('в настройках есть переключатель автоанализа (включён)', pg.is_checked('#pf-auto'))
@@ -239,6 +239,17 @@ with sync_playwright() as p:
     check('без своего Steam ID аватар ведёт в настройки', pg3.locator('#set-acc, #set-name').count() > 0 or pg3.get_attribute('.tabs [aria-current=page]', 'data-p') == 'settings')
     c3.close()
     check('без JS-ошибок (профиль из шапки)', not errs, errs[:2]); c.close()
+
+    # ---------- адреса разделов: ссылка и перезагрузка сохраняют страницу ----------
+    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))")
+    for h, sel, name in [('#/matches', '#mlist', 'Матчи'), ('#/players', '#plist', 'Игроки'), ('#/settings', '#set-steam', 'Настройки'), ('#/find', '#me-form', 'Найти профиль')]:
+        pg.goto(URL + h); pg.reload(); pg.wait_for_selector(sel, timeout=15000)
+        check(f'адрес {h}: после перезагрузки открыт раздел «{name}»', pg.locator(sel).count() == 1 and pg.evaluate('location.hash') == h, pg.evaluate('location.hash'))
+    pg.click('.tabs [data-p=dash]'); pg.wait_for_selector('.dsr')
+    check('переход на «Главную» убирает адрес раздела', pg.evaluate('location.hash') in ('', '#'), pg.evaluate('location.hash'))
+    pg.evaluate("location.hash='#/players'"); pg.wait_for_selector('#plist')
+    check('смена адреса вручную переключает раздел', pg.get_attribute('.tabs [aria-current=page]', 'data-p') == 'players')
+    check('без JS-ошибок (адреса разделов)', not errs, errs[:2]); c.close()
     b.close()
 
 mock.terminate()

@@ -345,6 +345,7 @@
     var left = 60000 - (Date.now() - U.refreshAt);
     if (U.refreshAt && left > 0) { toast('Обновлять можно раз в минуту, осталось ' + Math.ceil(left / 1000) + ' с.'); return; }
     var snap = session.snapshot(), ids = snap.slots.filter(function (s) { return s.identity.accountId; });
+    if (snap.lifecycle === 'finished') { toast('Матч завершён, обновление остановлено. Начнётся новый матч, и данные загрузятся сами.'); return; }
     if (!ids.length) { toast('Пока нет игроков с известным Steam ID.'); return; }
     U.refreshAt = Date.now();
     ids.forEach(function (s) { stats.request(s.identity.accountId, { epoch: snap.epoch, force: true }).then(function (r) { if (r && r.tooSoon) toast('Этот игрок обновлялся меньше минуты назад.'); }); });
@@ -378,7 +379,7 @@
       case 'ov-hide': hide(); break;
       case 'ov-show': show(); break;
       case 'ov-refresh': refreshAll(); break;
-      case 'ov-retry': stats.request(t.dataset.acc, { epoch: session.epoch(), force: true }).then(function (r) { if (r && r.tooSoon) toast('Повторить можно через ' + Math.ceil(r.retryInMs / 1000) + ' с.'); }); break;
+      case 'ov-retry': if (session.snapshot().lifecycle === 'finished') { toast('Матч завершён, повторы остановлены.'); break; } stats.request(t.dataset.acc, { epoch: session.epoch(), force: true }).then(function (r) { if (r && r.tooSoon) toast('Повторить можно через ' + Math.ceil(r.retryInMs / 1000) + ' с.'); }); break;
       case 'ov-lanes': loadLanes(t.dataset.acc); break;
       case 'ov-manual': U.manual = { side: t.dataset.side, err: '' }; render(); break;
       case 'ov-manual-cancel': U.manual = null; render(); break;

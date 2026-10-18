@@ -726,7 +726,8 @@ function go(p,id){V.more=false;V.page=p;V.pid=id||null;V.modal=null;V.confirm=nu
   if(p==='me'&&window.DMProfile&&DMProfile.reset)DMProfile.reset();
   if(p==='rep')setHash(window.DMRepUI?DMRepUI.hash():'');
   else if(p==='draft')setHash('#/draft');
-  else if(p==='me')setHash('');
+  else if(p==='me')setHash('#/find');
+  else if(p==='matches'||p==='players'||p==='settings')setHash('#/'+p);
   else setHash('');
   paint();window.scrollTo(0,0)}
 /* Адреса вида #/profile/<id>, #/match/<id>, #/episodes/<id>, #/reports …: у каждого игрока, матча и отчёта своя ссылка. */
@@ -735,6 +736,8 @@ function route(){
   if(!h)return;
   const i=h.indexOf('/'),t=i<0?h:h.slice(0,i);let param=i<0?'':h.slice(i+1);
   try{param=decodeURIComponent(param)}catch(e){}
+  const pm=/^(matches|players|settings|find)$/.exec(h);
+  if(pm){const pg=pm[1]==='find'?'me':pm[1];if(V.page!==pg)go(pg);return}
   const dm=/^draft(?:\/)?(?:\?(.*))?$/.exec(h);
   if(dm){
     const q=dm[1]||'';
