@@ -65,13 +65,13 @@
     var nm = H.heroName(id) || (h && h.name) || '', ini = nm.replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).map(function (w) { return w[0] || ''; }).join('').slice(0, 2).toUpperCase();
     return '<span class="hic ' + (cls || '') + '" aria-hidden="true">' + e(ini) + (slug ? '<img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/' + slug + '.png" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '</span>';
   }
-  function sgn(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1); }
-  function scoreCls(v) { return v >= 0.5 ? 'up' : v <= -0.5 ? 'dn' : ''; }
+  function sgn(v) { v = Math.round(v); return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v); }
+  function scoreCls(v) { return v >= 8 ? 'up' : v <= -8 ? 'dn' : ''; }
   function scoreCell(m) {
     var r = P.sc && P.sc.scores && P.sc.scores[m.id];
     if (!r) return '<span class="na" title="' + e(P.sc && P.sc.ready ? 'Для этой игры не хватает данных (нужны два показателя из K/D/A, GPM, XPM)' : 'Нужно не меньше 8 матчей с данными K/D/A, GPM и XPM') + '">—</span>';
-    var nm = { kda: '(K+A)/D', gpm: 'GPM', xpm: 'XPM' }, parts = Object.keys(r.parts).map(function (k) { return nm[k] + ' ' + sgn(Math.round(r.parts[k] * 10) / 10); }).join(', ');
-    var tip = 'Оценка ' + sgn(r.v) + ': 0 значит «сыграл как обычно». ' + parts + '. База: ' + (r.basis === 'hero' ? 'твои средние на этом герое' : 'твои средние по всем загруженным матчам') + '.';
+    var nm = { kda: '(K+A)/D', gpm: 'GPM', xpm: 'XPM' }, parts = Object.keys(r.parts).map(function (k) { return nm[k] + ' ' + sgn(r.parts[k]); }).join(', ');
+    var tip = 'Оценка ' + sgn(r.v) + ' из ±50: 0 значит «сыграл как обычно». ' + parts + '. База: ' + (r.basis === 'hero' ? 'твои средние на этом герое' : 'твои средние по всем загруженным матчам') + '.';
     return '<span class="sc ' + scoreCls(r.v) + '" title="' + e(tip) + '">' + sgn(r.v) + '</span>';
   }
   function posLabel(p) { return p >= 1 && p <= 5 ? p + ' · ' + A.POS_NAMES[p] : 'Не определена'; }
@@ -443,7 +443,7 @@
           var sv = list.map(function (m) { return P.sc.scores[m.id]; }).filter(Boolean).map(function (r) { return r.v; });
           if (!sv.length) return kpi('Оценка игр', na('Нужно не меньше 8 матчей с данными K/D/A, GPM и XPM'), 'нет данных', '');
           var avg = sv.reduce(function (x, y) { return x + y; }, 0) / sv.length;
-          return kpi('Оценка игр', sgn(Math.round(avg * 10) / 10), 'среднее за период, 0 — как обычно' + (sv.length < list.length ? ', по ' + sv.length + ' из ' + list.length : ''), scoreCls(avg) === 'up' ? 'w' : scoreCls(avg) === 'dn' ? 'l' : '');
+          return kpi('Оценка игр', sgn(avg), 'среднее за период, шкала −50…+50, 0 — как обычно' + (sv.length < list.length ? ', по ' + sv.length + ' из ' + list.length : ''), scoreCls(avg) === 'up' ? 'w' : scoreCls(avg) === 'dn' ? 'l' : '');
         })() +
         '</div>';
     }
@@ -584,7 +584,7 @@
       '<div class="empty sm-empty">' + ico('search') + '<b>Ничего не найдено</b><p>Под выбранные фильтры не подходит ни один из ' + nf(P.matches.length) + ' загруженных матчей.' + (P.hasMore ? ' Возможно, нужные матчи ещё не загружены.' : '') + '</p><div class="actions" style="justify-content:center"><button class="btn" type="button" data-pa="tf-reset">Сбросить фильтры</button>' + (P.hasMore ? '<button class="btn" type="button" data-pa="more">Загрузить ещё</button>' : '') + '</div></div>';
     var enrich = P.enrich ? '<div class="banner soft" role="status">' + ico('info') + '<p>Добираю GPM, XPM и добитых крипов: ' + P.enrich.done + ' из ' + P.enrich.total + ' запросов. Таблица уже готова, цифры появятся по мере загрузки.</p></div>' : '';
     return '<section class="card"><div class="sec-h"><h2>Последние матчи <small>показано ' + vis.length + ' из ' + nf(list.length) + (list.length !== P.matches.length ? ' подходящих' : '') + '</small></h2></div>' + enrich + filters + body +
-      '<p class="sm" style="margin-top:12px">Оценка игры: 0 значит «сыграл как обычно», плюс лучше, минус хуже. Считается по (K+A)/D, GPM и XPM относительно твоих же средних (на герое, если на нём от 5 матчей, иначе по всем загруженным матчам), результат матча не учитывается. Это сравнение с самим собой, а не с другими игроками. Изменение MMR по матчам OpenDota не отдаёт, «—» означает, что данных нет.</p></section>';
+      '<p class="sm" style="margin-top:12px">Оценка игры от −50 до +50: 0 значит «сыграл как обычно», плюс лучше, минус хуже. Считается по (K+A)/D, GPM и XPM относительно твоих же средних (на герое, если на нём от 5 матчей, иначе по всем загруженным матчам), результат матча не учитывается. Это сравнение с самим собой, а не с другими игроками. Изменение MMR по матчам OpenDota не отдаёт, «—» означает, что данных нет.</p></section>';
   }
 
   function secMatchesState() {

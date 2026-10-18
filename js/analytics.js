@@ -304,7 +304,7 @@
 
   /* ---------- оценка сыгранной игры ---------- */
 
-  var SCORE_MIN = 8, SCORE_HERO_MIN = 5, SCORE_CLAMP = 3;
+  var SCORE_MIN = 8, SCORE_HERO_MIN = 5, SCORE_CLAMP = 3, SCORE_SCALE = 50 / SCORE_CLAMP; // −3…+3 отклонений растягиваются до −50…+50
   function scoreMetrics(m) {
     var o = {};
     if (m.k != null && m.d != null && m.a != null) o.kda = Math.log((m.k + m.a) / Math.max(m.d, 1) + 1);
@@ -320,7 +320,7 @@
   /**
    * Оценка игры относительно собственного уровня игрока: 0 = сыграл как обычно, плюс лучше, минус хуже.
    * Считается по (K+A)/D, GPM и XPM (результат матча в оценку не входит). Для каждого показателя берётся отклонение от среднего
-   * в единицах обычного разброса игрока; оценка = среднее отклонение, ограниченное диапазоном −3…+3.
+   * в единицах обычного разброса игрока; оценка = среднее отклонение, ограниченное диапазоном ±3 и растянутое до −50…+50 (целые числа).
    * База сравнения: средние по этому герою, если на нём не меньше 5 матчей, иначе средние по всем загруженным матчам.
    * Разброс всегда общий по всем матчам, чтобы маленькая выборка по герою не раздувала оценку.
    * Нужно не меньше 8 матчей с данными и хотя бы два показателя у самой игры. Иначе оценки нет (null), а не 0.
@@ -348,11 +348,11 @@
         if (hs && hs[k].length >= SCORE_HERO_MIN) { base = meanStd(hs[k]).mean; heroUsed = true; }
         var sd = Math.max(all[k].std, Math.abs(all[k].mean) * 0.05, 1e-6);
         var z = (r.x[k] - base) / sd;
-        parts[k] = z; sum += z; cnt++;
+        parts[k] = z * SCORE_SCALE; sum += z; cnt++;
       });
       if (cnt < 2) return;
       var v = Math.max(-SCORE_CLAMP, Math.min(SCORE_CLAMP, sum / cnt));
-      scores[r.m.id] = { v: Math.round(v * 10) / 10, basis: heroUsed ? 'hero' : 'all', parts: parts };
+      scores[r.m.id] = { v: Math.round(v * SCORE_SCALE), basis: heroUsed ? 'hero' : 'all', parts: parts };
     });
     return { ready: true, n: usable, scores: scores };
   }
@@ -541,7 +541,7 @@
     parsePlayerInput: parsePlayerInput, normalizeMatch: normalizeMatch, chrono: chrono, newestFirst: newestFirst,
     filterMatches: filterMatches, summarize: summarize, streaks: streaks, wilson: wilson,
     heroStats: heroStats, classifyHeroes: classifyHeroes, explainHero: explainHero,
-    matchScores: matchScores, inferPosition: inferPosition, inferRole: inferRole, positionStats: positionStats, posName: posName,
+    SCORE_MAX: 50, matchScores: matchScores, inferPosition: inferPosition, inferRole: inferRole, positionStats: positionStats, posName: posName,
     timeSeries: timeSeries, kdaSeries: kdaSeries, compareWindows: compareWindows,
     coverage: coverage, coversPeriod: coversPeriod, buildInsights: buildInsights, recommendHeroes: recommendHeroes,
     rankTier: rankTier, plural: plural, pct: pct

@@ -336,11 +336,12 @@ test('matchScores: 0 это средняя игра, лучше — плюс, х
   list.push(mk(21, 0, 12, 1, 250, 300));  // провальная
   const r = matchScores(list);
   assert.equal(r.ready, true);
-  assert.ok(r.scores['20'].v >= 2, 'выдающаяся игра сильно выше нуля: ' + r.scores['20'].v);
-  assert.ok(r.scores['21'].v <= -1.5, 'провальная игра ниже нуля: ' + r.scores['21'].v);
-  assert.ok(r.scores['20'].v <= 3 && r.scores['21'].v >= -3, 'оценка ограничена');
+  assert.ok(r.scores['20'].v >= 33, 'выдающаяся игра сильно выше нуля: ' + r.scores['20'].v);
+  assert.ok(r.scores['21'].v <= -25, 'провальная игра ниже нуля: ' + r.scores['21'].v);
+  assert.ok(r.scores['20'].v <= 50 && r.scores['21'].v >= -50, 'оценка ограничена ±50');
+  assert.ok(Number.isInteger(r.scores['20'].v), 'целое число');
   const mid = list.slice(0, 10).map((m) => r.scores[m.id].v);
-  assert.ok(Math.abs(mid.reduce((a, b) => a + b, 0) / mid.length) < 0.5, 'обычные игры около нуля');
+  assert.ok(Math.abs(mid.reduce((a, b) => a + b, 0) / mid.length) < 8, 'обычные игры около нуля');
   // мало данных: оценки нет
   assert.equal(matchScores(list.slice(0, 5)).ready, false);
   assert.deepEqual(matchScores(list.slice(0, 5)).scores, {});
@@ -351,5 +352,5 @@ test('matchScores: 0 это средняя игра, лучше — плюс, х
   const heroList = list.concat(Array.from({ length: 6 }, (_, i) => mk(40 + i, 2, 6, 3, 300, 350, 7)));
   const hr = matchScores(heroList);
   assert.equal(hr.scores['40'].basis, 'hero');
-  assert.ok(Math.abs(hr.scores['40'].v) < 0.7, 'обычная игра на «слабом» герое около нуля: ' + hr.scores['40'].v);
+  assert.ok(Math.abs(hr.scores['40'].v) < 12, 'обычная игра на «слабом» герое около нуля: ' + hr.scores['40'].v);
 });
