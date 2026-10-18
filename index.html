@@ -55,7 +55,7 @@ small,.sm{font-size:.84rem;color:var(--mute)}
 
 /* bottom nav (phones) */
 #nav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#nav .row{display:grid;grid-template-columns:repeat(5,1fr)}
+#nav .row{display:grid;grid-template-columns:repeat(6,1fr)}
 #nav .tab{flex-direction:column;gap:2px;font-size:.72rem;border-radius:0;padding:9px 4px 8px}
 #nav .tab .ic{width:1.35em;height:1.35em}
 #nav .tab[aria-current=page]{box-shadow:inset 0 2px 0 var(--red)}
@@ -232,6 +232,7 @@ img.av{object-fit:cover}
 .me .btn{margin-left:4px}
 </style>
 <link rel="stylesheet" href="css/profile.css">
+<link rel="stylesheet" href="css/rep.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -267,6 +268,10 @@ img.av{object-fit:cover}
 <script src="js/analytics.js"></script>
 <script src="js/dotaapi.js"></script>
 <script src="js/profile-ui.js"></script>
+<script src="js/reputation.js"></script>
+<script src="js/community.js"></script>
+<script src="js/rep-ui.js"></script>
+<script src="js/rep-ui2.js"></script>
 <script>
 (function(){
 'use strict';
@@ -412,7 +417,7 @@ function paintToast(){
 }
 
 /* ---------- views ---------- */
-const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['players','users','Игроки'],['me','user','Профиль'],['settings','sliders','Настройки']];
+const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['players','users','Игроки'],['me','user','Профиль'],['rep','shield','Репутация'],['settings','sliders','Настройки']];
 const cur=()=>V.page==='player'?'players':V.page;
 function navBtns(){return NAV.map(n=>`<button class="tab" data-a="go" data-p="${n[0]}" ${cur()===n[0]?'aria-current="page"':''}>${ico(n[1])}<span>${n[2]}</span></button>`).join('')}
 function meBlock(){
@@ -578,11 +583,12 @@ function vSettings(){
   <section class="card stack"><h3>Приватность</h3>
     <ul class="plain"><li>Сохраняются: ники и публичные ID участников ваших матчей, герои, результат, а также ваши оценки и заметки.</li>
     <li>${SRV?'Оценки, заметки и матчи хранятся на сервере Dota Mate и привязаны к вашему Steam ID. Другим пользователям они недоступны.':'Всё хранится только в этом браузере. Dota Mate не отправляет ваши оценки и заметки никуда.'}</li>
-    <li>Оценки приватны, публичных рейтингов и списков игроков нет и не будет.</li>
+    <li>Ваши личные оценки и заметки об игроках приватны и никому не показываются. Публичны только решения модераторов о подтверждённых эпизодах и обобщённые счётчики в разделе «Репутация».</li>
     <li>Пароли от Steam и Dotabuff не запрашиваются и не хранятся.</li>
     <li>Для аватарок сайт запрашивает у OpenDota профиль игрока по его публичному ID${SRV?' (через сервер Dota Mate)':''}. Сохраняется только адрес картинки.</li></ul>
     <label class="optin" for="set-av"><input type="checkbox" id="set-av" ${avOn()?'checked':''}><span>Показывать аватарки Steam<br><small>Если выключить, запросы о профилях прекратятся, везде будут инициалы.</small></span></label>
   </section>
+  ${window.DMRepUI?DMRepUI.settingsBlock():''}
   <section class="card stack"><h3>Резервная копия</h3>
     <p class="sm">${SRV?'Данные хранятся на сервере.':'Данные живут в этом браузере.'} Скопируйте копию и сохраните её в заметках, чтобы перенести на другое устройство.</p>
     <div class="actions"><button class="btn" data-a="bkShow">Показать копию</button><button class="btn" data-a="bkCopy">${ico('copy')}Скопировать</button><button class="btn" data-a="bkRestore">Восстановить из текста</button></div>
@@ -598,8 +604,9 @@ function vSettings(){
 }
 
 const vMe=()=>window.DMProfile?DMProfile.view():`<div class="empty">${ico('alert')}<b>Раздел не загрузился</b><p>Не удалось загрузить скрипты раздела «Профиль игрока». Обновите страницу.</p></div>`;
-const VIEWS={dash:vDash,matches:vMatches,players:vPlayers,player:vPlayer,me:vMe,settings:vSettings};
-function paintMain(){$('#main').innerHTML=VIEWS[V.page]();if(V.page==='me'&&window.DMProfile)DMProfile.mount()}
+const vRep=()=>window.DMRepUI?DMRepUI.view():`<div class="empty">${ico('alert')}<b>Раздел не загрузился</b><p>Не удалось загрузить скрипты раздела «Репутация». Обновите страницу.</p></div>`;
+const VIEWS={dash:vDash,matches:vMatches,players:vPlayers,player:vPlayer,me:vMe,rep:vRep,settings:vSettings};
+function paintMain(){$('#main').innerHTML=VIEWS[V.page]();if(V.page==='me'&&window.DMProfile)DMProfile.mount();if(V.page==='rep'&&window.DMRepUI)DMRepUI.mount()}
 function paint(){paintHdr();paintMain();paintModal()}
 
 /* ---------- modals ---------- */
@@ -674,7 +681,29 @@ function openModal(k,extra){V.modal=k;Object.assign(V,extra||{});V.confirm=null;
 function closeModal(){V.modal=null;V.draft=null;V.confirm=null;paintModal();paintMain()}
 
 /* ---------- actions ---------- */
-function go(p,id){V.page=p;V.pid=id||null;V.modal=null;V.confirm=null;paint();window.scrollTo(0,0)}
+function setHash(h){if(location.hash===h||(!h&&!location.hash))return;try{history.replaceState(null,'',h||location.pathname+location.search)}catch(e){}}
+function go(p,id){V.page=p;V.pid=id||null;V.modal=null;V.confirm=null;
+  if(p==='rep')setHash(window.DMRepUI?DMRepUI.hash():'');
+  else if(p==='me')setHash(window.DMProfile&&DMProfile.current()?'#/profile/'+DMProfile.current():'');
+  else setHash('');
+  paint();window.scrollTo(0,0)}
+/* Адреса вида #/profile/<id>, #/match/<id>, #/episodes/<id>, #/reports …: у каждого игрока, матча и отчёта своя ссылка. */
+function route(){
+  const h=location.hash.replace(/^#\/?/,'');
+  if(!h)return;
+  const i=h.indexOf('/'),t=i<0?h:h.slice(0,i);let param=i<0?'':h.slice(i+1);
+  try{param=decodeURIComponent(param)}catch(e){}
+  if(t==='profile'){
+    if(V.page!=='me'){V.page='me';V.pid=null;V.modal=null;V.confirm=null;paint();window.scrollTo(0,0)}
+    if(window.DMProfile&&/^\d{1,10}$/.test(param)&&DMProfile.current()!==param)DMProfile.open(param);
+    return}
+  if(window.DMRepUI&&DMRepUI.isTab(t)){
+    const was=V.page==='rep';
+    DMRepUI.nav(t,param);
+    if(!was){V.page='rep';V.pid=null;V.modal=null;V.confirm=null;paint()}
+    window.scrollTo(0,0)}
+}
+window.addEventListener('hashchange',route);
 function openReview(mid,sid){
   const r=S.reviews[rkey(mid,sid)];
   V.draft={mid,sid,rating:r?r.rating||0:0,cats:Object.assign({},r&&r.cats),note:r?r.note||'':''};
@@ -782,6 +811,7 @@ document.addEventListener('click',e=>{
       Object.keys(S.reviews).forEach(k=>{if(k.endsWith('|'+d.sid))delete S.reviews[k]});delete S.pnotes[d.sid];save();V.confirm=null;paintMain();toast('Оценки и заметки об игроке удалены.');break}
     case'delMatch':{
       S.matches=S.matches.filter(m=>m.id!==d.id);Object.keys(S.reviews).forEach(k=>{if(k.startsWith(d.id+'|'))delete S.reviews[k]});save();V.modal=null;V.confirm=null;paintModal();paint();toast('Матч удалён.');break}
+    case'repClear':{['dotamate.rep.v1','dotamate.profile.v1'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});toast('Локальные данные репутации удалены.');break}
     case'openProfile':V.page='me';V.pid=null;V.modal=null;V.confirm=null;paint();window.scrollTo(0,0);if(window.DMProfile)DMProfile.open(d.id);break;
     case'copy':navigator.clipboard.writeText(d.t).then(()=>toast('Скопировано.'),()=>toast('Не удалось скопировать. Выделите текст вручную.'));break;
     case'saveAcc':{
@@ -866,6 +896,15 @@ if(window.DMProfile)DMProfile.init({esc,ico,
   server:()=>SERVER,
   heroName:id=>HEROES[id]||'',
   myAcc:()=>SRV&&SRV.acc?String(SRV.acc):(S&&S.me&&S.me.acc&&isNum(S.me.acc)?String(S.me.acc):''),
+  toast:m=>toast(m),
+  onOpen:acc=>{const h='#/profile/'+acc;if(location.hash!==h)location.hash=h},
+  copy:t=>navigator.clipboard.writeText(t).then(()=>toast('Скопировано.'),()=>toast('Не удалось скопировать. Выделите текст вручную.'))});
+if(window.DMRepUI)DMRepUI.init({esc,ico,
+  base:()=>SERVER?'/api/od':'https://api.opendota.com/api',
+  server:()=>SERVER,
+  heroName:id=>HEROES[id]||'',
+  myAcc:()=>SRV&&SRV.acc?String(SRV.acc):'',
+  toast:m=>toast(m),
   copy:t=>navigator.clipboard.writeText(t).then(()=>toast('Скопировано.'),()=>toast('Не удалось скопировать. Выделите текст вручную.'))});
 (async function init(){
   try{
@@ -873,6 +912,7 @@ if(window.DMProfile)DMProfile.init({esc,ico,
     let j=null;try{j=await r.json()}catch(e){}
     if(!j||j.server!==true)return;
     SERVER=true;
+    if(window.DMComm)DMComm.reset();if(window.DMRepUI)DMRepUI.resetStatus();
     if(r.ok&&j.user){
       SRV=j.user;
       const sj=await(await fetch('/api/state')).json();
@@ -888,7 +928,7 @@ if(window.DMProfile)DMProfile.init({esc,ico,
     }
     paint();
   }catch(e){}
-})();
+})().then(route);
 })();
 </script>
 </body>

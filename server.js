@@ -84,16 +84,17 @@ function send(res, code, body, headers) {
 function json(res, code, obj, headers) {
   send(res, code, JSON.stringify(obj), Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, headers || {}));
 }
-function readBody(req) {
+function readBody(req, limit) {
   return new Promise((resolve, reject) => {
-    let size = 0;
+    let size = 0, over = false;
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > BODY_LIMIT) { reject(Object.assign(new Error('too large'), { code: 413 })); req.destroy(); return; }
+      if (over) return;                              // лишнее читаем и выбрасываем, чтобы ответить 413, а не оборвать соединение
+      if (size > (limit || BODY_LIMIT)) { over = true; chunks.length = 0; return; }
       chunks.push(c);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('end', () => (over ? reject(Object.assign(new Error('too large'), { code: 413 })) : resolve(Buffer.concat(chunks).toString('utf8'))));
     req.on('error', reject);
   });
 }
@@ -210,7 +211,8 @@ function matchesQuery(sp) {
   const limit = Math.min(500, Math.max(1, parseInt(sp.get('limit'), 10) || 100));
   const offset = Math.min(100000, Math.max(0, parseInt(sp.get('offset'), 10) || 0));
   const proj = sp.getAll('project').filter((f) => PROJECTS.has(f)).slice(0, 8);
-  return `limit=${limit}&offset=${offset}` + proj.map((f) => `&project=${f}`).join('');
+  const inc = /^\d{1,10}$/.test(sp.get('included_account_id') || '') ? `&included_account_id=${sp.get('included_account_id')}` : '';
+  return `limit=${limit}&offset=${offset}` + inc + proj.map((f) => `&project=${f}`).join('');
 }
 async function proxyOD(req, res, url, who) {
   let target, ttl, shape = null, weight = 1;
@@ -218,6 +220,9 @@ async function proxyOD(req, res, url, who) {
   let m;
   if ((m = /^\/api\/od\/players\/(\d{1,10})\/matches$/.exec(pn))) {
     target = `${OD}/players/${m[1]}/matches?${matchesQuery(url.searchParams)}`; ttl = 300000; weight = 2;
+  } else if ((m = /^\/api\/od\/players\/(\d{1,10})\/peers$/.exec(pn))) {
+    const dt = Math.min(365, Math.max(0, parseInt(url.searchParams.get('date'), 10) || 0));
+    target = `${OD}/players/${m[1]}/peers` + (dt ? `?date=${dt}` : ''); ttl = 1800000; weight = 2;
   } else if ((m = /^\/api\/od\/players\/(\d{1,10})\/(wl|ratings)$/.exec(pn))) {
     target = `${OD}/players/${m[1]}/${m[2]}`; ttl = m[2] === 'wl' ? 300000 : 3600000;
   } else if ((m = /^\/api\/od\/players\/(\d{1,10})$/.exec(pn))) {
@@ -352,7 +357,7 @@ async function handle(req, res) {
     let body = {};
     if (method === 'POST' || method === 'PUT') {
       if (!/^application\/json/.test(req.headers['content-type'] || '')) return json(res, 415, { error: 'json only' });
-      try { body = JSON.parse((await readBody(req)) || '{}'); } catch (e) { return json(res, e.code === 413 ? 413 : 400, { error: 'bad body' }); }
+      try { body = JSON.parse((await readBody(req, 20 * 1024)) || '{}'); } catch (e) { return json(res, e.code === 413 ? 413 : 400, { error: 'bad body' }); }
       if (!body || typeof body !== 'object' || Array.isArray(body)) return json(res, 400, { error: 'bad body' });
     }
     const user = s0 ? { acc: s0.acc } : null;

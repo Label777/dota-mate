@@ -180,3 +180,19 @@ test('requestParse: POST без повторов, без заголовков п
   await assert.rejects(b.requestParse('9025128045'), (e) => e.code === 'network');
   assert.equal(n, 1, 'POST при сетевой ошибке не повторяется');
 });
+
+test('партнёры: период уходит параметром date, неверный ID отклоняется', async () => {
+  const { a, calls } = api(() => resp(200, [{ account_id: 5, with_games: 3 }]));
+  assert.equal((await a.getPeers('123', 30)).length, 1);
+  assert.ok(calls[0].endsWith('/players/123/peers?date=30'));
+  await a.getPeers('123', 0);
+  assert.ok(calls[1].endsWith('/players/123/peers'));
+  assert.throws(() => a.getPeers('abc', 0), (e) => e instanceof ApiError && e.code === 'invalid');
+});
+
+test('общие матчи: included_account_id и ограничение числа', async () => {
+  const { a, calls } = api(() => resp(200, []));
+  await a.getSharedMatches('123', '456', 5000);
+  assert.ok(calls[0].includes('included_account_id=456') && calls[0].includes('limit=100'));
+  assert.throws(() => a.getSharedMatches('123', 'x', 5), (e) => e.code === 'invalid');
+});

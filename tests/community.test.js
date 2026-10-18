@@ -205,10 +205,15 @@ test('список наблюдения: лимит, дубль, уведомл�
   assert.equal((await post(s, U(REP), '/watchlist/123456/check', { state: 'ужас', anomalies: 1 })).status, 400);
 });
 
-test('наблюдатели получают разные типы уведомлений: новая жалоба — message, решение — decision', async () => {
+test('наблюдатели: уведомление о жалобах только когда счётчик стал публичным; решение — отдельный тип', async () => {
   const s = setup();
   await post(s, U(OTHER), '/watchlist', { target: TGT });
   const id = (await post(s, U(REP), '/reports', body())).body.id;
+  assert.equal((await get(s, U(OTHER), '/notifications')).body.notifications.length, 0, 'единичная жалоба не раскрывается');
+  await post(s, U('4004'), '/reports', body({ matchId: '7000000002' }));
+  assert.equal((await get(s, U(OTHER), '/notifications')).body.notifications.length, 1, 'два автора и два матча: счётчик стал публичным');
+  await post(s, U(REP), '/reports', body({ matchId: '7000000003' }));
+  assert.equal((await get(s, U(OTHER), '/notifications')).body.notifications.length, 1, 'повторно не уведомляем');
   await post(s, U(MOD), '/mod/reports/' + id + '/status', { to: 'confirmed', reason: 'Подтверждено по реплею матча' });
   const kinds = (await get(s, U(OTHER), '/notifications')).body.notifications.map((n) => n.kind).sort();
   assert.deepEqual(kinds, ['decision', 'message']);
@@ -224,4 +229,14 @@ test('SQL-инъекция в Steam ID и в тексте не ломает ба
 test('parseModerators принимает account id и SteamID64', () => {
   const m = C.parseModerators('123, 76561197960389184 ; bad');
   assert.ok(m.has('123')); assert.ok(m.has('123456')); assert.equal(m.size, 2);
+});
+
+test('сводка по матчу: только подтверждённые/оспариваемые, без авторов', async () => {
+  const s = setup();
+  const id = (await post(s, U(REP), '/reports', body())).body.id;
+  assert.deepEqual((await get(s, null, '/match/' + MID)).body.marks, []);
+  await post(s, U(MOD), '/mod/reports/' + id + '/status', { to: 'confirmed', reason: 'Подтверждено по реплею матча', publicReason: 'Смерти без боя' });
+  const j = (await get(s, null, '/match/' + MID)).body;
+  assert.equal(j.marks.length, 1); assert.equal(j.marks[0].acc, TGT); assert.ok(!JSON.stringify(j).includes(REP));
+  assert.equal((await get(s, null, '/match/abc')).status, 404);
 });

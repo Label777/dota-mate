@@ -18,7 +18,7 @@
     return {
       input: '', phase: 'idle', err: null, acc: null, steam64: null, profile: null, rank: null, lb: null, wl: null,
       pages: {}, matches: [], hasMore: true, nextOffset: 0, mstate: 'idle', merr: null, enrich: null, moreLoading: false,
-      period: '30', minMatches: 5, tf: { hero: 'all', result: 'all', pos: 'all', period: 'all' }, shown: 25, recPos: 'all',
+      period: '30', minMatches: 5, tf: { hero: 'all', result: 'all', pos: 'all', period: 'all', flag: 'all' }, shown: 25, recPos: 'all',
       cmp: [], open: {}, posMap: {}, job: null, posMsg: '', ratings: undefined, heroes: null, token: 0, formErr: ''
     };
   }
@@ -128,6 +128,7 @@
     var tok = ++P.token, keep = { input: P.input, minMatches: P.minMatches };
     P = Object.assign(blank(), keep, { token: tok, phase: 'finding', acc: acc, period: P.period, recPos: 'all' });
     P.posMap = loadPos(acc);
+    if (H.onOpen) H.onOpen(acc);
     var a = api();
     if (o.refresh) a.clearCache();
     render();
@@ -551,6 +552,31 @@
       (P.posMsg ? '<div class="banner soft" style="margin-top:12px" role="status">' + ico('info') + '<p>' + e(P.posMsg) + '</p></div>' : '') + '</section>';
   }
 
+  /* Отметки репутации по матчам: считаются тем же модулем, что и карточка репутации. */
+  function repFlags() {
+    var R = window.DMRep, key = P.acc + ':' + P.matches.length;
+    if (P.flagKey === key && P.flagsV) return P.flagsV;
+    var out = {};
+    if (R && P.matches.length) {
+      R.detectAnomalies(P.matches, { now: now(), heroName: heroName }).items.forEach(function (i) {
+        if (!i.matchId) return;
+        var f = out[i.matchId] = out[i.matchId] || {};
+        if (i.group === 'anomaly') f.anomaly = true; else if (i.group === 'fact') f.fact = true;
+      });
+      var marks = window.DMRepUI && DMRepUI.marks ? DMRepUI.marks(P.acc) : {};
+      Object.keys(marks).forEach(function (id) { (out[id] = out[id] || {}).marked = marks[id]; });
+    }
+    P.flagKey = key; P.flagsV = out;
+    return out;
+  }
+  function matchCell(m, flags) {
+    var f = flags[m.id] || {}, tags = '';
+    if (f.marked) tags += '<span class="rp-b s-bad" title="Решение модератора по этому матчу">' + (f.marked === 'disputed' ? 'оспаривается' : 'модератор') + '</span> ';
+    if (f.anomaly) tags += '<span class="rp-b s-warn" title="Статистическое отклонение от собственной нормы игрока">аномалия</span> ';
+    if (f.fact) tags += '<span class="rp-b s-neutral" title="Отметка самой игры (выход или потеря связи)">факт игры</span> ';
+    return tags + '<a href="#/match/' + e(m.id) + '" title="Подробный отчёт по матчу">Отчёт</a>';
+  }
+
   function secMatches() {
     var heroIds = {}; P.matches.forEach(function (m) { if (m.hero != null) heroIds[m.hero] = 1; });
     var hopts = Object.keys(heroIds).map(Number).sort(function (a, b) { return heroName(a).localeCompare(heroName(b)); });
@@ -559,15 +585,19 @@
     if (f.hero !== 'all') o.hero = f.hero;
     if (f.result !== 'all') o.result = f.result;
     if (f.pos !== 'all') o.pos = (f.pos === 'core' || f.pos === 'support') ? f.pos : Number(f.pos);
-    var list = A.filterMatches(P.matches, o), vis = list.slice(0, P.shown);
+    var list = A.filterMatches(P.matches, o), flags = repFlags();
+    if (f.flag === 'anomaly') list = list.filter(function (m) { return flags[m.id] && (flags[m.id].anomaly || flags[m.id].fact); });
+    else if (f.flag === 'marked') list = list.filter(function (m) { return flags[m.id] && flags[m.id].marked; });
+    var vis = list.slice(0, P.shown);
     var sel = function (key, label, opts) { return '<label>' + label + '<select class="sel" data-pf="tf.' + key + '">' + opts.map(function (x) { return '<option value="' + e(x[0]) + '"' + (String(f[key]) === String(x[0]) ? ' selected' : '') + '>' + e(x[1]) + '</option>'; }).join('') + '</select></label>'; };
     var filters = '<div class="filters me-f">' +
       sel('hero', 'Герой', [['all', 'Все герои']].concat(hopts.map(function (id) { return [id, heroName(id)]; }))) +
       sel('result', 'Результат', [['all', 'Все'], ['win', 'Победы'], ['loss', 'Поражения']]) +
       sel('pos', 'Позиция', [['all', 'Любая'], ['1', '1 · Carry'], ['2', '2 · Mid'], ['3', '3 · Offlane'], ['4', '4 · Soft Support'], ['5', '5 · Hard Support'], ['core', 'Кор (по золоту)'], ['support', 'Саппорт (по золоту)'], ['0', 'Не определена']]) +
       sel('period', 'Период', [['all', 'Всё загруженное'], ['7', '7 дней'], ['30', '30 дней']]) +
+      sel('flag', 'Отметки', [['all', 'Все матчи'], ['anomaly', 'Аномалии и факты игры'], ['marked', 'Решения модераторов']]) +
       '<button class="btn ghost sm2" type="button" data-pa="tf-reset">Сбросить</button></div>';
-    var head = '<div class="mt-h"><span>Герой</span><span>Результат</span><span>Дата</span><span>Время</span><span>K / D / A</span><span>GPM / XPM</span><span>Добито</span><span>Позиция</span><span>Оценка</span></div>';
+    var head = '<div class="mt-h"><span>Герой</span><span>Результат</span><span>Дата</span><span>Время</span><span>K / D / A</span><span>GPM / XPM</span><span>Добито</span><span>Позиция</span><span>Оценка</span><span>Отчёт</span></div>';
     var rows = vis.map(function (m) {
       var gx = m.gpm != null || m.xpm != null ? (m.gpm != null ? Math.round(m.gpm) : '—') + ' / ' + (m.xpm != null ? Math.round(m.xpm) : '—') : null;
       return '<div class="mt-r"><div class="hero">' + hic(m.hero) + '<b>' + e(m.hero != null ? heroName(m.hero) : 'Неизвестный герой') + '</b></div><span class="res ' + (m.win ? 'win' : 'loss') + '">' + (m.win ? 'Победа' : 'Поражение') + '</span>' +
@@ -575,7 +605,7 @@
         '<span class="kda"><span class="c-lab">K/D/A</span>' + (m.k != null && m.d != null && m.a != null ? m.k + '<i> / </i>' + m.d + '<i> / </i>' + m.a : na()) + '</span>' +
         '<span><span class="c-lab">GPM/XPM</span>' + (gx || (P.enrich ? '<span class="na">…</span>' : na('OpenDota не отдал GPM/XPM для этого матча'))) + '</span>' +
         '<span><span class="c-lab">Добито</span>' + (m.lh != null ? m.lh + (m.dn != null ? ' <span class="na">/ ' + m.dn + '</span>' : '') : (P.enrich ? '<span class="na">…</span>' : na())) + '</span>' +
-        '<span><span class="c-lab">Поз.</span>' + (m.pos ? '<span title="' + e(A.POS_NAMES[m.pos]) + '">' + m.pos + ' · ' + e(A.POS_NAMES[m.pos]) + '</span>' : m.role ? '<span title="Оценка по золоту команды: матч не разобран OpenDota, точная позиция неизвестна">≈ ' + (m.role === 'core' ? 'Кор' : 'Саппорт') + '</span>' : '<span class="na">Не определена</span>') + '</span><span><span class="c-lab">Оценка</span>' + scoreCell(m) + '</span></div></div>';
+        '<span><span class="c-lab">Поз.</span>' + (m.pos ? '<span title="' + e(A.POS_NAMES[m.pos]) + '">' + m.pos + ' · ' + e(A.POS_NAMES[m.pos]) + '</span>' : m.role ? '<span title="Оценка по золоту команды: матч не разобран OpenDota, точная позиция неизвестна">≈ ' + (m.role === 'core' ? 'Кор' : 'Саппорт') + '</span>' : '<span class="na">Не определена</span>') + '</span><span><span class="c-lab">Оценка</span>' + scoreCell(m) + '</span><span class="rp-mcell">' + matchCell(m, flags) + '</span></div></div>';
     }).join('');
     var more = '';
     if (list.length > vis.length) more = '<button class="btn" type="button" data-pa="show-more">Показать ещё ' + Math.min(25, list.length - vis.length) + '</button>';
@@ -587,13 +617,19 @@
       '<p class="sm" style="margin-top:12px">Оценка игры от −50 до +50: 0 значит «сыграл как обычно», плюс лучше, минус хуже. Считается по (K+A)/D, GPM и XPM относительно твоих же средних (на герое, если на нём от 5 матчей, иначе по всем загруженным матчам), результат матча не учитывается. Это сравнение с самим собой, а не с другими игроками. Изменение MMR по матчам OpenDota не отдаёт, «—» означает, что данных нет.</p></section>';
   }
 
+  function secRep() {
+    if (!window.DMRepUI) return '';
+    var tok = P.token;
+    return DMRepUI.profileCard(P.acc, P.matches, P.profile, function () { if (active(tok)) { P.flagKey = null; renderBody(); } });
+  }
+
   function secMatchesState() {
     if (P.mstate === 'loading' && !P.matches.length) return '<div class="sk-row"><div class="skel k"></div><div class="skel h2"></div><div class="skel h2"></div></div>';
     if (P.mstate === 'error') return '<div class="banner" role="alert">' + ico('alert') + '<div style="flex:1"><b>' + e(P.merr.t) + '</b><p class="sm" style="margin-top:2px">' + e(P.merr.d) + '</p></div>' + (P.merr.retry ? '<button class="btn sm2" type="button" data-pa="retry-m">Повторить</button>' : '') + '</div>';
     if (P.mstate === 'empty') return '<div class="empty">' + ico('list') + '<b>Матчей нет</b><p>OpenDota не вернул ни одного матча для этого аккаунта. Скорее всего, игрок скрыл историю (в настройках Dota 2 выключено «Открытые данные матчей») или ещё не играл. Данные закрытого профиля получить нельзя.</p></div>';
     var list = periodList();
     var err = P.merr ? '<div class="banner warn" role="alert">' + ico('alert') + '<div style="flex:1"><b>' + e(P.merr.t) + '</b><p class="sm" style="margin-top:2px">' + e(P.merr.d) + ' Показано то, что уже загружено.</p></div>' + (P.merr.retry ? '<button class="btn sm2" type="button" data-pa="more">Повторить</button>' : '') + '</div>' : '';
-    return err + secStats(list) + secInsights() + secCharts(list) + secHeroes(list) + secPositions(list) + secMatches();
+    return err + secRep() + secStats(list) + secInsights() + secCharts(list) + secHeroes(list) + secPositions(list) + secMatches();
   }
 
   /* ---------- отрисовка ---------- */
@@ -672,7 +708,7 @@
       case 'period': P.period = t.dataset.v; P.cmp = []; renderBody(); break;
       case 'min': P.minMatches = Math.min(30, Math.max(2, P.minMatches + Number(t.dataset.v))); store(LS, Object.assign(saved(), { minMatches: P.minMatches })); renderBody(); break;
       case 'open-g': P.open[t.dataset.g] = !P.open[t.dataset.g]; renderBody(); break;
-      case 'tf-reset': P.tf = { hero: 'all', result: 'all', pos: 'all', period: 'all' }; P.shown = 25; renderBody(); break;
+      case 'tf-reset': P.tf = { hero: 'all', result: 'all', pos: 'all', period: 'all', flag: 'all' }; P.shown = 25; renderBody(); break;
       case 'cmp': { var p = Number(t.dataset.p), i = P.cmp.indexOf(p); if (i >= 0) P.cmp.splice(i, 1); else P.cmp = P.cmp.concat(p).slice(-2); renderBody(); break; }
       case 'job': runPosJob(); break;
       case 'parse-req': requestParses(); break;
@@ -687,6 +723,7 @@
     init: function (host) { H = host; },
     view: function () { return '<div id="me-root" class="pf"></div>'; },
     mount: mount,
+    current: function () { return P.acc; },
     open: function (acc) { P.input = ''; if ($r()) lookup(String(acc)); else setTimeout(function () { lookup(String(acc)); }, 0); },
     _state: function () { return P; }
   };

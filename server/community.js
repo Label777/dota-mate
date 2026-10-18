@@ -78,6 +78,13 @@ function create(opts) {
     return ok({ acc, confirmed, disputed, unconfirmed, openAppeals, timeline, lastReviewed: last, generatedAt: now() });
   }
 
+  /** Публичные подтверждённые отметки по матчу (без авторов жалоб). */
+  function matchSummary(id) {
+    if (!/^\d{6,13}$/.test(String(id))) return fail(400, 'bad_id', 'Некорректный Match ID.');
+    const rows = db.prepare("SELECT id, target, category, status, public_reason, decided_at FROM reports WHERE match_id = ? AND status IN ('confirmed','disputed') ORDER BY decided_at DESC, id DESC").all(String(id));
+    return ok({ matchId: String(id), marks: rows.map((r) => ({ id: r.id, acc: r.target, category: r.category, status: r.status, decidedAt: r.decided_at, reason: r.public_reason || '' })), generatedAt: now() });
+  }
+
   /* ---------- жалобы ---------- */
 
   async function createReport(user, body) {
@@ -111,6 +118,7 @@ function create(opts) {
     const started = Number(detail.start_time) || 0;
     if (started && t - started > L.matchMaxAgeDays * DAY) return fail(422, 'match_too_old', 'Жалобы принимаются только на матчи не старше ' + L.matchMaxAgeDays + ' дней.');
 
+    const before = db.prepare("SELECT COUNT(DISTINCT reporter) AS r, COUNT(DISTINCT match_id) AS m FROM reports WHERE target = ? AND status IN ('new','pending','needs_data')").get(x.target);
     const res = tx(() => {
       db.prepare('INSERT OR IGNORE INTO matches (id, started_at, duration, game_mode, fetched_at) VALUES (?, ?, ?, ?, ?)').run(x.matchId, started || null, Number(detail.duration) || null, Number(detail.game_mode) || null, t);
       const ins = db.prepare('INSERT OR REPLACE INTO match_players (match_id, acc, hero_id, is_radiant, kills, deaths, assists) VALUES (?, ?, ?, ?, ?, ?, ?)');
@@ -127,7 +135,9 @@ function create(opts) {
       const id = Number(r.lastInsertRowid);
       x.evidence.forEach((u) => db.prepare('INSERT INTO report_evidence (report_id, url, created_at) VALUES (?, ?, ?)').run(id, u, t));
       logAction(id, null, user.acc, 'create', null, 'new', null);
-      notifyWatchers(x.target, 'message', 'Поступила новая непроверенная жалоба. Это не подтверждённое нарушение.', 'report:' + id, user.acc);
+      // наблюдателям сообщаем только тогда, когда счётчик непроверенных жалоб стал публичным (≥2 автора и ≥2 матча): единичную жалобу не раскрываем
+      const u = db.prepare("SELECT COUNT(DISTINCT reporter) AS r, COUNT(DISTINCT match_id) AS m FROM reports WHERE target = ? AND status IN ('new','pending','needs_data')").get(x.target);
+      if (u.r >= 2 && u.m >= 2 && !(before.r >= 2 && before.m >= 2)) notifyWatchers(x.target, 'message', 'Набралось несколько независимых непроверенных жалоб. Это не подтверждённое нарушение.', 'report:' + id, user.acc);
       return { id, volume };
     });
     return ok({ id: res.id, status: 'new', statusLabel: R.STATUS_LABEL.new, flaggedForReview: !!res.volume }, 201);
@@ -357,6 +367,7 @@ function create(opts) {
     try {
       if (method === 'GET' && p === '/status') return ok({ available: true, user: user ? { acc: user.acc, moderator: isMod(user.acc) } : null, limits: { reportsPerDay: L.reportsPerDay, matchMaxAgeDays: L.matchMaxAgeDays } });
       if (method === 'GET' && (m = /^\/player\/(\d{1,10})$/.exec(p))) return playerSummary(m[1]);
+      if (method === 'GET' && (m = /^\/match\/(\d{6,13})$/.exec(p))) return matchSummary(m[1]);
       if (method === 'POST' && p === '/reports') return await createReport(user, body);
       if (method === 'GET' && p === '/my/reports') return myReports(user);
       if (method === 'GET' && p === '/against-me') return againstMe(user);

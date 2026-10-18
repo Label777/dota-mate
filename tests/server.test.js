@@ -87,3 +87,9 @@ test('сервер не раскрывает автора жалобы в пуб
   const txt = await (await call('GET', '/api/c/player/2002')).text();
   assert.ok(!txt.includes('1001'));
 });
+
+test('слишком большое тело запроса отклоняется (413)', async () => {
+  const c = await cookieFor('3003');
+  const r = await call('POST', '/api/c/reports', { cookie: c, body: Object.assign({}, rep, { description: 'я'.repeat(30000) }) });
+  assert.equal(r.status, 413);
+});

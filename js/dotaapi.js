@@ -28,7 +28,7 @@
 
   var DIRECT_BASE = 'https://api.opendota.com/api';
   var EXTRA_FIELDS = ['gold_per_min', 'xp_per_min', 'last_hits', 'denies', 'lane_role'];
-  var TTL = { heroes: 7 * 864e5, player: 36e5, wl: 6e5, matches: 6e5, ratings: 36e5, detail: 864e5 };
+  var TTL = { heroes: 7 * 864e5, player: 36e5, wl: 6e5, matches: 6e5, ratings: 36e5, detail: 864e5, peers: 18e5 };
 
   function ApiError(code, message, extra) {
     this.name = 'ApiError';
@@ -222,6 +222,16 @@
           if (q.extra === false || !rows.length) return rows;
           return enrich(acc, limit, offset, rows, c, q.onProgress);
         });
+      },
+      /** Игроки, с которыми acc играл вместе (OpenDota /players/{id}/peers). days: учитывать матчи за последние N дней (0 = все). */
+      getPeers: function (acc, days, c) {
+        acc = checkAcc(acc); days = Math.max(0, Math.min(365, parseInt(days, 10) || 0));
+        return cached('peers:' + acc + ':' + days, TTL.peers, '/players/' + acc + '/peers' + (days ? '?date=' + days : ''), Object.assign({ persist: false }, c || {})).then(arr);
+      },
+      /** Матчи acc, в которых также играл other (included_account_id), основные поля. */
+      getSharedMatches: function (acc, other, limit, c) {
+        acc = checkAcc(acc); other = checkAcc(other); limit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+        return cached('shared:' + acc + ':' + other + ':' + limit, TTL.matches, '/players/' + acc + '/matches?limit=' + limit + '&offset=0&included_account_id=' + other, Object.assign({ persist: false }, c || {})).then(arr);
       },
       getRatings: function (acc, c) { acc = checkAcc(acc); return cached('ratings:' + acc, TTL.ratings, '/players/' + acc + '/ratings', c).then(arr); },
       getMatchDetail: function (id, c) {
