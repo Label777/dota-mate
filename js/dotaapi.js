@@ -12,7 +12,7 @@
  *   clearCache()
  * Ошибки: ApiError с полем code: invalid | not_found | rate_limit | network | timeout | api | bad_data.
  *
- * Эндпоинты OpenDota: /heroes, /players/{id}, /players/{id}/wl, /players/{id}/matches, /players/{id}/ratings, /matches/{id}.
+ * Эндпоинты OpenDota: /heroes, /heroes/{id}/matchups, /players/{id}/heroes, /players/{id}, /players/{id}/wl, /players/{id}/matches, /players/{id}/ratings, /matches/{id}.
  *
  * Про /players/{id}/matches. Без параметра project OpenDota отдаёт основные поля (hero_id, start_time, kills, deaths, assists,
  * duration, game_mode, lobby_type, party_size, leaver_status). GPM, XPM, добитые крипы и роль линии доступны только через project.
@@ -28,7 +28,7 @@
 
   var DIRECT_BASE = 'https://api.opendota.com/api';
   var EXTRA_FIELDS = ['gold_per_min', 'xp_per_min', 'last_hits', 'denies', 'lane_role'];
-  var TTL = { heroes: 7 * 864e5, player: 36e5, wl: 6e5, matches: 6e5, ratings: 36e5, detail: 864e5, peers: 18e5 };
+  var TTL = { heroes: 7 * 864e5, player: 36e5, wl: 6e5, matches: 6e5, ratings: 36e5, detail: 864e5, peers: 18e5, matchups: 216e5, pheroes: 18e5 };
 
   function ApiError(code, message, extra) {
     this.name = 'ApiError';
@@ -232,6 +232,16 @@
       getSharedMatches: function (acc, other, limit, c) {
         acc = checkAcc(acc); other = checkAcc(other); limit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
         return cached('shared:' + acc + ':' + other + ':' + limit, TTL.matches, '/players/' + acc + '/matches?limit=' + limit + '&offset=0&included_account_id=' + other, Object.assign({ persist: false }, c || {})).then(arr);
+      },
+      /** Как герой hero играет против каждого другого героя: [{hero_id, games_played, wins}], wins = победы героя hero. Только в памяти. */
+      getMatchups: function (hero, c) {
+        if (!/^\d{1,4}$/.test(String(hero))) throw new ApiError('invalid', 'Некорректный номер героя.');
+        return cached('matchups:' + hero, TTL.matchups, '/heroes/' + hero + '/matchups', Object.assign({ persist: false }, c || {})).then(arr);
+      },
+      /** Герои игрока: [{hero_id, games, win, last_played}]. Только в памяти. */
+      getPlayerHeroes: function (acc, c) {
+        acc = checkAcc(acc);
+        return cached('pheroes:' + acc, TTL.pheroes, '/players/' + acc + '/heroes', Object.assign({ persist: false }, c || {})).then(arr);
       },
       getRatings: function (acc, c) { acc = checkAcc(acc); return cached('ratings:' + acc, TTL.ratings, '/players/' + acc + '/ratings', c).then(arr); },
       getMatchDetail: function (id, c) {

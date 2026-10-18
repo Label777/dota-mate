@@ -5,6 +5,8 @@ const http = require('node:http');
 const NOW = Math.floor(Date.now() / 1000);
 const HEROES = [[1, 'antimage', 'Anti-Mage'], [2, 'axe', 'Axe'], [13, 'puck', 'Puck'], [14, 'pudge', 'Pudge'], [26, 'lion', 'Lion'], [74, 'invoker', 'Invoker']];
 const rnd = (i, k) => ((i * 2654435761 + k * 40503) % 1000) / 1000;
+const ATTR = { 1: 'agi', 2: 'str', 13: 'agi', 14: 'str', 26: 'int', 74: 'all' };
+const ROLES = { 1: ['Carry', 'Escape'], 2: ['Initiator', 'Durable'], 13: ['Nuker', 'Escape'], 14: ['Disabler', 'Initiator'], 26: ['Support', 'Disabler'], 74: ['Carry', 'Nuker'] };
 const OUTLIERS = new Set([0, 3, 5, 9, 40]);   // у игрока 2002 в этих матчах необычно много смертей
 
 function rowsFor(acc, n) {
@@ -32,7 +34,12 @@ function create() {
     const u = new URL(req.url, 'http://x'), p = u.pathname;
     const send = (o, code) => { res.statusCode = code || 200; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(o)); };
     let m;
-    if (p === '/heroes') return send(HEROES.map((h) => ({ id: h[0], name: 'npc_dota_hero_' + h[1], localized_name: h[2] })));
+    if (p === '/heroes') return send(HEROES.map((h) => ({ id: h[0], name: 'npc_dota_hero_' + h[1], localized_name: h[2], primary_attr: ATTR[h[0]] || 'str', roles: ROLES[h[0]] || ['Support'] })));
+    if ((m = /^\/heroes\/(\d+)\/matchups$/.exec(p))) {
+      const me = Number(m[1]);
+      return send(HEROES.filter((h) => h[0] !== me).map((h) => ({ hero_id: h[0], games_played: 400 + h[0], wins: 150 + ((me * 7 + h[0] * 13) % 120), extra: 'лишнее поле' })));
+    }
+    if ((m = /^\/players\/(\d+)\/heroes$/.exec(p))) return send(HEROES.slice(0, 4).map((h, i) => ({ hero_id: h[0], games: 40 - i * 8, win: 22 - i * 3, last_played: NOW - i * 86400, with_games: 1 })));
     if ((m = /^\/players\/(\d+)\/matches$/.exec(p))) {
       const limit = Math.min(500, Number(u.searchParams.get('limit')) || 100), proj = u.searchParams.getAll('project');
       const acc = m[1], total = acc === '9999' ? 0 : acc === '3003' ? 8 : 70;

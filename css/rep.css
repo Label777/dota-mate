@@ -97,6 +97,6 @@ input[aria-invalid=true],textarea[aria-invalid=true],select[aria-invalid=true]{b
   .rp-two{grid-template-columns:1fr}
   .rp-tl li{grid-template-columns:1fr;gap:2px}
   .rp-ep header,.rp-ep footer{flex-direction:column;align-items:flex-start}
-  #nav .row{grid-template-columns:repeat(6,1fr)}
+  #nav .row{grid-template-columns:repeat(7,1fr)}
 }
 @media print{.top,#nav,.rp-tabs,.rp-search,.btn{display:none!important}body{background:#fff;color:#000}}

@@ -72,7 +72,7 @@ const SEC_HEADERS = {
   'Content-Security-Policy':
     "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "font-src https://fonts.gstatic.com; img-src 'self' data: https://*.steamstatic.com https://*.akamaihd.net; " +
-    "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'",
+    "connect-src 'self' http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'none'; object-src 'none'",
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'no-referrer',
@@ -229,6 +229,12 @@ async function proxyOD(req, res, url, who) {
     target = `${OD}/players/${m[1]}`; ttl = 3600000; shape = slimPlayer;
   } else if (pn === '/api/od/heroes') {
     target = `${OD}/heroes`; ttl = 86400000;
+  } else if ((m = /^\/api\/od\/heroes\/(\d{1,4})\/matchups$/.exec(pn))) {
+    target = `${OD}/heroes/${m[1]}/matchups`; ttl = 21600000;
+    shape = (a) => (Array.isArray(a) ? a.slice(0, 400).map((r) => ({ hero_id: r.hero_id, games_played: r.games_played, wins: r.wins })) : []);
+  } else if ((m = /^\/api\/od\/players\/(\d{1,10})\/heroes$/.exec(pn))) {
+    target = `${OD}/players/${m[1]}/heroes`; ttl = 1800000;
+    shape = (a) => (Array.isArray(a) ? a.slice(0, 400).map((r) => ({ hero_id: r.hero_id, games: r.games, win: r.win, last_played: r.last_played })) : []);
   } else if ((m = /^\/api\/od\/matches\/(\d{6,13})$/.exec(pn))) {
     target = `${OD}/matches/${m[1]}`; ttl = 600000;
   } else return json(res, 404, { error: 'not found' });
@@ -286,6 +292,11 @@ async function handle(req, res) {
     const f = path.join(__dirname, p);
     if (!f.startsWith(path.join(__dirname, asset[1]) + path.sep) || !fs.existsSync(f)) return send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
     return send(res, 200, fs.readFileSync(f), { 'Content-Type': (asset[2] === 'js' ? 'text/javascript' : 'text/css') + '; charset=utf-8', 'Cache-Control': 'no-cache' });
+  }
+  if (method === 'GET' && p === '/bridge/dota-mate-bridge.js') {
+    const f = path.join(__dirname, 'bridge', 'dota-mate-bridge.js');
+    if (!fs.existsSync(f)) return send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+    return send(res, 200, fs.readFileSync(f), { 'Content-Type': 'text/javascript; charset=utf-8', 'Content-Disposition': 'attachment; filename="dota-mate-bridge.js"', 'Cache-Control': 'no-cache' });
   }
   if (method === 'GET' && p === '/auth/steam') {
     return send(res, 302, '', { Location: steamRedirectUrl() });

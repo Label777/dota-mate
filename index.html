@@ -55,7 +55,7 @@ small,.sm{font-size:.84rem;color:var(--mute)}
 
 /* bottom nav (phones) */
 #nav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#nav .row{display:grid;grid-template-columns:repeat(6,1fr)}
+#nav .row{display:grid;grid-template-columns:repeat(7,1fr)}
 #nav .tab{flex-direction:column;gap:2px;font-size:.72rem;border-radius:0;padding:9px 4px 8px}
 #nav .tab .ic{width:1.35em;height:1.35em}
 #nav .tab[aria-current=page]{box-shadow:inset 0 2px 0 var(--red)}
@@ -234,6 +234,7 @@ img.av{object-fit:cover}
 <link rel="stylesheet" href="css/profile.css">
 <link rel="stylesheet" href="css/rep.css">
 <link rel="stylesheet" href="css/social.css">
+<link rel="stylesheet" href="css/draft.css">
 <link rel="stylesheet" href="css/theme.css">
 </head>
 <body>
@@ -277,6 +278,8 @@ img.av{object-fit:cover}
 <script src="js/rep-ui2.js"></script>
 <script src="js/social.js"></script>
 <script src="js/social-ui.js"></script>
+<script src="js/draft.js"></script>
+<script src="js/draft-ui.js"></script>
 <script src="js/assistant.js"></script>
 <script>
 (function(){
@@ -425,7 +428,7 @@ function paintToast(){
 }
 
 /* ---------- views ---------- */
-const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['players','users','Игроки'],['me','user','Профиль'],['rep','shield','Репутация'],['settings','sliders','Настройки']];
+const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['players','users','Игроки'],['me','user','Профиль'],['draft','rune','Драфт'],['rep','shield','Репутация'],['settings','sliders','Настройки']];
 const cur=()=>V.page==='player'?'players':V.page;
 function navBtns(){return NAV.map(n=>`<button class="tab" data-a="go" data-p="${n[0]}" ${cur()===n[0]?'aria-current="page"':''}>${ico(n[1])}<span>${n[2]}</span></button>`).join('')}
 function meBlock(){
@@ -622,9 +625,10 @@ function vSettings(){
 }
 
 const vMe=()=>window.DMProfile?DMProfile.view():`<div class="empty">${ico('alert')}<b>Раздел не загрузился</b><p>Не удалось загрузить скрипты раздела «Профиль игрока». Обновите страницу.</p></div>`;
+const vDraft=()=>window.DMDraftUI?DMDraftUI.view():`<div class="empty">${ico('alert')}<b>Раздел не загрузился</b><p>Не удалось загрузить скрипты раздела «Драфт». Обновите страницу.</p></div>`;
 const vRep=()=>window.DMRepUI?DMRepUI.view():`<div class="empty">${ico('alert')}<b>Раздел не загрузился</b><p>Не удалось загрузить скрипты раздела «Репутация». Обновите страницу.</p></div>`;
-const VIEWS={dash:vDash,matches:vMatches,players:vPlayers,player:vPlayer,me:vMe,rep:vRep,settings:vSettings};
-function paintMain(){$('#main').innerHTML=VIEWS[V.page]();if(V.page==='me'&&window.DMProfile)DMProfile.mount();if(V.page==='rep'&&window.DMRepUI)DMRepUI.mount()}
+const VIEWS={dash:vDash,matches:vMatches,players:vPlayers,player:vPlayer,me:vMe,rep:vRep,draft:vDraft,settings:vSettings};
+function paintMain(){if(V.page!=='draft'&&window.DMDraftUI)DMDraftUI.leave();$('#main').innerHTML=VIEWS[V.page]();if(V.page==='me'&&window.DMProfile)DMProfile.mount();if(V.page==='rep'&&window.DMRepUI)DMRepUI.mount();if(V.page==='draft'&&window.DMDraftUI)DMDraftUI.mount()}
 function paint(){paintHdr();paintMain();paintModal()}
 
 /* ---------- modals ---------- */
@@ -704,6 +708,7 @@ function closeModal(){V.modal=null;V.draft=null;V.confirm=null;paintModal();pain
 function setHash(h){if(location.hash===h||(!h&&!location.hash))return;try{history.replaceState(null,'',h||location.pathname+location.search)}catch(e){}}
 function go(p,id){V.page=p;V.pid=id||null;V.modal=null;V.confirm=null;
   if(p==='rep')setHash(window.DMRepUI?DMRepUI.hash():'');
+  else if(p==='draft')setHash('#/draft');
   else if(p==='me')setHash(window.DMProfile&&DMProfile.current()?'#/profile/'+DMProfile.current():'');
   else setHash('');
   paint();window.scrollTo(0,0)}
@@ -713,6 +718,12 @@ function route(){
   if(!h)return;
   const i=h.indexOf('/'),t=i<0?h:h.slice(0,i);let param=i<0?'':h.slice(i+1);
   try{param=decodeURIComponent(param)}catch(e){}
+  const dm=/^draft(?:\/)?(?:\?(.*))?$/.exec(h);
+  if(dm){
+    const q=dm[1]||'';
+    const link=window.DMDraftUI&&q?DMDraftUI.applyLink(q):false;
+    if(V.page!=='draft'||link){V.page='draft';V.pid=null;V.modal=null;V.confirm=null;paint();window.scrollTo(0,0)}
+    return}
   if(t==='profile'){
     if(V.page!=='me'){V.page='me';V.pid=null;V.modal=null;V.confirm=null;paint();window.scrollTo(0,0)}
     if(window.DMProfile&&/^\d{1,10}$/.test(param)&&DMProfile.current()!==param)DMProfile.open(param);
@@ -922,6 +933,13 @@ if(window.DMProfile)DMProfile.init({esc,ico,
   toast:m=>toast(m),
   onOpen:acc=>{const h='#/profile/'+acc;if(location.hash!==h)location.hash=h},
   copy:t=>navigator.clipboard.writeText(t).then(()=>toast('Скопировано.'),()=>toast('Не удалось скопировать. Выделите текст вручную.'))});
+if(window.DMDraftUI)DMDraftUI.init({esc,ico,pl,
+  base:()=>SERVER?'/api/od':'https://api.opendota.com/api',
+  server:()=>SERVER,
+  heroName:id=>HEROES[id]||'',
+  heroIds:()=>Object.keys(HEROES).map(Number),
+  myAcc:()=>SRV&&SRV.acc?String(SRV.acc):(S&&S.me&&S.me.acc&&isNum(S.me.acc)?String(S.me.acc):''),
+  toast:m=>toast(m)});
 if(window.DMAssist)DMAssist.init({esc,ico,server:()=>SERVER,loggedIn:()=>!!SRV,page:()=>V.page});
 if(window.DMRepUI)DMRepUI.init({esc,ico,
   base:()=>SERVER?'/api/od':'https://api.opendota.com/api',

@@ -25,6 +25,9 @@ test.before(async () => {
     odHits++;
     const m = /^\/matches\/(\d+)/.exec(req.url);
     if (m && m[1] === '7000000001') { res.setHeader('content-type', 'application/json'); return res.end(JSON.stringify({ match_id: 7000000001, start_time: NOW - 3600, duration: 2400, players })); }
+    let q;
+    if ((q = /^\/heroes\/(\d+)\/matchups$/.exec(req.url))) { res.setHeader('content-type', 'application/json'); return res.end(JSON.stringify([2, 3, 4, 5, 6].map((h) => ({ hero_id: h, games_played: 100 + h, wins: 40 + h, лишнее: 1 })))); }
+    if ((q = /^\/players\/(\d+)\/heroes$/.exec(req.url))) { res.setHeader('content-type', 'application/json'); return res.end(JSON.stringify([{ hero_id: 2, games: 10, win: 6, last_played: 1700000000, with_games: 3 }])); }
     res.statusCode = 404; res.end('{}');
   });
   await new Promise((r) => od.listen(0, '127.0.0.1', r));
@@ -107,4 +110,15 @@ test('состояние аккаунта: теги и заметки по ге�
   assert.equal((await call('PUT', '/api/state', { cookie: c, body: { v: 1, matches: [], reviews: {}, pnotes: {} } })).status, 200, 'старое состояние без новых полей принимается');
   const other = await cookieFor('5005');
   assert.deepEqual((await (await call('GET', '/api/state', { cookie: other })).json()).state, null, 'чужие данные недоступны');
+});
+
+test('прокси OpenDota: матчапы героя и герои игрока отдаются сжатыми, лишние пути закрыты', async () => {
+  const m = await (await call('GET', '/api/od/heroes/14/matchups')).json();
+  assert.ok(Array.isArray(m) && m.length > 3);
+  assert.deepEqual(Object.keys(m[0]).sort(), ['games_played', 'hero_id', 'wins'], 'лишние поля отброшены');
+  const h = await (await call('GET', '/api/od/players/1001/heroes')).json();
+  assert.deepEqual(Object.keys(h[0]).sort(), ['games', 'hero_id', 'last_played', 'win']);
+  for (const bad of ['/api/od/heroes/abc/matchups', '/api/od/heroes/99999/matchups', '/api/od/players/12345678901/heroes', '/api/od/heroes/14/matchups/x', '/api/od/heroes/14']) {
+    assert.equal((await call('GET', bad)).status, 404, bad);
+  }
 });
