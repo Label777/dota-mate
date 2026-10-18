@@ -175,7 +175,7 @@ async function fetchProfile(acc) {
 }
 
 /* ---------- прокси OpenDota ---------- */
-const OD = 'https://api.opendota.com/api';
+const OD = (process.env.OPENDOTA_BASE || 'https://api.opendota.com/api').replace(/\/$/, '');   // OPENDOTA_BASE нужен только для тестов с поддельным источником
 let chain = Promise.resolve();
 function upstream(url) {
   const p = chain.then(() => sleep(250)).then(() => fetch(url, { signal: AbortSignal.timeout(15000), headers: { 'User-Agent': 'dota-mate/1.0' } }));
@@ -338,6 +338,29 @@ async function handle(req, res) {
     } catch (e) { return json(res, 502, { error: 'upstream unreachable' }); }
   }
 
+  /* Сообщество: жалобы, модерация, обжалования, список наблюдения. Все проверки выполняются в server/community.js. */
+  if (p.startsWith('/api/c/') || p === '/api/c') {
+    const s0 = session(req);
+    const who = s0 ? s0.acc : 'ip:' + (req.socket.remoteAddress || '');
+    const sub = p.slice(6) || '/';
+    if (!community) {
+      if (method === 'GET' && sub === '/status') return json(res, 200, { available: false, reason: communityError });
+      return json(res, 501, { error: 'unavailable', message: 'Функции сообщества отключены: ' + communityError });
+    }
+    if (method !== 'GET' && !sameSiteOk(req)) return json(res, 403, { error: 'forbidden', message: 'Запрос отклонён: нужен заголовок X-DM и тот же сайт.' });
+    if (limited(who + ':c' + (method === 'GET' ? 'r' : 'w'), method === 'GET' ? 600 : 120)) return json(res, 429, { error: 'rate_limit', message: 'Слишком много запросов, подождите минуту.' }, { 'Retry-After': '60' });
+    let body = {};
+    if (method === 'POST' || method === 'PUT') {
+      if (!/^application\/json/.test(req.headers['content-type'] || '')) return json(res, 415, { error: 'json only' });
+      try { body = JSON.parse((await readBody(req)) || '{}'); } catch (e) { return json(res, e.code === 413 ? 413 : 400, { error: 'bad body' }); }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) return json(res, 400, { error: 'bad body' });
+    }
+    const user = s0 ? { acc: s0.acc } : null;
+    const q = {}; url.searchParams.forEach((v, k) => { q[k] = v; });
+    const r = await community.route(method, sub, { user, query: q, body });
+    return json(res, r.status, r.body);
+  }
+
   if (p.startsWith('/api/')) {
     const s = session(req);
     if (!s) return json(res, 401, { error: 'no session' });
@@ -367,6 +390,32 @@ async function handle(req, res) {
     return json(res, 404, { error: 'not found' });
   }
   return send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
+}
+
+/* ---------- сообщество (SQLite) ---------- */
+let community = null, communityError = '';
+async function fetchMatchDetail(id) {
+  const target = `${OD}/matches/${id}`, c = cache.get(target);
+  let text;
+  if (c && c.t > Date.now()) text = c.body;
+  else {
+    const r = await upstream(OD_KEY ? target + '?api_key=' + encodeURIComponent(OD_KEY) : target);
+    if (r.status === 404) throw Object.assign(new Error('not found'), { code: 'not_found' });
+    if (!r.ok) throw Object.assign(new Error('upstream ' + r.status), { code: 'upstream' });
+    text = await r.text();
+    cache.set(target, { t: Date.now() + 600000, body: text });
+  }
+  return JSON.parse(text);
+}
+try {
+  const dbm = require('./server/db.js');
+  const db = dbm.open(process.env.DB_FILE || path.join(DATA, 'dotamate.sqlite'));
+  const mods = require('./server/community.js').parseModerators(process.env.MODERATORS);
+  community = require('./server/community.js').create({ db, fetchMatch: fetchMatchDetail, moderators: mods, log: (e) => console.error('community:', e) });
+  console.log('Сообщество: база готова, модераторов: ' + mods.size + (mods.size ? '' : ' (задайте MODERATORS, иначе модерация недоступна)'));
+} catch (e) {
+  communityError = e.code === 'NO_SQLITE' ? 'нужен Node.js 22.5 или новее (модуль node:sqlite)' : String(e.message || e).slice(0, 200);
+  console.error('Сообщество отключено: ' + communityError);
 }
 
 http.createServer((req, res) => {
