@@ -196,6 +196,30 @@ with sync_playwright() as p:
     pg.click('.hero-x, [data-a=add] >> nth=0'); pg.wait_for_selector('[data-a=tab][data-t=link]'); pg.click('[data-a=tab][data-t=link]'); pg.fill('#m-json', json.dumps(detail)); pg.click('[data-a=importJson]'); pg.wait_for_selector('.arow')
     check('импорт матча из JSON сохраняет статистику без запроса подробностей', pg.evaluate("Object.keys(DMPerfUI.cache().m)") == ['7000000005'] and not [x for x in hits if x.startswith('/matches/')], hits)
     check('без JS-ошибок (импорт)', not errs, errs[:2]); c.close()
+
+    # ---------- теги и репутация возле ника ----------
+    hits.clear()
+    S2 = state(); S2['tags'] = {'2002': ['toxic'], '3003': ['party']}
+    init = "localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"
+    c, pg, errs = setup(b, S=S2, init=init); pg.goto(URL); pg.wait_for_selector('.tile')
+    pg.click('.tabs [data-p=players]'); pg.wait_for_selector('#plist .prow')
+    check('у каждого игрока в списке значок репутации рядом с ником', pg.locator('#plist .prow .nm-line .rq').count() == 4, pg.locator('#plist .rq').count())
+    check('тег стоит в той же строке, что и ник', pg.locator('#plist .prow .nm-line .sx-tag').count() == 2, pg.locator('#plist .sx-tag').count())
+    until(pg, "document.querySelectorAll('#plist .rq-wait').length===0", 40000)
+    labs = pg.locator('#plist .rq').all_inner_texts()
+    check('репутация посчиталась в фоне: у всех игроков понятная метка', all(x.strip() in ('Мало данных', 'Нет сигналов', 'Проверить', 'Подтверждено', 'Давно не играл', 'Нет данных') for x in labs), labs)
+    tip = pg.get_attribute('#plist .rq >> nth=0', 'data-tip'); check('у значка репутации есть пояснение с ограничением', bool(tip) and ('не ' in tip), tip)
+    cache = pg.evaluate("localStorage.getItem('dotamate.repq.v1')"); check('результат сохранён в браузере', cache and len(json.loads(cache)['m']) == 4, cache)
+    n_before = len([x for x in hits if x.startswith('/players/')]); pg.reload(); pg.wait_for_selector('.tabs'); pg.click('.tabs [data-p=players]'); pg.wait_for_selector('#plist .prow'); pg.wait_for_timeout(2500)
+    check('после перезагрузки значки берутся из кэша без новых запросов', len([x for x in hits if x.startswith('/players/')]) == n_before and pg.locator('#plist .rq-wait').count() == 0, (n_before, len(hits)))
+    pg.click('.tabs [data-p=matches]'); pg.wait_for_selector('.mrow'); pg.click('.mrow >> nth=0'); pg.wait_for_selector('.arow')
+    check('в составе матча теги и репутация возле каждого ника', pg.locator('.arow .rq').count() >= 8, pg.locator('.arow .rq').count())
+    check('игрок со скрытым профилем помечен честно', 'Профиль скрыт' in pg.inner_text('.arow >> nth=-1') or 'Профиль скрыт' in pg.inner_text('.panel-b'))
+    pg.click('[data-a=close]'); pg.click('.tabs [data-p=settings]'); pg.wait_for_selector('#rq-auto'); pg.uncheck('#rq-auto'); pg.wait_for_timeout(300)
+    check('переключатель репутации сохраняется', json.loads(pg.evaluate("localStorage.getItem('dotamate.repq.v1')"))['auto'] is False)
+    pg.click('[data-a=rq-clear]'); pg.wait_for_timeout(300); pg.click('.tabs [data-p=players]'); pg.wait_for_selector('#plist .prow'); pg.wait_for_timeout(800)
+    check('при выключенной проверке значок «Не проверена», запросов нет', 'Не проверена' in pg.inner_text('#plist .prow >> nth=0'))
+    check('без JS-ошибок (репутация у ников)', not errs, errs[:2]); c.close()
     b.close()
 
 mock.terminate()

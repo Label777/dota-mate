@@ -23,7 +23,7 @@
   }
   /* Дополнение к строке игрока: теги и, при поиске, где найден текст. */
   function rowExtra(e) {
-    let h = chips(e.sid);
+    let h = '';
     const hits = H.V.page === 'players' && X.tab === 'all' ? X.hits[e.sid] : null;
     if (hits && hits.length) {
       const k = { review: 'заметка к матчу', player: 'заметка об игроке', hero: 'заметка о герое', tag: 'тег' };
@@ -37,7 +37,7 @@
   }
   function rowBadges(p) {
     if (!p.sid) return '';
-    let h = chips(p.sid);
+    let h = '';
     const n = D().getHeroNote(S(), p.sid, p.hero);
     if (n) h += `<div class="sx-hnline">${ico('edit')}<span><b>${esc(p.hero)}:</b> ${esc(n)}</span></div>`;
     return h;
@@ -184,7 +184,7 @@
   }
   function qRow(p) {
     const row = X.qr.rows[p.sid];
-    return `<div class="sx-q" data-sid="${esc(p.sid)}"><div class="sx-qh">${H.av(p.name, 'md', p.sid)}<span class="sx-qn"><b>${esc(p.name)}</b><small>${esc(p.hero)}${D().hasTag(S(), p.sid, 'avoid') ? ' · в списке «Избегать»' : ''}</small></span></div>
+    return `<div class="sx-q" data-sid="${esc(p.sid)}"><div class="sx-qh">${H.av(p.name, 'md', p.sid)}<span class="sx-qn"><span class="nm-line"><b>${esc(p.name)}</b>${window.DMRepChip ? DMRepChip.badges(p.sid) : ''}</span><small>${esc(p.hero)}${D().hasTag(S(), p.sid, 'avoid') ? ' · в списке «Избегать»' : ''}</small></span></div>
       <div class="sx-qs" role="group" aria-label="Оценка: ${esc(p.name)}">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="sx-star ${n <= row.rating ? 'on' : ''}" data-a="s-qstar" data-sid="${esc(p.sid)}" data-n="${n}" aria-label="${n} из 5" aria-pressed="${n === row.rating}">${ico('star')}</button>`).join('')}</div>
       <input class="sx-qnote" type="text" data-sid="${esc(p.sid)}" maxlength="${D().MAX_NOTE}" placeholder="Короткая заметка" aria-label="Заметка об игроке ${esc(p.name)}" value="${esc(row.note)}" autocomplete="off">
       <div class="sx-qt" role="group" aria-label="Быстрые теги: ${esc(p.name)}">${QT.map((t) => `<button type="button" class="sx-pill ${D().tagTone(t)}" data-a="s-qtag" data-sid="${esc(p.sid)}" data-id="${t}" aria-pressed="${row.tags.includes(t)}">${esc(D().tagLabel(t))}</button>`).join('')}</div></div>`;
@@ -367,5 +367,5 @@
     if (t.classList && t.classList.contains('sx-qnote') && X.qr && X.qr.rows[t.dataset.sid]) X.qr.rows[t.dataset.sid].note = t.value;
   });
 
-  window.DMSocialUI = { init, view, body, tabs, filterBar, filter, search, rowExtra, rowBadges, recTxt, playerBlocks, matchTop, rateAllModal, dashBlock, settingsBlock, isAll, state: X };
+  window.DMSocialUI = { init, view, body, tabs, filterBar, filter, search, rowExtra, rowBadges, tagChips: chips, recTxt, playerBlocks, matchTop, rateAllModal, dashBlock, settingsBlock, isAll, state: X };
 })();

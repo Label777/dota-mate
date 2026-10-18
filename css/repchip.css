@@ -1,0 +1,15 @@
+/* Теги и репутация рядом с ником */
+.nm-line{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;min-width:0}
+.nm-line .pname,.nm-line b{overflow-wrap:anywhere}
+.nm-h1 h1{margin:0}
+.nb{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0;vertical-align:middle}
+.nb .sx-chips{display:inline-flex;gap:4px;flex-wrap:wrap;margin:0}
+.rq{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;font-weight:600;line-height:1.5;border-radius:999px;padding:0 8px 0 6px;border:1px solid var(--line);background:var(--card-2);color:var(--fg-2);white-space:nowrap}
+.rq .ic{width:.95em;height:.95em;fill:none;stroke:currentColor;stroke-width:2;flex:none}
+.rq-ok{color:#8fd0ae;border-color:#2f5a45;background:var(--win-soft)}
+.rq-warn{color:#e0c07c;border-color:#6b5a30;background:rgba(207,169,90,.1)}
+.rq-bad{color:#f0a0a4;border-color:#6a2f35;background:rgba(168,50,58,.14)}
+.rq-neutral,.rq-wait{color:var(--mute)}
+.rq-wait{font-weight:500;border-style:dashed}
+.panel-h h3+.nb{margin-left:2px}
+@media (max-width:560px){.rq{font-size:.7rem}}

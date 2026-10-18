@@ -244,6 +244,7 @@ img.av{object-fit:cover}
 <link rel="stylesheet" href="css/social.css">
 <link rel="stylesheet" href="css/draft.css">
 <link rel="stylesheet" href="css/perf.css">
+<link rel="stylesheet" href="css/repchip.css">
 <link rel="stylesheet" href="css/tips.css">
 <link rel="stylesheet" href="css/home.css">
 <link rel="stylesheet" href="css/theme.css">
@@ -294,6 +295,7 @@ img.av{object-fit:cover}
 <script src="js/draft-ui.js"></script>
 <script src="js/perf.js"></script>
 <script src="js/perf-ui.js"></script>
+<script src="js/repchip.js"></script>
 <script src="js/tips.js"></script>
 <script src="js/quick.js"></script>
 <script src="js/assistant.js"></script>
@@ -501,7 +503,7 @@ const sxRec=(e,r)=>window.DMSocialUI?DMSocialUI.recTxt(e,r):'';
 function prow(e){
   const prof=isNum(e.sid)?`<button class="prow-prof" data-a="openProfile" data-id="${esc(e.sid)}" data-tip="Полный профиль игрока: герои, динамика, позиции (данные OpenDota)" aria-label="Открыть профиль игрока ${esc(e.name)}">${ico('user')}<span>Профиль</span>${ico('chev')}</button>`:'';
   return`<div class="prow${prof?' has-prof':''}"><button class="prow-main" data-a="openPlayer" data-id="${esc(e.sid)}">${av(e.name,'md',e.sid)}
-    <span style="min-width:0;display:flex;flex-direction:column"><span class="pname">${esc(e.name)}</span><small>${[e.withN?`вместе: ${e.withN}${sxRec(e,'ally')}`:'',e.vsN?`против: ${e.vsN}${sxRec(e,'enemy')}`:''].filter(Boolean).join(' · ')} · последний раз: ${esc(ago(e.last))}</small>${window.DMSocialUI?DMSocialUI.rowExtra(e):''}</span>
+    <span style="min-width:0;display:flex;flex-direction:column"><span class="nm-line"><span class="pname">${esc(e.name)}</span>${window.DMRepChip?DMRepChip.badges(e.sid):''}</span><small>${[e.withN?`вместе: ${e.withN}${sxRec(e,'ally')}`:'',e.vsN?`против: ${e.vsN}${sxRec(e,'enemy')}`:''].filter(Boolean).join(' · ')} · последний раз: ${esc(ago(e.last))}</small>${window.DMSocialUI?DMSocialUI.rowExtra(e):''}</span>
     <span class="prcol"><span class="avg">${e.avg!=null?stars(e.avg)+e.avg.toFixed(1):'<small>без оценки</small>'}</span>${window.DMPerfUI?DMPerfUI.badge(e):''}</span>${prof?'':`<span class="ch" style="color:var(--mute)">${ico('chev')}</span>`}</button>${prof}</div>`;
 }
 function emptyMatches(){
@@ -609,7 +611,7 @@ function vPlayer(){
   const note=S.pnotes[e.sid]||'';
   return`<div><button class="btn ghost sm2" data-a="go" data-p="players">${ico('back')}Игроки</button></div>
   <section class="card stack"><div class="profile-h">${av(e.name,'lg',e.sid)}<div style="min-width:0;flex:1">
-    <h1 style="overflow-wrap:anywhere">${esc(e.name)}</h1>
+    <div class="nm-line nm-h1"><h1 style="overflow-wrap:anywhere">${esc(e.name)}</h1>${window.DMRepChip?DMRepChip.badges(e.sid):''}</div>
     <div class="sm" style="margin-top:4px">${num?`Steam ID <span class="mono">${esc(e.sid)}</span> <button class="iconbtn" data-a="copy" data-t="${esc(e.sid)}" aria-label="Скопировать Steam ID">${ico('copy')}</button>`:'Steam ID не указан, игрок отслеживается по нику'}</div>
     <div class="statline" style="margin-top:8px">${e.withN?`<span><b>${e.withN}</b>${pl(e.withN,'матч вместе','матча вместе','матчей вместе')}</span>`:''}${e.vsN?`<span><b>${e.vsN}</b>${pl(e.vsN,'матч против','матча против','матчей против')}</span>`:''}${e.avg!=null?`<span class="avg">${stars(e.avg)}<b style="font-size:1.1rem;margin:0">${e.avg.toFixed(1)}</b>${e.rated} ${pl(e.rated,'оценка','оценки','оценок')}</span>`:'<span>Оценок пока нет</span>'}</div></div></div>
     ${num?`<div class="links"><button class="linkbtn" data-a="openProfile" data-id="${esc(e.sid)}">${ico('user')}Статистика игрока</button><a href="https://steamcommunity.com/profiles/${steam64(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Профиль Steam</a><a href="https://www.opendota.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}OpenDota</a><a href="https://www.dotabuff.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Dotabuff</a></div>`:''}
@@ -662,6 +664,7 @@ function vSettings(){
   ${window.DMRepUI?DMRepUI.settingsBlock():''}
   ${window.DMSocialUI?DMSocialUI.settingsBlock():''}
   ${window.DMPerfUI?DMPerfUI.settingsBlock():''}
+  ${window.DMRepChip?DMRepChip.settingsBlock():''}
   <section class="card stack"><h3>Копия текстом</h3>
     <p class="sm">${SRV?'Данные хранятся на сервере.':'Данные живут в этом браузере.'} Скопируйте копию и сохраните её в заметках, чтобы перенести на другое устройство.</p>
     <div class="actions"><button class="btn" data-a="bkShow">Показать копию</button><button class="btn" data-a="bkCopy">${ico('copy')}Скопировать</button><button class="btn" data-a="bkRestore">Восстановить из текста</button></div>
@@ -690,7 +693,7 @@ function mMatch(m){
   const k='dm:'+m.id;
   const rows=(l,empty)=>l.length?l.map(p=>{
     const n=p.sid?prior(p.sid,m):0,r=p.sid&&S.reviews[rkey(m.id,p.sid)];
-    return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
+    return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${window.DMRepChip?DMRepChip.badges(p.sid):''} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
         <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${window.DMPerfUI?`<div class="pf-line">${DMPerfUI.matchRowExtra(m,m.players.indexOf(p))}</div>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}${window.DMSocialUI?DMSocialUI.rowBadges(p):''}</div>
         ${p.sid?`<div class="arow-act">${isNum(p.sid)?`<button class="btn sm2" data-a="openProfile" data-id="${esc(p.sid)}" data-tip="Полный профиль игрока: герои, динамика, позиции (данные OpenDota)" aria-label="Открыть профиль игрока ${esc(p.name)}">${ico('user')}Профиль</button>`:''}<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button></div>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):`<p class="sm">${empty}</p>`;
   return`<div class="panel-h"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span><h3 id="mt">${esc(m.hero)}</h3></div><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></div>${closeBtn()}</div>
@@ -991,6 +994,7 @@ if(window.DMQuick)DMQuick.init({esc,ico,fd,parse:parseSteam,pages:()=>NAV,player
     else if(x.id==='add'){V.tab='link';openModal('add')}
     else if(x.id==='rateall'){const m=sorted()[0];if(!m){toast('Сначала добавьте матч.');return}const b=document.createElement('button');b.dataset.a='s-rateall';b.dataset.mid=m.id;b.hidden=true;document.body.appendChild(b);b.click();b.remove()}
     else if(x.id==='settings')go('settings')}});
+if(window.DMRepChip)DMRepChip.init({ico,toast:m=>toast(m),refresh:()=>{if(V.page==='settings')paintMain()}});
 if(window.DMPerfUI)DMPerfUI.init({V:()=>V,esc,ico,stars,pl,fd,av,
   base:()=>SERVER?'/api/od':'https://api.opendota.com/api',server:()=>SERVER,
   meAcc:()=>S&&S.me&&S.me.acc&&isNum(S.me.acc)?String(S.me.acc):(SRV&&SRV.acc?String(SRV.acc):''),

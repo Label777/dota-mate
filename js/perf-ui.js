@@ -217,7 +217,7 @@
     const who = known
       ? `<p class="sm">Профиль в Dota 2 открыт: можно посмотреть все матчи игрока.</p><div class="actions"><button class="btn primary sm2" data-a="openPlayer" data-id="${esc(p.sid)}">${H.ico('user')}Профиль игрока</button>${/^\d+$/.test(String(p.sid)) ? `<button class="btn sm2" data-a="openProfile" data-id="${esc(p.sid)}">Статистика на OpenDota</button>` : ''}</div>`
       : p.me ? '' : `<div class="banner soft" role="note">${H.ico('lock')}<p class="sm">Игрок скрыл профиль, поэтому его нельзя связать с другими матчами и оценка относится только к этой игре.</p></div>`;
-    return `<div class="panel-h"><div style="display:flex;gap:12px;align-items:center;min-width:0">${H.av(p.name, 'md', p.sid)}<div style="min-width:0"><h3 id="mt" style="overflow-wrap:anywhere">${esc(p.name)}</h3><small>${esc(p.hero)} · ${sideTxt} · ${esc(H.fd(m.start))}</small></div></div><button class="iconbtn" data-a="close" aria-label="Закрыть">${H.ico('x')}</button></div>
+    return `<div class="panel-h"><div style="display:flex;gap:12px;align-items:center;min-width:0">${H.av(p.name, 'md', p.sid)}<div style="min-width:0"><h3 id="mt" style="overflow-wrap:anywhere">${esc(p.name)}</h3>${window.DMRepChip ? DMRepChip.badges(p.sid) : ''}<small>${esc(p.hero)} · ${sideTxt} · ${esc(H.fd(m.start))}</small></div></div><button class="iconbtn" data-a="close" aria-label="Закрыть">${H.ico('x')}</button></div>
       <div class="panel-b">${body}${who}${method()}<div class="actions">${back}</div></div>`;
   }
 
