@@ -137,7 +137,7 @@
 
 /* таблица матчей */
 .mt{display:flex;flex-direction:column}
-.mt-h,.mt-r{display:grid;grid-template-columns:minmax(140px,1.4fr) 112px 118px 64px 92px 98px 84px 150px;gap:10px;align-items:center;padding:9px 12px}
+.mt-h,.mt-r{display:grid;grid-template-columns:minmax(120px,1.2fr) 104px 112px 60px 88px 96px 74px 130px 60px;gap:10px;align-items:center;padding:9px 12px}
 .mt-h{font-size:.78rem;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
 .mt-r{border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
 .mt-r:hover{background:var(--card-2)}
@@ -186,3 +186,5 @@
 
 #me-root,#me-body{min-width:0;max-width:100%}
 #me-body>*{min-width:0}
+
+.sc{font-weight:700;font-variant-numeric:tabular-nums;cursor:help}.sc.up{color:#8fd1ae}.sc.dn{color:#f0a0a4}

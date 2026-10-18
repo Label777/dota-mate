@@ -65,6 +65,15 @@
     var nm = H.heroName(id) || (h && h.name) || '', ini = nm.replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).map(function (w) { return w[0] || ''; }).join('').slice(0, 2).toUpperCase();
     return '<span class="hic ' + (cls || '') + '" aria-hidden="true">' + e(ini) + (slug ? '<img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/' + slug + '.png" alt="" loading="lazy" referrerpolicy="no-referrer">' : '') + '</span>';
   }
+  function sgn(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1); }
+  function scoreCls(v) { return v >= 0.5 ? 'up' : v <= -0.5 ? 'dn' : ''; }
+  function scoreCell(m) {
+    var r = P.sc && P.sc.scores && P.sc.scores[m.id];
+    if (!r) return '<span class="na" title="' + e(P.sc && P.sc.ready ? 'Для этой игры не хватает данных (нужны два показателя из K/D/A, GPM, XPM)' : 'Нужно не меньше 8 матчей с данными K/D/A, GPM и XPM') + '">—</span>';
+    var nm = { kda: '(K+A)/D', gpm: 'GPM', xpm: 'XPM' }, parts = Object.keys(r.parts).map(function (k) { return nm[k] + ' ' + sgn(Math.round(r.parts[k] * 10) / 10); }).join(', ');
+    var tip = 'Оценка ' + sgn(r.v) + ': 0 значит «сыграл как обычно». ' + parts + '. База: ' + (r.basis === 'hero' ? 'твои средние на этом герое' : 'твои средние по всем загруженным матчам') + '.';
+    return '<span class="sc ' + scoreCls(r.v) + '" title="' + e(tip) + '">' + sgn(r.v) + '</span>';
+  }
   function posLabel(p) { return p >= 1 && p <= 5 ? p + ' · ' + A.POS_NAMES[p] : 'Не определена'; }
   function periodDays() { return P.period === 'all' ? null : Number(P.period); }
   function periodList() { return P.period === 'all' ? P.matches : A.filterMatches(P.matches, { periodDays: Number(P.period), now: now() }); }
@@ -110,6 +119,7 @@
       });
     });
     P.matches = A.newestFirst(list);
+    P.sc = A.matchScores(P.matches);
   }
   function active(tok) { return tok === P.token; }
 
@@ -429,7 +439,12 @@
         kpi('Длительность', s.durN ? dur(s.dur) : na(), 'средняя' + (part(s.durN, s.n) ? ', ' + part(s.durN, s.n) : '')) +
         kpi('Текущая серия', cur, st.current.len ? 'по последним загруженным матчам' : '', st.current.type === 'win' ? 'w' : st.current.type === 'loss' ? 'l' : '') +
         kpi('Лучшая серия побед', stP.longestWin ? stP.longestWin + ' ' + pl(stP.longestWin, 'победа', 'победы', 'побед') : '0', 'в матчах периода' + (A.coversPeriod(P.matches, periodDays(), now(), P.hasMore) ? '' : ', без учёта незагруженных'), '') +
-        kpi('Худшая серия', stP.longestLoss ? stP.longestLoss + ' ' + pl(stP.longestLoss, 'поражение', 'поражения', 'поражений') : '0', 'в матчах периода', '') +
+        (function () {
+          var sv = list.map(function (m) { return P.sc.scores[m.id]; }).filter(Boolean).map(function (r) { return r.v; });
+          if (!sv.length) return kpi('Оценка игр', na('Нужно не меньше 8 матчей с данными K/D/A, GPM и XPM'), 'нет данных', '');
+          var avg = sv.reduce(function (x, y) { return x + y; }, 0) / sv.length;
+          return kpi('Оценка игр', sgn(Math.round(avg * 10) / 10), 'среднее за период, 0 — как обычно' + (sv.length < list.length ? ', по ' + sv.length + ' из ' + list.length : ''), scoreCls(avg) === 'up' ? 'w' : scoreCls(avg) === 'dn' ? 'l' : '');
+        })() +
         '</div>';
     }
     return '<section><div class="sec-h"><h2>Личная статистика</h2>' + seg + '</div>' + covBanner(list) + body + '</section>';
@@ -552,7 +567,7 @@
       sel('pos', 'Позиция', [['all', 'Любая'], ['1', '1 · Carry'], ['2', '2 · Mid'], ['3', '3 · Offlane'], ['4', '4 · Soft Support'], ['5', '5 · Hard Support'], ['core', 'Кор (по золоту)'], ['support', 'Саппорт (по золоту)'], ['0', 'Не определена']]) +
       sel('period', 'Период', [['all', 'Всё загруженное'], ['7', '7 дней'], ['30', '30 дней']]) +
       '<button class="btn ghost sm2" type="button" data-pa="tf-reset">Сбросить</button></div>';
-    var head = '<div class="mt-h"><span>Герой</span><span>Результат</span><span>Дата</span><span>Время</span><span>K / D / A</span><span>GPM / XPM</span><span>Добито</span><span>Позиция</span></div>';
+    var head = '<div class="mt-h"><span>Герой</span><span>Результат</span><span>Дата</span><span>Время</span><span>K / D / A</span><span>GPM / XPM</span><span>Добито</span><span>Позиция</span><span>Оценка</span></div>';
     var rows = vis.map(function (m) {
       var gx = m.gpm != null || m.xpm != null ? (m.gpm != null ? Math.round(m.gpm) : '—') + ' / ' + (m.xpm != null ? Math.round(m.xpm) : '—') : null;
       return '<div class="mt-r"><div class="hero">' + hic(m.hero) + '<b>' + e(m.hero != null ? heroName(m.hero) : 'Неизвестный герой') + '</b></div><span class="res ' + (m.win ? 'win' : 'loss') + '">' + (m.win ? 'Победа' : 'Поражение') + '</span>' +
@@ -560,7 +575,7 @@
         '<span class="kda"><span class="c-lab">K/D/A</span>' + (m.k != null && m.d != null && m.a != null ? m.k + '<i> / </i>' + m.d + '<i> / </i>' + m.a : na()) + '</span>' +
         '<span><span class="c-lab">GPM/XPM</span>' + (gx || (P.enrich ? '<span class="na">…</span>' : na('OpenDota не отдал GPM/XPM для этого матча'))) + '</span>' +
         '<span><span class="c-lab">Добито</span>' + (m.lh != null ? m.lh + (m.dn != null ? ' <span class="na">/ ' + m.dn + '</span>' : '') : (P.enrich ? '<span class="na">…</span>' : na())) + '</span>' +
-        '<span><span class="c-lab">Поз.</span>' + (m.pos ? '<span title="' + e(A.POS_NAMES[m.pos]) + '">' + m.pos + ' · ' + e(A.POS_NAMES[m.pos]) + '</span>' : m.role ? '<span title="Оценка по золоту команды: матч не разобран OpenDota, точная позиция неизвестна">≈ ' + (m.role === 'core' ? 'Кор' : 'Саппорт') + '</span>' : '<span class="na">Не определена</span>') + '</span></div></div>';
+        '<span><span class="c-lab">Поз.</span>' + (m.pos ? '<span title="' + e(A.POS_NAMES[m.pos]) + '">' + m.pos + ' · ' + e(A.POS_NAMES[m.pos]) + '</span>' : m.role ? '<span title="Оценка по золоту команды: матч не разобран OpenDota, точная позиция неизвестна">≈ ' + (m.role === 'core' ? 'Кор' : 'Саппорт') + '</span>' : '<span class="na">Не определена</span>') + '</span><span><span class="c-lab">Оценка</span>' + scoreCell(m) + '</span></div></div>';
     }).join('');
     var more = '';
     if (list.length > vis.length) more = '<button class="btn" type="button" data-pa="show-more">Показать ещё ' + Math.min(25, list.length - vis.length) + '</button>';
@@ -569,7 +584,7 @@
       '<div class="empty sm-empty">' + ico('search') + '<b>Ничего не найдено</b><p>Под выбранные фильтры не подходит ни один из ' + nf(P.matches.length) + ' загруженных матчей.' + (P.hasMore ? ' Возможно, нужные матчи ещё не загружены.' : '') + '</p><div class="actions" style="justify-content:center"><button class="btn" type="button" data-pa="tf-reset">Сбросить фильтры</button>' + (P.hasMore ? '<button class="btn" type="button" data-pa="more">Загрузить ещё</button>' : '') + '</div></div>';
     var enrich = P.enrich ? '<div class="banner soft" role="status">' + ico('info') + '<p>Добираю GPM, XPM и добитых крипов: ' + P.enrich.done + ' из ' + P.enrich.total + ' запросов. Таблица уже готова, цифры появятся по мере загрузки.</p></div>' : '';
     return '<section class="card"><div class="sec-h"><h2>Последние матчи <small>показано ' + vis.length + ' из ' + nf(list.length) + (list.length !== P.matches.length ? ' подходящих' : '') + '</small></h2></div>' + enrich + filters + body +
-      '<p class="sm" style="margin-top:12px">Изменение MMR по матчам не показывается: OpenDota не отдаёт его. Столбцы «—» означают, что данных по матчу нет.</p></section>';
+      '<p class="sm" style="margin-top:12px">Оценка игры: 0 значит «сыграл как обычно», плюс лучше, минус хуже. Считается по (K+A)/D, GPM и XPM относительно твоих же средних (на герое, если на нём от 5 матчей, иначе по всем загруженным матчам), результат матча не учитывается. Это сравнение с самим собой, а не с другими игроками. Изменение MMR по матчам OpenDota не отдаёт, «—» означает, что данных нет.</p></section>';
   }
 
   function secMatchesState() {

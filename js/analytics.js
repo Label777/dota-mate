@@ -302,6 +302,61 @@
     return { rows: rows, known: known, unknown: rows[0].n, total: list.length, qualifying: q, best: q.length >= 2 ? q[0] : null };
   }
 
+  /* ---------- оценка сыгранной игры ---------- */
+
+  var SCORE_MIN = 8, SCORE_HERO_MIN = 5, SCORE_CLAMP = 3;
+  function scoreMetrics(m) {
+    var o = {};
+    if (m.k != null && m.d != null && m.a != null) o.kda = Math.log((m.k + m.a) / Math.max(m.d, 1) + 1);
+    if (m.gpm != null) o.gpm = m.gpm;
+    if (m.xpm != null) o.xpm = m.xpm;
+    return o;
+  }
+  function meanStd(vals) {
+    var n = vals.length, mean = vals.reduce(function (a, b) { return a + b; }, 0) / n;
+    var v = vals.reduce(function (a, b) { return a + (b - mean) * (b - mean); }, 0) / n;
+    return { n: n, mean: mean, std: Math.sqrt(v) };
+  }
+  /**
+   * Оценка игры относительно собственного уровня игрока: 0 = сыграл как обычно, плюс лучше, минус хуже.
+   * Считается по (K+A)/D, GPM и XPM (результат матча в оценку не входит). Для каждого показателя берётся отклонение от среднего
+   * в единицах обычного разброса игрока; оценка = среднее отклонение, ограниченное диапазоном −3…+3.
+   * База сравнения: средние по этому герою, если на нём не меньше 5 матчей, иначе средние по всем загруженным матчам.
+   * Разброс всегда общий по всем матчам, чтобы маленькая выборка по герою не раздувала оценку.
+   * Нужно не меньше 8 матчей с данными и хотя бы два показателя у самой игры. Иначе оценки нет (null), а не 0.
+   * Возвращает {ready, n, scores: {matchId: {v, basis: 'hero'|'all', parts}}}.
+   */
+  function matchScores(list) {
+    var cols = { kda: [], gpm: [], xpm: [] }, rows = list.map(function (m) { return { m: m, x: scoreMetrics(m) }; });
+    rows.forEach(function (r) { Object.keys(cols).forEach(function (k) { if (r.x[k] != null) cols[k].push(r.x[k]); }); });
+    var usable = rows.filter(function (r) { return Object.keys(r.x).length >= 2; }).length;
+    if (usable < SCORE_MIN) return { ready: false, n: usable, scores: {} };
+    var all = {};
+    Object.keys(cols).forEach(function (k) { if (cols[k].length >= SCORE_MIN) all[k] = meanStd(cols[k]); });
+    var byHero = {};
+    rows.forEach(function (r) {
+      if (r.m.hero == null) return;
+      var h = byHero[r.m.hero] = byHero[r.m.hero] || { kda: [], gpm: [], xpm: [] };
+      Object.keys(h).forEach(function (k) { if (r.x[k] != null) h[k].push(r.x[k]); });
+    });
+    var scores = {};
+    rows.forEach(function (r) {
+      var parts = {}, sum = 0, cnt = 0, heroUsed = false, hs = r.m.hero != null ? byHero[r.m.hero] : null;
+      Object.keys(all).forEach(function (k) {
+        if (r.x[k] == null) return;
+        var base = all[k].mean;
+        if (hs && hs[k].length >= SCORE_HERO_MIN) { base = meanStd(hs[k]).mean; heroUsed = true; }
+        var sd = Math.max(all[k].std, Math.abs(all[k].mean) * 0.05, 1e-6);
+        var z = (r.x[k] - base) / sd;
+        parts[k] = z; sum += z; cnt++;
+      });
+      if (cnt < 2) return;
+      var v = Math.max(-SCORE_CLAMP, Math.min(SCORE_CLAMP, sum / cnt));
+      scores[r.m.id] = { v: Math.round(v * 10) / 10, basis: heroUsed ? 'hero' : 'all', parts: parts };
+    });
+    return { ready: true, n: usable, scores: scores };
+  }
+
   /* ---------- ряды для графиков ---------- */
 
   function dayIndex(ts, offMin) { return Math.floor((ts + offMin * 60) / DAY); }
@@ -486,7 +541,7 @@
     parsePlayerInput: parsePlayerInput, normalizeMatch: normalizeMatch, chrono: chrono, newestFirst: newestFirst,
     filterMatches: filterMatches, summarize: summarize, streaks: streaks, wilson: wilson,
     heroStats: heroStats, classifyHeroes: classifyHeroes, explainHero: explainHero,
-    inferPosition: inferPosition, inferRole: inferRole, positionStats: positionStats, posName: posName,
+    matchScores: matchScores, inferPosition: inferPosition, inferRole: inferRole, positionStats: positionStats, posName: posName,
     timeSeries: timeSeries, kdaSeries: kdaSeries, compareWindows: compareWindows,
     coverage: coverage, coversPeriod: coversPeriod, buildInsights: buildInsights, recommendHeroes: recommendHeroes,
     rankTier: rankTier, plural: plural, pct: pct

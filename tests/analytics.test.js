@@ -326,3 +326,30 @@ test('inferRole: по золоту команды кор или саппорт, 
   assert.deepEqual(filterMatches(list, { pos: 'support' }).map((m) => m.id), ['3']);
   assert.deepEqual(filterMatches(list, { pos: 0 }).map((m) => m.id), ['1', '3', '4'], 'без точной позиции: 0 включает и оценки ролей');
 });
+
+test('matchScores: 0 это средняя игра, лучше — плюс, хуже — минус, без данных оценки нет', () => {
+  const { matchScores } = require('../js/analytics.js');
+  const mk = (i, k, d, a, gpm, xpm, hero) => ({ id: String(i), start: i, win: true, hero: hero || 1, k, d, a, gpm, xpm });
+  const list = [];
+  for (let i = 0; i < 10; i++) list.push(mk(i, 5 + (i % 3), 5, 10, 450 + (i % 4) * 20, 500 + (i % 3) * 20));
+  list.push(mk(20, 15, 1, 20, 800, 900)); // выдающаяся
+  list.push(mk(21, 0, 12, 1, 250, 300));  // провальная
+  const r = matchScores(list);
+  assert.equal(r.ready, true);
+  assert.ok(r.scores['20'].v >= 2, 'выдающаяся игра сильно выше нуля: ' + r.scores['20'].v);
+  assert.ok(r.scores['21'].v <= -1.5, 'провальная игра ниже нуля: ' + r.scores['21'].v);
+  assert.ok(r.scores['20'].v <= 3 && r.scores['21'].v >= -3, 'оценка ограничена');
+  const mid = list.slice(0, 10).map((m) => r.scores[m.id].v);
+  assert.ok(Math.abs(mid.reduce((a, b) => a + b, 0) / mid.length) < 0.5, 'обычные игры около нуля');
+  // мало данных: оценки нет
+  assert.equal(matchScores(list.slice(0, 5)).ready, false);
+  assert.deepEqual(matchScores(list.slice(0, 5)).scores, {});
+  // у игры одного показателя нет: оценки у неё нет, а не 0
+  const lack = list.concat([{ id: '99', start: 99, win: true, hero: 1, k: null, d: null, a: null, gpm: 500, xpm: null }]);
+  assert.equal(matchScores(lack).scores['99'], undefined);
+  // база по герою: 5+ матчей на герое сравниваются с его средним
+  const heroList = list.concat(Array.from({ length: 6 }, (_, i) => mk(40 + i, 2, 6, 3, 300, 350, 7)));
+  const hr = matchScores(heroList);
+  assert.equal(hr.scores['40'].basis, 'hero');
+  assert.ok(Math.abs(hr.scores['40'].v) < 0.7, 'обычная игра на «слабом» герое около нуля: ' + hr.scores['40'].v);
+});
