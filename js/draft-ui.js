@@ -227,7 +227,7 @@
     const turn = a && !D().isComplete(s) ? `<span class="dr-turn ${a}">Ход: ${SIDE_LABEL[a]} <b id="dr-timer">${fmtT(remaining())}</b></span>` : D().isComplete(s) ? '<span class="dr-turn done">Драфт завершён</span>' : '';
     const bonus = (s.bonus.radiant != null || s.bonus.dire != null) && a ? `<span class="sm">Запас времени: Radiant ${fmtT(s.bonus.radiant)}, Dire ${fmtT(s.bonus.dire)}</span>` : '';
     return `<div class="dr-head-in"><div class="dr-st"><span class="pill ${modeCls()}">${esc(modeLabel())}</span><p class="sm">${status}</p></div><div class="dr-turnbox">${turn}${bonus}</div>
-      <div class="actions"><button class="btn sm2" data-a="d-conn" aria-expanded="${P.connOpen}">${ico('lock')}Подключить Dota 2</button>${P.mode === 'demo' ? `<button class="btn sm2" data-a="d-demostop">Остановить демо</button>` : `<button class="btn sm2" data-a="d-demo">Демо</button>`}
+      <div class="actions"><button class="btn sm2 dr-popbtn" data-a="d-pop" title="Откроется компактное окно, его можно поставить рядом с игрой">Отдельное окно</button><button class="btn sm2" data-a="d-conn" aria-expanded="${P.connOpen}">${ico('lock')}Подключить Dota 2</button>${P.mode === 'demo' ? `<button class="btn sm2" data-a="d-demostop">Остановить демо</button>` : `<button class="btn sm2" data-a="d-demo">Демо</button>`}
       ${P.mode === 'manual' ? `<button class="btn sm2" data-a="d-undo" ${P.undo.length ? '' : 'disabled'}>Отменить</button>` : ''}
       <button class="btn sm2" data-a="d-save" ${D().isEmpty(s) ? 'disabled' : ''}>${ico('check')}Сохранить</button><button class="btn danger sm2" data-a="d-reset" ${D().isEmpty(s) && !P.log.length ? 'disabled' : ''}>Новый драфт</button></div></div>
       ${P.connOpen ? connHtml() : ''}`;
@@ -356,7 +356,7 @@
         <section class="card dr-headc" id="dr-head" aria-label="Состояние драфта"></section>
         <div class="dr-board" id="dr-board"></div>
         <div class="dr-work"><section class="card dr-panel" id="dr-sugg" aria-label="Подсказки"></section><section class="card dr-panel" id="dr-side" aria-label="Герои и лента"></section></div>
-        <section class="card dr-panel" aria-label="История драфтов"><div class="dr-sh"><h2>История драфтов</h2></div><div id="dr-hist"></div></section>
+        <section class="card dr-panel dr-histcard" aria-label="История драфтов"><div class="dr-sh"><h2>История драфтов</h2></div><div id="dr-hist"></div></section>
         <div id="dr-live" class="sr" aria-live="polite"></div></div>`;
   }
   function mount() {
@@ -369,18 +369,29 @@
   }
   function leave() {
     if (!P.mounted) return;
+    if (P.compact) setCompact(false);
     P.mounted = false; clearInterval(P.tick); clearTimeout(P.retryT); P.retryT = null;
     if (P.es) { P.es.close(); P.es = null; if (P.mode === 'bridge') P.conn.status = 'off'; }
     clearInterval(P.demoT); P.demoT = null; if (P.mode === 'demo') P.mode = 'manual';
   }
+  /* Компактное окно: то же состояние и то же подключение к мосту, но без шапки сайта, навигации и истории. */
+  function setCompact(on) { P.compact = !!on; try { document.body.classList.toggle('dr-compact', !!on); } catch (e) { /* не критично */ } }
+  function popout() {
+    const u = new URL(location.href); u.hash = '#/draft?w=1';
+    let w = null;
+    try { w = window.open(u.toString(), 'dotamate-draft', 'popup=yes,width=440,height=780,left=40,top=40'); } catch (e) { w = null; }
+    if (!w) H.toast('Браузер заблокировал новое окно. Разрешите всплывающие окна для этого сайта.');
+    else { try { w.focus(); } catch (e) { /* не критично */ } }
+  }
   /* Ссылка от моста: #/draft?b=127.0.0.1:7777&t=токен. Токен сохраняем и убираем из адресной строки. */
   function applyLink(query) {
     const q = new URLSearchParams(query || '');
-    const b = q.get('b') || '', t = q.get('t') || '';
-    if (!b && !t) return false;
+    const b = q.get('b') || '', t = q.get('t') || '', w = q.get('w') === '1';
+    if (w) setCompact(true);
+    if (!b && !t) return w;
     if (HOST_RE.test(b) && TOKEN_RE.test(t)) { lsSet(LS_BRIDGE, { host: b, token: t }); P.connOpen = false; H.toast('Мост запомнен. Подключаюсь.'); P.manualChosen = false; }
     else H.toast('Ссылка на мост некорректна: адрес должен быть 127.0.0.1 или localhost, токен от 8 символов.');
-    try { history.replaceState(null, '', '#/draft'); } catch (e) { /* не критично */ }
+    try { history.replaceState(null, '', w ? '#/draft?w=1' : '#/draft'); } catch (e) { /* не критично */ }
     return true;
   }
 
@@ -390,6 +401,7 @@
     const t = ev.target.closest('[data-a^="d-"]'); if (!t) return;
     const a = t.dataset.a, d = t.dataset;
     switch (a) {
+      case 'd-pop': popout(); break;
       case 'd-conn': P.connOpen = !P.connOpen; renderHead(); break;
       case 'd-connect': { const ok = connect(($('#dr-host') || {}).value.trim(), ($('#dr-token') || {}).value.trim()); if (ok) P.connOpen = false; renderHead(); break; }
       case 'd-disconnect': disconnect(false); P.manualChosen = true; renderAll(); break;
@@ -432,5 +444,5 @@
   document.addEventListener('error', (ev) => { const t = ev.target; if (t && t.tagName === 'IMG' && t.closest && t.closest('.dr-img')) t.remove(); }, true);
 
   function init(h) { H = h; }
-  window.DMDraftUI = { init, view, mount, leave, applyLink, state: P, bridgeConfig: bridgeCfg };
+  window.DMDraftUI = { init, setCompact, view, mount, leave, applyLink, state: P, bridgeConfig: bridgeCfg };
 })();

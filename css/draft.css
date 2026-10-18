@@ -37,7 +37,7 @@
 .dr-ban .dr-x{filter:none}
 .dr-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .dr-slot{position:relative;display:flex;flex-direction:column;gap:4px;align-items:center;min-width:0;text-align:center}
-.dr-slot.empty{aspect-ratio:16/10;border:1px dashed #3a4252;border-radius:8px;justify-content:center;color:var(--mute);background:rgba(255,255,255,.02)}
+.dr-slot.empty{width:100%;box-sizing:border-box;aspect-ratio:16/10;border:1px dashed #3a4252;border-radius:8px;justify-content:center;color:var(--mute);background:rgba(255,255,255,.02)}
 .dr-slot.empty.next{border-color:var(--bronze);color:var(--bronze-hi)}
 .dr-nm{font-size:.78rem;line-height:1.2;overflow-wrap:anywhere;color:var(--fg-2)}
 .dr-x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#0a0c11;border:1px solid var(--line);color:var(--fg-2);padding:0}
@@ -120,3 +120,9 @@ button.dr-rm:hover{background:rgba(201,164,92,.07)}
   .dr-ctl .dr-seg .dr-segb{flex:1}
 }
 @media (prefers-reduced-motion:reduce){.dr-team{transition:none}}
+
+/* Компактное окно (#/draft?w=1): только доска, подсказки и лента, без шапки сайта и навигации */
+body.dr-compact .top,body.dr-compact #nav,body.dr-compact .pagehead,body.dr-compact #as-root,body.dr-compact .dr-histcard,body.dr-compact .dr-popbtn{display:none!important}
+body.dr-compact{padding-bottom:0!important}
+body.dr-compact #main{padding-top:10px;padding-bottom:16px}
+body.dr-compact .dr{margin-top:0}
