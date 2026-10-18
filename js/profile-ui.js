@@ -644,7 +644,7 @@
     var el = document.getElementById('me-body');
     if (!el) return;
     var h;
-    if (P.phase === 'idle') h = '<div class="empty">' + ico('user') + '<b>Найдите игрока</b><p>Введите свой Steam ID или ссылку на профиль Steam, чтобы увидеть историю матчей, статистику по героям и позициям и персональные рекомендации. Все цифры считаются из реальных данных OpenDota.</p></div>';
+    if (P.phase === 'idle') h = '<div class="empty">' + ico('user') + '<b>Найдите игрока</b><p>Введите Steam ID или ссылку на профиль Steam, чтобы увидеть историю матчей, статистику по героям и позициям и персональные рекомендации. Все цифры считаются из реальных данных OpenDota.</p></div>';
     else if (P.phase === 'finding') h = '<div class="sk-row" aria-busy="true" role="status"><span class="sm">Ищу игрока в OpenDota…</span><div class="skel h1"></div><div class="skel k"></div><div class="skel h2"></div></div>';
     else if (P.phase === 'error') h = '<div class="banner" role="alert">' + ico('alert') + '<div style="flex:1"><b>' + e(P.err.t) + '</b><p class="sm" style="margin-top:2px">' + e(P.err.d) + '</p></div>' + (P.err.retry ? '<button class="btn sm2" type="button" data-pa="retry">Повторить</button>' : '') + '</div>';
     else h = secHead() + secMatchesState();
@@ -655,7 +655,7 @@
   function render() { if (!$r()) return; renderSearch(); renderBody(); }
   function mount() {
     var r = $r(); if (!r) return;
-    r.innerHTML = '<div class="pagehead"><div><h1>Профиль игрока</h1><p>Статистика по реальным матчам из OpenDota: история, герои, позиции, прогресс и персональные подсказки.</p></div></div><div id="me-search"></div><div id="me-body" class="pf"></div>';
+    r.innerHTML = '<div class="pagehead"><div><h1>Найти профиль</h1><p>Поиск любого игрока по Steam ID или ссылке: история матчей, герои, позиции и прогресс по открытым данным OpenDota. Свой профиль открывается по аватару в шапке.</p></div></div><div id="me-search"></div><div id="me-body" class="pf"></div>';
     if (!P.input) { var s = saved(); if (s.minMatches) P.minMatches = Math.min(30, Math.max(2, s.minMatches | 0)); }
     render();
   }
@@ -724,6 +724,8 @@
     view: function () { return '<div id="me-root" class="pf"></div>'; },
     mount: mount,
     current: function () { return P.acc; },
+    /** Вкладка «Найти профиль»: чистый поиск. Запросы идущего поиска отменяются, число матчей для статистики сохраняется. */
+    reset: function () { var t = P.token + 1, mm = P.minMatches; P = blank(); P.token = t; P.minMatches = mm; },
     open: function (acc) { P.input = ''; if ($r()) lookup(String(acc)); else setTimeout(function () { lookup(String(acc)); }, 0); },
     _state: function () { return P; }
   };

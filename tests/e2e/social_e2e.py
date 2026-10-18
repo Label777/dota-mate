@@ -22,7 +22,7 @@ def ctx(b, w=1200, hh=900, init=None):
     return c, pg, errs
 def ls(pg): return pg.evaluate("JSON.parse(localStorage.getItem('dotamate.v1')||'null')")
 def players(pg):
-    pg.click('.tabs >> text=Игроки'); pg.wait_for_selector('.sx-tabs')
+    pg.click('.tabs [data-p=players]'); pg.wait_for_selector('.sx-tabs')
 
 DAY = 86400
 def seeded(days_gone=40):
@@ -104,7 +104,7 @@ with sync_playwright() as p:
     check('оценка и заметка сохранены, тег «Избегать» записан', rv and rv[0]['rating'] == 4 and 'avoid' in st['tags'].get(sid, []), (rv, st['tags'].get(sid)))
     pg.click('.sx-tab[data-t=unrated]'); check('игрок ушёл из «Без оценки»', pg.locator('.sx-body .sx-row').count() == before - 1, (before, pg.locator('.sx-body .sx-row').count()))
     # из карточки матча: вернуться в матч
-    pg.click('.tabs >> text=Матчи'); pg.click('.mrow >> nth=0'); pg.wait_for_selector('.sx-qbar'); pg.click('.sx-qbar [data-a=s-rateall]'); pg.wait_for_selector('.sx-q')
+    pg.click('.tabs [data-p=matches]'); pg.click('.mrow >> nth=0'); pg.wait_for_selector('.sx-qbar'); pg.click('.sx-qbar [data-a=s-rateall]'); pg.wait_for_selector('.sx-q')
     pg.click('[data-a=s-qsave]'); pg.wait_for_selector('.sx-qbar'); check('после сохранения возврат в карточку матча', pg.locator('#mt').count() == 1 and pg.locator('.sx-q').count() == 0)
     check('без JS-ошибок (оценка)', not errs, errs[:2]); c.close()
 
@@ -114,26 +114,26 @@ with sync_playwright() as p:
     check('главная: «Давно не играли с Добрый», токсичному и избегаемому не напоминаем', 'Давно не играли с Добрый' in t and 'Тильтер' not in t.split('Давно не играли')[1][:200], t[:300])
     check('главная: предложение оценить матч', 'без оценки' in t and 'Оценить всех' in t)
     pg.click('[data-a=s-snooze]'); check('«Напомнить позже» скрывает напоминание', 'Давно не играли' not in pg.inner_text('#main') and ls(pg)['snooze'].get('1', 0) > time.time())
-    pg.click('.tabs >> text=Настройки'); pg.uncheck('#sx-remind'); check('настройка отключает напоминания', ls(pg)['settings']['remind'] is False)
+    pg.click('.tabs [data-p=settings]'); pg.uncheck('#sx-remind'); check('настройка отключает напоминания', ls(pg)['settings']['remind'] is False)
     S2 = seeded(); S2['settings']['remind'] = False
     check('без JS-ошибок (напоминания)', not errs, errs[:2]); c.close()
 
     # ---------- экспорт и импорт ----------
-    c, pg, errs = ctx(b); pg.goto(URL); pg.wait_for_selector('.tabs'); pg.click('.tabs >> text=Настройки'); pg.wait_for_selector('#sx-file')
+    c, pg, errs = ctx(b); pg.goto(URL); pg.wait_for_selector('.tabs'); pg.click('.tabs [data-p=settings]'); pg.wait_for_selector('#sx-file')
     with pg.expect_download() as dl: pg.click('[data-a=s-export]')
     d = dl.value; path = os.path.join(tmp, 'exp.json'); d.save_as(path)
     j = json.load(open(path, encoding='utf8'))
     check('экспорт: файл .json с данными, без аватарок', d.suggested_filename.startswith('dota-mate-') and d.suggested_filename.endswith('.json') and j['app'] == 'dota-mate' and len(j['data']['matches']) == 9 and 'avatars' not in j['data'])
     # пустое устройство
     c2, pg2, errs2 = ctx(b, init="if(!localStorage.getItem('dotamate.v1'))localStorage.setItem('dotamate.v1',%s)" % json.dumps(json.dumps({'v': 1, 'me': {'acc': '777', 'name': 'Чужой'}, 'matches': [], 'reviews': {}, 'pnotes': {}, 'tags': {}, 'heroNotes': {}, 'snooze': {}, 'avatars': {}, 'settings': {}, 'demo': False, 'lastSync': None})))
-    pg2.goto(URL); pg2.wait_for_selector('.tabs'); pg2.click('.tabs >> text=Настройки'); pg2.wait_for_selector('#sx-file')
+    pg2.goto(URL); pg2.wait_for_selector('.tabs'); pg2.click('.tabs [data-p=settings]'); pg2.wait_for_selector('#sx-file')
     bad = os.path.join(tmp, 'bad.json'); open(bad, 'w').write('{"v":2}')
     pg2.set_input_files('#sx-file', bad); pg2.wait_for_function("document.getElementById('sx-fmsg').textContent.length>0"); check('импорт: чужой файл отвергнут с понятной ошибкой', 'не резервная копия' in pg2.inner_text('#sx-fmsg'), pg2.inner_text('#sx-fmsg'))
     pg2.set_input_files('#sx-file', path); pg2.wait_for_selector('#sx-imp .banner'); t = pg2.inner_text('#sx-imp')
     check('импорт: предпросмотр с числами', 'Матчей: 9' in t and 'игроков с тегами' in t, t)
     pg2.click('[data-a=s-impmerge]'); pg2.wait_for_timeout(300); st = ls(pg2)
     check('импорт «добавить»: матчи, теги перенесены, свой Steam ID сохранён', len(st['matches']) == 9 and st['me']['acc'] == '777' and st['tags'] and not st['demo'], (len(st['matches']), st['me']))
-    pg2.click('.tabs >> text=Настройки'); pg2.set_input_files('#sx-file', path); pg2.wait_for_selector('#sx-imp .banner'); pg2.click('[data-a=s-impask]')
+    pg2.click('.tabs [data-p=settings]'); pg2.set_input_files('#sx-file', path); pg2.wait_for_selector('#sx-imp .banner'); pg2.click('[data-a=s-impask]')
     check('замена требует подтверждения', pg2.locator('[data-a=s-impreplace]').count() == 1); pg2.click('[data-a=s-impreplace]'); pg2.wait_for_timeout(300)
     check('импорт «заменить»', len(ls(pg2)['matches']) == 9)
     check('без JS-ошибок (импорт)', not errs and not errs2, (errs[:2], errs2[:2])); c2.close(); c.close()

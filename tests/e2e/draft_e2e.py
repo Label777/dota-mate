@@ -87,7 +87,7 @@ def run():
 
         # ---------- ручной ввод и подсказки ----------
         c, pg, errs = newctx(); pg.goto(BASE + '/#/draft'); pg.wait_for_selector('#dr-board .dr-team')
-        check('страница открылась по адресу #/draft, вкладка «Драфт» выбрана', pg.locator('.tabs [aria-current=page]').inner_text().strip() == 'Драфт')
+        check('страница открылась по адресу #/draft, вкладка «Драфт» выбрана', pg.get_attribute('.tabs [aria-current=page]', 'data-p') == 'draft')
         check('режим по умолчанию: ручной ввод', 'Ручной ввод' in pg.inner_text('#dr-head'))
         pg.wait_for_selector('.dr-h[data-id="2"]'); until(pg, "document.querySelectorAll('.dr-h').length===6")
         check('сетка героев из OpenDota (6 героев мока)', pg.locator('.dr-h').count() == 6, pg.locator('.dr-h').count())

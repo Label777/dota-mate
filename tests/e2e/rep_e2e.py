@@ -103,9 +103,9 @@ def run():
         pg.goto(BASE + '/#/mod'); 
         check('панель модератора скрыта для не-модератора', pg.locator('.rp-tab:has-text("Модерация")').count() == 0)
         pg.goto(BASE + '/'); pg.wait_for_selector('.tabs .tab')
-        pg.click('.tabs .tab >> text=Репутация'); pg.wait_for_selector('#rp-pin')
+        pg.click('.tabs [data-p=rep]'); pg.wait_for_selector('#rp-pin')
         check('вкладка «Репутация» в навигации открывает раздел, адрес обновился', pg.url.endswith('#/home'), pg.url)
-        pg.click('.tabs .tab >> text=Настройки'); pg.wait_for_selector('#rp-settings')
+        pg.click('.tabs [data-p=settings]'); pg.wait_for_selector('#rp-settings')
         check('в настройках есть блок репутации и сообщества', 'Репутация и сообщество' in pg.text_content('#rp-settings') and not pg.url.endswith('#/home'))
         pg.click('button[data-a=repClear]'); pg.wait_for_selector('#toast .toast')
         check('очистка локальных данных репутации', 'удалены' in pg.text_content('#toast'))

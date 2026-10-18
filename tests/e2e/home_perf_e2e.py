@@ -63,7 +63,7 @@ with sync_playwright() as p:
     check('на главной шесть плиток разделов', pg.locator('.tile').count() == 6)
     check('четыре показателя, винрейт 50%', pg.locator('.kpi').count() == 4 and '50%' in pg.inner_text('.kpis'), pg.inner_text('.kpis'))
     check('в шапке семь вкладок и поиск', pg.locator('.top .tabs .tab').count() == 7 and pg.locator('.srch').count() == 1)
-    pg.click('.tile[data-p=draft]'); pg.wait_for_selector('#dr-board'); check('плитка «Драфт» ведёт на драфт', 'Драфт' in pg.inner_text('.tabs [aria-current=page]'))
+    pg.click('.tile[data-p=draft]'); pg.wait_for_selector('#dr-board'); check('плитка «Драфт» ведёт на драфт', pg.get_attribute('.tabs [aria-current=page]', 'data-p') == 'draft')
     for w in (1280, 1100, 1024):
         c.close(); c, pg, errs = setup(b, w=w, S=state())
         for tab, sel in [('Главная', '.tile'), ('Матчи', '#mlist'), ('Игроки', '#plist'), ('Драфт', '#dr-board'), ('Настройки', '.card')]:
@@ -80,7 +80,7 @@ with sync_playwright() as p:
     check('телефон: пять пунктов нижнего меню', pg.locator('#nav .tab').count() == 5)
     tops = pg.evaluate("()=>[...document.querySelectorAll('#nav .tab')].map(t=>Math.round(t.getBoundingClientRect().top))"); check('телефон: меню в один ряд', len(set(tops)) == 1, tops)
     pg.click('#nav [data-a=more]'); pg.wait_for_selector('#nav .more')
-    check('«Ещё» содержит Профиль, Репутацию, Настройки и поиск', all(x in pg.inner_text('#nav .more') for x in ['Профиль', 'Репутация', 'Настройки', 'Быстрый поиск']))
+    check('«Ещё» содержит Профиль, Репутацию, Настройки и поиск', all(x in pg.inner_text('#nav .more') for x in ['Найти профиль', 'Репутация', 'Настройки', 'Быстрый поиск']))
     check('при открытом «Ещё» кнопка помощника скрыта', not pg.locator('#as-root').first.is_visible())
     pg.click('#nav .more [data-p=settings]'); pg.wait_for_selector('#set-steam')
     check('после перехода «Ещё» закрыто и подсвечено', pg.locator('#nav .more').count() == 0 and pg.get_attribute('#nav [data-a=more]', 'aria-current') == 'page')
@@ -98,7 +98,7 @@ with sync_playwright() as p:
     check('Enter открывает карточку игрока, окно поиска закрыто', 'Player 3003' in pg.inner_text('.profile-h') and pg.locator('.qk').count() == 0)
     pg.keyboard.press('/'); pg.wait_for_selector('.qk'); check('«/» открывает поиск', True)
     pg.keyboard.type('драф'); pg.keyboard.press('ArrowDown'); pg.keyboard.press('ArrowUp'); pg.keyboard.press('Enter'); pg.wait_for_selector('#dr-board')
-    check('поиск «драф» ведёт в раздел драфта', 'Драфт' in pg.locator('.tabs [aria-current=page]').inner_text())
+    check('поиск «драф» ведёт в раздел драфта', pg.get_attribute('.tabs [aria-current=page]', 'data-p') == 'draft')
     pg.keyboard.press('Control+k'); pg.wait_for_selector('.qk'); pg.keyboard.press('Escape'); check('Esc закрывает поиск', pg.locator('.qk').count() == 0)
     pg.click('.tabs [data-p=settings]'); pg.click('#pnote') if pg.locator('#pnote').count() else pg.click('#set-name'); pg.keyboard.type('/')
     check('«/» в поле ввода пишет символ, а не открывает поиск', pg.locator('.qk').count() == 0 and pg.input_value('#set-name').endswith('/'))
@@ -220,6 +220,25 @@ with sync_playwright() as p:
     pg.click('[data-a=rq-clear]'); pg.wait_for_timeout(300); pg.click('.tabs [data-p=players]'); pg.wait_for_selector('#plist .prow'); pg.wait_for_timeout(800)
     check('при выключенной проверке значок «Не проверена», запросов нет', 'Не проверена' in pg.inner_text('#plist .prow >> nth=0'))
     check('без JS-ошибок (репутация у ников)', not errs, errs[:2]); c.close()
+
+    # ---------- аватар в шапке и вкладка «Найти профиль» ----------
+    c, pg, errs = setup(b, S=state(), init="localStorage.setItem('dotamate.perf.v1',JSON.stringify({v:1,auto:false,m:{},b:{}}))"); pg.goto(URL); pg.wait_for_selector('.tile')
+    check('вкладка называется «Найти профиль» (на узких экранах название в подсказке)', 'Найти профиль' in pg.evaluate("document.querySelector('.tabs [data-p=me]').textContent"))
+    check('аватар с ником в шапке — кнопка', pg.locator('.top button.me-btn[data-a=myProfile]').count() == 1)
+    pg.click('.top .me-btn'); pg.wait_for_selector('.profile-hd, #me-body .kpis, #me-body .kpi, #me-body h2', timeout=20000)
+    check('клик по аватару открывает мой профиль (адрес #/profile/1001)', '#/profile/1001' in pg.url, pg.url)
+    pg.click('.tabs [data-p=me]'); pg.wait_for_selector('#me-form'); pg.wait_for_timeout(300)
+    check('вкладка «Найти профиль» открывает чистый поиск без чужого профиля', 'Найдите игрока' in pg.inner_text('#me-body') and '#/profile' not in pg.url, pg.url)
+    check('в поиске есть заголовок «Найти профиль»', 'Найти профиль' in pg.inner_text('#main h1'))
+    pg.hover('.top .me-btn'); pg.wait_for_selector('#dm-tip.on'); check('у аватара есть подсказка', 'профиль' in pg.inner_text('#dm-tip').lower())
+    c2, pg2, e2 = setup(b, w=390, hh=800, S=state()); pg2.goto(URL); pg2.wait_for_selector('.tile')
+    check('на телефоне аватар в шапке нажимается', pg2.locator('.top .me-btn').is_visible() and overflow(pg2) <= 0, overflow(pg2))
+    c2.close()
+    nos = state(); nos['me'] = {'acc': '', 'name': 'Гость'}
+    c3, pg3, e3 = setup(b, S=nos); pg3.goto(URL); pg3.wait_for_selector('.tile'); pg3.click('.top .me-btn'); pg3.wait_for_timeout(300)
+    check('без своего Steam ID аватар ведёт в настройки', pg3.locator('#set-acc, #set-name').count() > 0 or pg3.get_attribute('.tabs [aria-current=page]', 'data-p') == 'settings')
+    c3.close()
+    check('без JS-ошибок (профиль из шапки)', not errs, errs[:2]); c.close()
     b.close()
 
 mock.terminate()

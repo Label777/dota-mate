@@ -68,10 +68,12 @@
 @media (prefers-reduced-motion:reduce){.tile{transition:none}}
 
 /* шапка: шире основного столбца, а на средних экранах вкладки только с иконками (названия в подсказках) */
-.top-in.wrap{max-width:1240px}
-@media (max-width:1199px){
+.top-in.wrap{max-width:1340px}
+@media (max-width:1399px){
   .top .tabs .tab span{display:none}
   .top .tabs .tab{padding:8px 11px}
   .top .tabs{margin-left:4px}
 }
 body.more-open #as-root{display:none}
+/* ник в шапке: длинные обрезаются, чтобы шапка не распухала */
+.me .nm{max-width:9ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
