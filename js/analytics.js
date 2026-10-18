@@ -78,7 +78,7 @@
     var win = slot != null && rw != null ? (slot < 128) === rw : null;
     if (win == null) return null;
     return {
-      id: String(r.match_id), start: num(r.start_time), dur: num(r.duration), win: win,
+      id: String(r.match_id), start: num(r.start_time), dur: num(r.duration), win: win, side: slot != null ? (slot < 128 ? 1 : 0) : null,
       hero: num(r.hero_id), k: num(r.kills), d: num(r.deaths), a: num(r.assists),
       gpm: num(r.gold_per_min), xpm: num(r.xp_per_min), lh: num(r.last_hits), dn: num(r.denies),
       laneRole: num(r.lane_role), roam: typeof r.is_roaming === 'boolean' ? r.is_roaming : null,

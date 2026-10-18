@@ -1,0 +1,48 @@
+/* MVP и худший игрок матча: отметки, блок в матче, сводки. Цвета только из токенов. */
+.im-chip{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:600;line-height:1.5;border-radius:999px;padding:1px 10px 1px 8px;border:1px solid var(--border);background:var(--surface-raise);color:var(--text-2);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.im-chip .ic{width:.95em;height:.95em;fill:currentColor;stroke:none;flex:none}
+.im-chip.mvp{color:var(--accent-strong);border-color:var(--accent-dim);background:var(--accent-soft)}
+.im-chip.worst{color:var(--danger-text);border-color:rgba(240,68,82,.4);background:var(--danger-soft)}
+.im-chip.pre{border-style:dashed}
+.im-line{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.mmain .im-line{display:flex}
+
+.im-box{border:1px solid var(--border-soft);background:var(--surface-sunk);border-radius:var(--r-3);padding:var(--s-4);display:grid;gap:var(--s-3)}
+.im-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap}
+.im-h h4{margin:0;font-size:1rem}
+.im-ver{font-family:var(--f-mono);font-size:.78rem;color:var(--text-3);border:1px solid var(--border-soft);border-radius:999px;padding:1px 8px}
+.im-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)}
+.im-cell{border:1px solid var(--border-soft);border-left-width:3px;border-radius:var(--r-2);background:var(--surface);padding:var(--s-3);display:grid;gap:6px;align-content:start;min-width:0}
+.im-cell.mvp{border-left-color:var(--accent)}
+.im-cell.worst{border-left-color:var(--danger)}
+.im-cell.none{border-left-color:var(--border)}
+.im-cell p{margin:0;overflow-wrap:anywhere}
+.im-lab{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.im-pre{font-size:.76rem;color:var(--warn);border:1px dashed rgba(240,166,74,.45);border-radius:999px;padding:0 8px}
+.im-who{display:flex;flex-direction:column;min-width:0}
+.im-who b{overflow-wrap:anywhere}
+.im-who small{color:var(--text-2)}
+.im-score{display:flex;align-items:baseline;gap:6px}
+.im-score b{font-size:1.5rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.im-score span{font-size:.8rem;color:var(--text-3)}
+.im-cell.mvp .im-score b{color:var(--accent-strong)}
+.im-cell.worst .im-score b{color:var(--danger-text)}
+.im-tw{overflow-x:auto}
+.im-t{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums}
+.im-t th,.im-t td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--border-soft);vertical-align:top}
+.im-t th{color:var(--text-3);font-weight:600;white-space:nowrap}
+.im-t td small{display:block;color:var(--text-3)}
+.im-t tr.mvp td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.im-t tr.worst td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+
+.im-sum{display:flex;gap:var(--s-4);align-items:center;flex-wrap:wrap}
+.im-n{display:flex;flex-direction:column;align-items:center;min-width:64px;border:1px solid var(--border-soft);border-radius:var(--r-2);padding:6px 12px;background:var(--surface-sunk)}
+.im-n b{font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.im-n span{font-size:.78rem;color:var(--text-2)}
+.im-n.mvp b{color:var(--accent-strong)}
+.im-n.worst b{color:var(--danger-text)}
+.im-txt{display:grid;gap:2px;min-width:0;flex:1 1 220px}
+.im-why{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+.im-my{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 var(--s-3)}
+
+@media (max-width:640px){.im-grid{grid-template-columns:1fr}}

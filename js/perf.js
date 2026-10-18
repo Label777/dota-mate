@@ -38,7 +38,7 @@
   /** Компактная запись из ответа OpenDota /matches/{id}. meAcc нужен, чтобы знать, какая сторона ваша. null, если данных нет. */
   function fromDetail(j, meAcc) {
     if (!j || !Array.isArray(j.players) || j.players.length < 2 || j.match_id == null) return null;
-    var rec = { v: VERSION, id: String(j.match_id), dur: n0(j.duration), mr: null, p: [] };
+    var rec = { v: VERSION, id: String(j.match_id), dur: n0(j.duration), mr: null, rw: j.radiant_win === true || j.radiant_win === 1 ? 1 : j.radiant_win === false || j.radiant_win === 0 ? 0 : null, p: [] };
     for (var i = 0; i < Math.min(j.players.length, 12); i++) {
       var q = j.players[i];
       if (!q || !(Number(q.hero_id) > 0)) return null;
@@ -46,7 +46,9 @@
       var acc = q.account_id != null && /^\d{1,10}$/.test(String(q.account_id)) ? String(q.account_id) : null;
       var r = { h: Number(q.hero_id) | 0, r: radiant ? 1 : 0, a: acc, k: n0(q.kills) | 0, d: n0(q.deaths) | 0, s: n0(q.assists) | 0,
         g: n0(q.gold_per_min), x: n0(q.xp_per_min), hd: nOrNull(q.hero_damage), hh: nOrNull(q.hero_healing), lh: n0(q.last_hits) | 0,
-        td: nOrNull(q.tower_damage), lv: n0(q.leaver_status) | 0 };
+        td: nOrNull(q.tower_damage), lv: n0(q.leaver_status) | 0,
+        /* данные разбора реплея: есть только у разобранных матчей, иначе null */
+        st: nOrNull(q.stuns), ob: nOrNull(q.obs_placed), se: nOrNull(q.sen_placed) };
       rec.p.push(r);
       if (meAcc != null && acc === String(meAcc)) rec.mr = r.r;
     }

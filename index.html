@@ -234,6 +234,7 @@ img.av{object-fit:cover}
 <link rel="stylesheet" href="css/social.css">
 <link rel="stylesheet" href="css/draft.css">
 <link rel="stylesheet" href="css/perf.css">
+<link rel="stylesheet" href="css/impact.css">
 <link rel="stylesheet" href="css/repchip.css">
 <link rel="stylesheet" href="css/tips.css">
 <link rel="stylesheet" href="css/kit.css">
@@ -286,6 +287,8 @@ img.av{object-fit:cover}
 <script src="js/draft-ui.js"></script>
 <script src="js/perf.js"></script>
 <script src="js/perf-ui.js"></script>
+<script src="js/impact.js"></script>
+<script src="js/impact-ui.js"></script>
 <script src="js/repchip.js"></script>
 <script src="js/tips.js"></script>
 <script src="js/ui-kit.js"></script>
@@ -366,7 +369,7 @@ function migrate(st){if(window.DMSocial)DMSocial.ensure(st);for(const m of st.ma
 let S=migrate(load()||demoData());
 if(!load())save();
 
-const V={more:false,page:'dash',pid:null,f:{res:'all',mode:'all',range:'all'},q:'',sort:'count',dsort:'recent',role:'all',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
+const V={more:false,page:'dash',pid:null,f:{res:'all',mode:'all',range:'all',st:'all'},q:'',sort:'count',dsort:'recent',role:'all',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
 
 /* ---------- data helpers ---------- */
 const rkey=(mid,sid)=>mid+'|'+sid;
@@ -488,7 +491,7 @@ function mrow(m){
   const al=m.players.filter(p=>p.ally&&!p.me);
   return`<button class="mrow" data-a="openMatch" data-id="${esc(m.id)}">
     <span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span>
-    <span class="mmain"><b>${esc(m.hero)}</b><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></span>
+    <span class="mmain"><b>${esc(m.hero)}</b><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small>${window.DMImpactUI?DMImpactUI.rowChips(m):''}</span>
     <span class="mallies" aria-label="Союзники">${al.slice(0,4).map(p=>`<span class="av sm ${p.sid&&prior(p.sid,m)>0?'known':''}" style="background:hsl(${hue(p.sid||p.name)} 26% 30%)" title="${esc(p.name)}"${isNum(p.sid)?` data-av="${esc(p.sid)}"`:''}>${esc(initials(p.name))}${avImg(p.sid)}</span>`).join('')}</span>
     <span class="ch">${ico('chev')}</span></button>`;
 }
@@ -513,7 +516,7 @@ function vDash(){return window.DMDash?DMDash.view():`<div class="empty">${ico('a
 
 function filteredMatches(){
   const f=V.f,now=Date.now()/1000;
-  return sorted().filter(m=>(f.res==='all'||(f.res==='win')===m.win)&&(f.mode==='all'||m.mode===f.mode)&&(f.range==='all'||m.start>=now-Number(f.range)*86400));
+  return sorted().filter(m=>(f.res==='all'||(f.res==='win')===m.win)&&(f.mode==='all'||m.mode===f.mode)&&(f.range==='all'||m.start>=now-Number(f.range)*86400)&&(!f.st||f.st==='all'||!window.DMImpactUI||DMImpactUI.matchHasMine(m,f.st)));
 }
 function mlistHtml(){
   if(!S.matches.length)return emptyMatches();
@@ -528,7 +531,9 @@ function vMatches(){
     <div class="field"><label for="f-res">Результат</label><select id="f-res"><option value="all">Все</option><option value="win" ${V.f.res==='win'?'selected':''}>Победы</option><option value="loss" ${V.f.res==='loss'?'selected':''}>Поражения</option></select></div>
     <div class="field"><label for="f-mode">Режим</label><select id="f-mode"><option value="all">Все режимы</option>${modes.map(m=>`<option ${V.f.mode===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div>
     <div class="field"><label for="f-range">Период</label><select id="f-range"><option value="all">Всё время</option>${[[7,'7 дней'],[30,'30 дней'],[90,'90 дней']].map(r=>`<option value="${r[0]}" ${String(V.f.range)===String(r[0])?'selected':''}>${r[1]}</option>`).join('')}</select></div>
+    ${window.DMImpactUI?`<div class="field"><label for="f-st">Статусы матча</label><select id="f-st" data-tip="Показать только матчи, где вы получили статус MVP или сыграли хуже всех по цифрам матча."><option value="all">Все матчи</option><option value="mvp" ${V.f.st==='mvp'?'selected':''}>Матчи, где я MVP</option><option value="worst" ${V.f.st==='worst'?'selected':''}>Матчи, где я сыграл хуже всех</option></select></div>`:''}
   </div>
+  <div id="im-my">${window.DMImpactUI?DMImpactUI.mySummary():''}</div>
   <div class="mlist" id="mlist">${mlistHtml()}</div>`;
 }
 
@@ -578,6 +583,7 @@ function vPlayer(){
     <div class="field"><label for="pnote">Общая заметка об игроке (видите только вы)</label><textarea id="pnote" data-sid="${esc(e.sid)}" placeholder="Например: играет на саппорте, любит голосовой чат">${esc(note)}</textarea></div>
   </section>
   ${window.DMPerfUI?DMPerfUI.playerBlock(e):''}
+  ${window.DMImpactUI?DMImpactUI.playerBlock(e):''}
   ${window.DMSocialUI?DMSocialUI.playerBlocks(e):''}
   <section><div class="sec-h"><h2>История встреч</h2></div><div class="hist">${e.list.map(x=>{
     const r=S.reviews[rkey(x.m.id,e.sid)];const k='r:'+rkey(x.m.id,e.sid);
@@ -624,6 +630,7 @@ function vSettings(){
   ${window.DMRepUI?DMRepUI.settingsBlock():''}
   ${window.DMSocialUI?DMSocialUI.settingsBlock():''}
   ${window.DMPerfUI?DMPerfUI.settingsBlock():''}
+  ${window.DMImpactUI?DMImpactUI.settingsBlock():''}
   ${window.DMRepChip?DMRepChip.settingsBlock():''}
   <section class="card stack"><h3>Копия текстом</h3>
     <p class="sm">${SRV?'Данные хранятся на сервере.':'Данные живут в этом браузере.'} Скопируйте копию и сохраните её в заметках, чтобы перенести на другое устройство.</p>
@@ -653,12 +660,13 @@ function mMatch(m){
   const k='dm:'+m.id;
   const rows=(l,empty)=>l.length?l.map(p=>{
     const n=p.sid?prior(p.sid,m):0,r=p.sid&&S.reviews[rkey(m.id,p.sid)];
-    return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${window.DMRepChip?DMRepChip.badges(p.sid):''} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
+    return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${window.DMRepChip?DMRepChip.badges(p.sid):''} ${window.DMImpactUI?DMImpactUI.nameBadge(m,p):''} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
         <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${window.DMPerfUI?`<div class="pf-line">${DMPerfUI.matchRowExtra(m,m.players.indexOf(p))}</div>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}${window.DMSocialUI?DMSocialUI.rowBadges(p):''}</div>
         ${p.sid?`<div class="arow-act">${isNum(p.sid)?`<button class="btn sm2" data-a="openProfile" data-id="${esc(p.sid)}" data-tip="Полный профиль игрока: герои, динамика, позиции (данные OpenDota)" aria-label="Открыть профиль игрока ${esc(p.name)}">${ico('user')}Профиль</button>`:''}<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button></div>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):`<p class="sm">${empty}</p>`;
   return`<div class="panel-h"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span><h3 id="mt">${esc(m.hero)}</h3></div><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></div>${closeBtn()}</div>
   <div class="panel-b">
     ${window.DMSocialUI?DMSocialUI.matchTop(m):''}
+    ${window.DMImpactUI?DMImpactUI.matchBlock(m):''}
     ${nt.length?`<div class="banner soft" role="note">${ico('users')}<p>${nt.map(x=>`<b>${esc(x.p.name)}</b>: ${meetText(x.role,x.w,x.v)}`).join('<br>')}</p></div>`:''}
     <div><div class="lbl" style="margin-bottom:6px">Союзники</div>${rows(al,'В матче не было других союзников.')}</div>
     <div><div class="lbl" style="margin-bottom:6px">Соперники</div>${rows(en,'Состав соперников не указан.')}</div>
@@ -840,7 +848,7 @@ document.addEventListener('click',e=>{
     case'sync':doSync();break;
     case'add':V.tab='link';openModal('add');break;
     case'tab':V.tab=d.t;paintModal();break;
-    case'resetF':V.f={res:'all',mode:'all',range:'all'};paintMain();break;
+    case'resetF':V.f={res:'all',mode:'all',range:'all',st:'all'};paintMain();break;
     case'clearDemo':leaveDemo();save();toast('Демо-данные удалены.');paint();break;
     case'loadDemo':S=demoData();save();paint();break;
     case'review':openReview(d.mid,d.sid);break;
@@ -908,7 +916,7 @@ document.addEventListener('change',e=>{
   if(t.id==='prole'){V.role=t.value;$('#plist').innerHTML=plistHtml()}
   else if(t.id==='sort'){V.sort=t.value;$('#plist').innerHTML=plistHtml()}
   else if(t.id==='dsort'){V.dsort=t.value;paintMain()}
-  else if(t.id==='f-res'||t.id==='f-mode'||t.id==='f-range'){V.f={res:$('#f-res').value,mode:$('#f-mode').value,range:$('#f-range').value};$('#mlist').innerHTML=mlistHtml()}
+  else if(t.id==='f-res'||t.id==='f-mode'||t.id==='f-range'||t.id==='f-st'){V.f={res:$('#f-res').value,mode:$('#f-mode').value,range:$('#f-range').value,st:$('#f-st')?$('#f-st').value:'all'};$('#mlist').innerHTML=mlistHtml()}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&V.modal)closeModal()});
 
@@ -966,6 +974,8 @@ if(window.DMDash)DMDash.init({S:()=>S,matches:()=>sorted(),pIndex,av,stars,pl,ag
   searchProfile:q=>{go('me');if(window.DMProfile)DMProfile.search(q)},
   openWatchlist:()=>{location.hash='#/watchlist'}});
 if(window.DMRepChip)DMRepChip.init({ico,toast:m=>toast(m),refresh:()=>{if(V.page==='settings')paintMain()}});
+if(window.DMImpactUI)DMImpactUI.init({esc,ico,pl,fd,toast:m=>toast(m),heroId:name=>{if(!HID){HID={};for(const k of Object.keys(HEROES))HID[HEROES[k]]=Number(k)}const m=/^Герой #(\d+)$/.exec(String(name));return m?Number(m[1]):HID[name]||null},
+  heroName:id=>HEROES[id]||('Герой #'+id),matches:()=>S.matches,refresh:force=>{if(['dash','matches','players','player','settings'].includes(V.page))paintMain();if(V.modal==='match'||V.modal==='pcard')paintModal()}});
 if(window.DMPerfUI)DMPerfUI.init({V:()=>V,esc,ico,stars,pl,fd,av,
   base:()=>SERVER?'/api/od':'https://api.opendota.com/api',server:()=>SERVER,
   meAcc:()=>S&&S.me&&S.me.acc&&isNum(S.me.acc)?String(S.me.acc):(SRV&&SRV.acc?String(SRV.acc):''),

@@ -15,7 +15,7 @@ test('fromDetail: компактная запись, сторона игрока
     { account_id: null, hero_id: 14, player_slot: 130, isRadiant: false, kills: -4, deaths: NaN, assists: 'abc', gold_per_min: 300 }] };
   const r = P.fromDetail(j, '111');
   assert.strictEqual(r.id, '77001'); assert.strictEqual(r.dur, 2100); assert.strictEqual(r.mr, 1);
-  assert.deepStrictEqual(r.p[0], { h: 2, r: 1, a: '111', k: 5, d: 3, s: 9, g: 500.5, x: 600, hd: 20000, hh: 0, lh: 200, td: 1000, lv: 0 });
+  assert.deepStrictEqual(r.p[0], { h: 2, r: 1, a: '111', k: 5, d: 3, s: 9, g: 500.5, x: 600, hd: 20000, hh: 0, lh: 200, td: 1000, lv: 0, st: null, ob: null, se: null });
   assert.deepStrictEqual([r.p[1].a, r.p[1].r, r.p[1].k, r.p[1].d, r.p[1].s, r.p[1].hd], [null, 0, 0, 0, 0, null]);
   assert.ok(!('extra' in r.p[0]));
   assert.strictEqual(P.fromDetail(j, '999').mr, null, 'вас нет в матче: сторона неизвестна');

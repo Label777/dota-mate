@@ -71,6 +71,20 @@
     const a = P().aggregate(items); a.total = e.list.length; a.items = items.length; return a;
   }
 
+  /** Для модуля MVP: запись матча, бенчмарки героев и загрузка недостающих бенчмарков (не больше limit за раз). */
+  const recOf = (id) => C.m[id] || null;
+  async function fetchBench(ids, limit) {
+    const now = Date.now(); let n = 0;
+    for (const h of ids) {
+      if (n >= (limit || 30)) break;
+      if (C.b[h] && now - C.b[h].t < BENCH_TTL) continue;
+      const j = await API().getBenchmarks(h);   // ошибка (лимит запросов) уходит вызывающему
+      C.b[h] = { t: Date.now(), d: P().benchFrom(j) || null }; E.ver++; n++;
+    }
+    save();
+    return n;
+  }
+
   /* ---------- фоновый сбор ---------- */
   const need = () => H.matches().filter((m) => /^\d{6,13}$/.test(String(m.id)) && !C.m[m.id]);
   function heroesNeeded() {
@@ -256,5 +270,5 @@
     H = h; load();
     setTimeout(() => scan(false), 2500);
   }
-  window.DMPerfUI = { init, ingest, scan, forPlayer, aggFor, badge, matchChip, playerBlock, cardModal, matchRowExtra, settingsBlock, statusBox, pending, state: () => E, cache: () => C };
+  window.DMPerfUI = { init, ingest, bench: benchMap, rec: recOf, fetchBench, api: API, ver: () => E.ver, scan, forPlayer, aggFor, badge, matchChip, playerBlock, cardModal, matchRowExtra, settingsBlock, statusBox, pending, state: () => E, cache: () => C };
 })();
