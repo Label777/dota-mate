@@ -233,6 +233,7 @@ img.av{object-fit:cover}
 </style>
 <link rel="stylesheet" href="css/profile.css">
 <link rel="stylesheet" href="css/rep.css">
+<link rel="stylesheet" href="css/social.css">
 <link rel="stylesheet" href="css/theme.css">
 </head>
 <body>
@@ -274,6 +275,8 @@ img.av{object-fit:cover}
 <script src="js/community.js"></script>
 <script src="js/rep-ui.js"></script>
 <script src="js/rep-ui2.js"></script>
+<script src="js/social.js"></script>
+<script src="js/social-ui.js"></script>
 <script src="js/assistant.js"></script>
 <script>
 (function(){
@@ -309,7 +312,7 @@ const catsFor=p=>p&&!p.ally?CATS.filter(c=>c[0]==='comm'||c[0]==='beh'):CATS;
 
 /* ---------- state ---------- */
 const LS='dotamate.v1';
-function fresh(){return{v:1,me:{acc:'',name:'Вы'},matches:[],reviews:{},pnotes:{},avatars:{},settings:{avatars:true},demo:false,lastSync:null}}
+function fresh(){return{v:1,me:{acc:'',name:'Вы'},matches:[],reviews:{},pnotes:{},tags:{},heroNotes:{},snooze:{},avatars:{},settings:{avatars:true},demo:false,lastSync:null}}
 function load(){try{const r=localStorage.getItem(LS);if(r){const j=JSON.parse(r);if(j&&j.v===1&&Array.isArray(j.matches))return j}}catch(e){}return null}
 let SRV=null,SERVER=false,svT=null;
 function pushState(){fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','X-DM':'1'},body:JSON.stringify(S)}).catch(()=>{})}
@@ -340,9 +343,11 @@ function demoData(){
   rv(1,6,4,{team:4});rv(8,6,4,{},'Уверенный мид, но редко отвечает в чат');
   d.reviews['d1|130000000']={rating:3,cats:{beh:3},note:'Любит рано ганкать боковую линию',ts:now-D};
   d.pnotes[sid(0)]='Надёжный напарник. Лучше всего заходит в паре на линии.';
+  d.tags[sid(0)]=['party','good'];d.tags[sid(2)]=['support'];d.tags[sid(1)]=['c:Рано сливается'];d.tags['130000000']=['avoid'];
+  d.heroNotes[sid(2)]={'Witch Doctor':'Ставит варды и вовремя использует ульт'};
   return d;
 }
-function migrate(st){for(const m of st.matches||[])for(const p of m.players||[]){if(!p.sid&&!p.ally&&p.name&&p.name!=='Скрытый игрок')p.sid='nick:'+String(p.name).toLowerCase()}return st}
+function migrate(st){if(window.DMSocial)DMSocial.ensure(st);for(const m of st.matches||[])for(const p of m.players||[]){if(!p.sid&&!p.ally&&p.name&&p.name!=='Скрытый игрок')p.sid='nick:'+String(p.name).toLowerCase()}return st}
 let S=migrate(load()||demoData());
 if(!load())save();
 
@@ -392,7 +397,7 @@ function parseSteam(v){
   if(!/^\d{5,20}$/.test(v))return null;
   try{let b=BigInt(v);if(b>=OFF)b-=OFF;if(b<=0n||b>4294967295n)return null;return b.toString()}catch(e){return null}
 }
-function leaveDemo(){if(S.demo){S.matches=[];S.reviews={};S.pnotes={};S.demo=false;return true}return false}
+function leaveDemo(){if(S.demo){S.matches=[];S.reviews={};S.pnotes={};S.tags={};S.heroNotes={};S.snooze={};S.demo=false;return true}return false}
 function addMatch(m){
   if(S.matches.some(x=>x.id===m.id))throw new Error('Этот матч уже добавлен.');
   const was=leaveDemo();S.matches.push(m);save();return was;
@@ -461,9 +466,10 @@ function mrow(m){
     <span class="mallies" aria-label="Союзники">${al.slice(0,4).map(p=>`<span class="av sm ${p.sid&&prior(p.sid,m)>0?'known':''}" style="background:hsl(${hue(p.sid||p.name)} 26% 30%)" title="${esc(p.name)}"${isNum(p.sid)?` data-av="${esc(p.sid)}"`:''}>${esc(initials(p.name))}${avImg(p.sid)}</span>`).join('')}</span>
     <span class="ch">${ico('chev')}</span></button>`;
 }
+const sxRec=(e,r)=>window.DMSocialUI?DMSocialUI.recTxt(e,r):'';
 function prow(e){
   return`<button class="prow" data-a="openPlayer" data-id="${esc(e.sid)}">${av(e.name,'md',e.sid)}
-    <span style="min-width:0;display:flex;flex-direction:column"><span class="pname">${esc(e.name)}</span><small>${[e.withN?`вместе: ${e.withN}`:'',e.vsN?`против: ${e.vsN}`:''].filter(Boolean).join(' · ')} · последний раз: ${esc(ago(e.last))}</small></span>
+    <span style="min-width:0;display:flex;flex-direction:column"><span class="pname">${esc(e.name)}</span><small>${[e.withN?`вместе: ${e.withN}${sxRec(e,'ally')}`:'',e.vsN?`против: ${e.vsN}${sxRec(e,'enemy')}`:''].filter(Boolean).join(' · ')} · последний раз: ${esc(ago(e.last))}</small>${window.DMSocialUI?DMSocialUI.rowExtra(e):''}</span>
     <span class="avg">${e.avg!=null?stars(e.avg)+e.avg.toFixed(1):'<small>без оценки</small>'}</span><span class="ch" style="color:var(--mute)">${ico('chev')}</span></button>`;
 }
 function emptyMatches(){
@@ -481,6 +487,7 @@ function vDash(){
     <div class="actions"><button class="btn primary" data-a="sync" ${loading?'disabled':''}>${ico('refresh')}Синхронизировать матчи</button><button class="btn" data-a="add">${ico('plus')}Добавить матч</button></div>
     <div class="statline"><span><b>${ms.length}</b>${pl(ms.length,'матч','матча','матчей')}</span><span><b>${total}</b>${pl(total,'знакомый игрок','знакомых игрока','знакомых игроков')}</span><span><b>${rated}</b>${pl(rated,'оценка','оценки','оценок')} и заметок</span></div>
   </section>
+  ${window.DMSocialUI?DMSocialUI.dashBlock():''}
   <div class="cols">
     <section><div class="sec-h"><h2>Последние матчи</h2>${ms.length?`<button class="btn ghost sm2" data-a="go" data-p="matches">Все матчи</button>`:''}</div>
       <div class="mlist">${loading?'<div class="skel"></div><div class="skel"></div><div class="skel"></div>':ms.length?ms.slice(0,5).map(mrow).join(''):emptyMatches()}</div></section>
@@ -515,24 +522,30 @@ const cmpP=s=>(a,b)=>s==='count'?b.count-a.count||b.last-a.last:s==='recent'?b.l
 function playersFiltered(){
   const idx=Object.values(pIndex());let q=V.q.trim().toLowerCase();
   const acc=parseSteam(V.q);
-  let l=idx.filter(e=>!q||e.name.toLowerCase().includes(q)||e.sid.includes(q)||(acc&&e.sid===acc)||(isNum(e.sid)&&steam64(e.sid).includes(q)));
+  const hits=window.DMSocialUI?DMSocialUI.search(V.q):{};
+  let l=idx.filter(e=>!q||e.name.toLowerCase().includes(q)||e.sid.includes(q)||(acc&&e.sid===acc)||(isNum(e.sid)&&steam64(e.sid).includes(q))||hits[e.sid]);
   if(V.role==='ally')l=l.filter(e=>e.withN>0);else if(V.role==='enemy')l=l.filter(e=>e.vsN>0);
+  if(window.DMSocialUI)l=DMSocialUI.filter(l);
   l.sort(cmpP(V.sort));
   return l;
 }
 function plistHtml(){
   if(!S.matches.length||!Object.keys(pIndex()).length)return`<div class="empty">${ico('users')}<b>Список знакомых пуст</b><p>Игроки появятся здесь после добавления матчей.</p><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button></div>`;
   const l=playersFiltered();
-  return l.length?l.map(prow).join(''):`<div class="empty">${ico('search')}<b>Игрок не найден</b><p>Проверьте ник или Steam ID. Ищутся только те, с кем вы уже играли.</p></div>`;
+  return l.length?l.map(prow).join(''):`<div class="empty">${ico('search')}<b>Игрок не найден</b><p>Проверьте запрос и фильтры. Ищутся ник, Steam ID, текст ваших заметок и теги среди тех, с кем вы уже играли.</p></div>`;
 }
 function vPlayers(){
-  return`<div class="pagehead"><div><h1>Игроки</h1><p>Игроки, с которыми вы играли вместе или друг против друга. Рейтинг считается только по вашим оценкам и нигде не публикуется.</p></div></div>
-  ${demoBanner()}
+  const sx=window.DMSocialUI;
+  const head=`<div class="pagehead"><div><h1>Игроки</h1><p>Игроки, с которыми вы играли вместе или друг против друга. В скобках ваши победы и поражения в этих матчах. Оценки, заметки и теги видны только вам.</p></div></div>
+  ${demoBanner()}`;
+  if(sx&&!sx.isAll())return head+sx.view();
+  return head+(sx?sx.tabs():'')+`
   <div class="toolbar">
-    <div class="searchbox"><label class="sm" for="q" style="position:absolute;left:-9999px">Поиск</label>${ico('search')}<input id="q" type="text" inputmode="search" autocomplete="off" placeholder="Ник или Steam ID" value="${esc(V.q)}"></div>
+    <div class="searchbox"><label class="sm" for="q" style="position:absolute;left:-9999px">Поиск</label>${ico('search')}<input id="q" type="text" inputmode="search" autocomplete="off" placeholder="Ник, Steam ID или слово из заметки" value="${esc(V.q)}"></div>
     <select id="prole" aria-label="Роль"><option value="all">Все игроки</option><option value="ally" ${V.role==='ally'?'selected':''}>Союзники</option><option value="enemy" ${V.role==='enemy'?'selected':''}>Соперники</option></select>
     <select id="sort" aria-label="Сортировка"><option value="count" ${V.sort==='count'?'selected':''}>По числу встреч</option><option value="recent" ${V.sort==='recent'?'selected':''}>По последней встрече</option><option value="rating" ${V.sort==='rating'?'selected':''}>По вашей оценке</option><option value="name" ${V.sort==='name'?'selected':''}>По алфавиту</option></select>
   </div>
+  ${sx?sx.filterBar():''}
   <div class="plist" id="plist">${plistHtml()}</div>`;
 }
 
@@ -549,6 +562,7 @@ function vPlayer(){
     ${num?`<div class="links"><button class="linkbtn" data-a="openProfile" data-id="${esc(e.sid)}">${ico('user')}Статистика игрока</button><a href="https://steamcommunity.com/profiles/${steam64(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Профиль Steam</a><a href="https://www.opendota.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}OpenDota</a><a href="https://www.dotabuff.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Dotabuff</a></div>`:''}
     <div class="field"><label for="pnote">Общая заметка об игроке (видите только вы)</label><textarea id="pnote" data-sid="${esc(e.sid)}" placeholder="Например: играет на саппорте, любит голосовой чат">${esc(note)}</textarea></div>
   </section>
+  ${window.DMSocialUI?DMSocialUI.playerBlocks(e):''}
   <section><div class="sec-h"><h2>История встреч</h2></div><div class="hist">${e.list.map(x=>{
     const r=S.reviews[rkey(x.m.id,e.sid)];const k='r:'+rkey(x.m.id,e.sid);
     return`<div class="hitem"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${x.m.win?'win':'loss'}">${x.m.win?'Победа':'Поражение'}</span><b>${esc(x.p.hero)}</b><span class="tag ${x.role==='ally'?'n':''}">${x.role==='ally'?'Союзник':'Соперник'}</span><small>${fd(x.m.start)} · ${esc(x.m.mode)}</small></div>
@@ -556,7 +570,7 @@ function vPlayer(){
       ${r&&Object.values(r.cats||{}).some(Boolean)?`<div class="chips" style="margin-top:8px">${CATS.filter(c=>r.cats[c[0]]).map(c=>`<span class="chip">${c[1]}: ${r.cats[c[0]]}</span>`).join('')}</div>`:''}
       ${r&&r.note?`<div class="note">${esc(r.note)}</div>`:''}</div>
       <div class="actions" style="align-self:start">${V.confirm===k?`<span class="sm" style="align-self:center">Удалить?</span><button class="btn danger sm2" data-a="delReview" data-mid="${esc(x.m.id)}" data-sid="${esc(e.sid)}">Да</button><button class="btn sm2" data-a="cancel">Нет</button>`:`<button class="btn sm2" data-a="review" data-mid="${esc(x.m.id)}" data-sid="${esc(e.sid)}">${ico('edit')}${r?'Изменить':'Оценить'}</button>${r?`<button class="iconbtn" data-a="askDel" data-k="${esc(k)}" aria-label="Удалить оценку и заметку">${ico('trash')}</button>`:''}`}</div></div>`}).join('')}</div></section>
-  <section class="card flat"><div class="actions"><button class="btn danger sm2" data-a="${V.confirm==='pwipe'?'wipePlayer':'askDel'}" data-k="pwipe" data-sid="${esc(e.sid)}">${ico('trash')}${V.confirm==='pwipe'?'Подтвердить: удалить все мои оценки и заметки об игроке':'Удалить мои оценки и заметки об игроке'}</button>${V.confirm==='pwipe'?`<button class="btn sm2" data-a="cancel">Отмена</button>`:''}</div></section>`;
+  <section class="card flat"><div class="actions"><button class="btn danger sm2" data-a="${V.confirm==='pwipe'?'wipePlayer':'askDel'}" data-k="pwipe" data-sid="${esc(e.sid)}">${ico('trash')}${V.confirm==='pwipe'?'Подтвердить: удалить мои оценки, заметки и теги об игроке':'Удалить мои оценки, заметки и теги об игроке'}</button>${V.confirm==='pwipe'?`<button class="btn sm2" data-a="cancel">Отмена</button>`:''}</div></section>`;
 }
 
 function dangerBtn(key,label,confirmLabel){
@@ -584,7 +598,7 @@ function vSettings(){
     <p class="sm">${SRV?'Кнопка «Синхронизировать матчи» запрашивает OpenDota через сервер Dota Mate. Если список пуст, проверьте настройку «Открытые данные матчей» в Dota 2.':'Кнопка «Синхронизировать матчи» обращается к OpenDota напрямую из вашего браузера. Если браузер или окружение блокирует такие запросы, используйте добавление по ссылке.'}</p>
   </section>
   <section class="card stack"><h3>Приватность</h3>
-    <ul class="plain"><li>Сохраняются: ники и публичные ID участников ваших матчей, герои, результат, а также ваши оценки и заметки.</li>
+    <ul class="plain"><li>Сохраняются: ники и публичные ID участников ваших матчей, герои, результат, а также ваши оценки, заметки и теги.</li>
     <li>${SRV?'Оценки, заметки и матчи хранятся на сервере Dota Mate и привязаны к вашему Steam ID. Другим пользователям они недоступны.':'Всё хранится только в этом браузере. Dota Mate не отправляет ваши оценки и заметки никуда.'}</li>
     <li>Ваши личные оценки и заметки об игроках приватны и никому не показываются. Публичны только решения модераторов о подтверждённых эпизодах и обобщённые счётчики в разделе «Репутация».</li>
     <li>Пароли от Steam и Dotabuff не запрашиваются и не хранятся.</li>
@@ -592,7 +606,8 @@ function vSettings(){
     <label class="optin" for="set-av"><input type="checkbox" id="set-av" ${avOn()?'checked':''}><span>Показывать аватарки Steam<br><small>Если выключить, запросы о профилях прекратятся, везде будут инициалы.</small></span></label>
   </section>
   ${window.DMRepUI?DMRepUI.settingsBlock():''}
-  <section class="card stack"><h3>Резервная копия</h3>
+  ${window.DMSocialUI?DMSocialUI.settingsBlock():''}
+  <section class="card stack"><h3>Копия текстом</h3>
     <p class="sm">${SRV?'Данные хранятся на сервере.':'Данные живут в этом браузере.'} Скопируйте копию и сохраните её в заметках, чтобы перенести на другое устройство.</p>
     <div class="actions"><button class="btn" data-a="bkShow">Показать копию</button><button class="btn" data-a="bkCopy">${ico('copy')}Скопировать</button><button class="btn" data-a="bkRestore">Восстановить из текста</button></div>
     <textarea id="bk" rows="4" placeholder="Здесь появится резервная копия. Чтобы восстановить, вставьте её сюда и нажмите «Восстановить из текста»." spellcheck="false">${esc(V.bk)}</textarea>
@@ -600,9 +615,9 @@ function vSettings(){
   </section>
   <section class="card stack"><h3>Удаление данных</h3>
     <div class="stack" style="gap:16px">
-      <div class="stack" style="gap:6px"><span class="sm">Матчи остаются, пропадают только ваши оценки и заметки.</span>${dangerBtn('notes','Удалить все оценки и заметки','Да, удалить оценки и заметки')}</div>
-      <div class="stack" style="gap:6px"><span class="sm">Удалит все матчи, а вместе с ними оценки и заметки.</span>${dangerBtn('history','Удалить историю матчей','Да, удалить историю')}</div>
-      <div class="stack" style="gap:6px"><span class="sm">Удалит всё: аккаунт, матчи, оценки и заметки.</span>${dangerBtn('all','Удалить аккаунт и все данные','Да, удалить всё')}</div>
+      <div class="stack" style="gap:6px"><span class="sm">Матчи остаются, пропадают только ваши оценки, заметки и теги.</span>${dangerBtn('notes','Удалить все оценки, заметки и теги','Да, удалить оценки, заметки и теги')}</div>
+      <div class="stack" style="gap:6px"><span class="sm">Удалит все матчи, а вместе с ними оценки, заметки и теги.</span>${dangerBtn('history','Удалить историю матчей','Да, удалить историю')}</div>
+      <div class="stack" style="gap:6px"><span class="sm">Удалит всё: аккаунт, матчи, оценки, заметки и теги.</span>${dangerBtn('all','Удалить аккаунт и все данные','Да, удалить всё')}</div>
     </div></section>`;
 }
 
@@ -620,10 +635,11 @@ function mMatch(m){
   const rows=(l,empty)=>l.length?l.map(p=>{
     const n=p.sid?prior(p.sid,m):0,r=p.sid&&S.reviews[rkey(m.id,p.sid)];
     return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
-        <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}</div>
+        <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}${window.DMSocialUI?DMSocialUI.rowBadges(p):''}</div>
         ${p.sid?`<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):`<p class="sm">${empty}</p>`;
   return`<div class="panel-h"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span><h3 id="mt">${esc(m.hero)}</h3></div><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></div>${closeBtn()}</div>
   <div class="panel-b">
+    ${window.DMSocialUI?DMSocialUI.matchTop(m):''}
     ${nt.length?`<div class="banner soft" role="note">${ico('users')}<p>${nt.map(x=>`<b>${esc(x.p.name)}</b>: ${meetText(x.role,x.w,x.v)}`).join('<br>')}</p></div>`:''}
     <div><div class="lbl" style="margin-bottom:6px">Союзники</div>${rows(al,'В матче не было других союзников.')}</div>
     <div><div class="lbl" style="margin-bottom:6px">Соперники</div>${rows(en,'Состав соперников не указан.')}</div>
@@ -676,6 +692,7 @@ function paintModal(){
   let inner='';
   if(M==='match'){const m=mById(V.mid);inner=m?mMatch(m):''}
   else if(M==='review')inner=mReview();
+  else if(M==='rateall')inner=window.DMSocialUI?DMSocialUI.rateAllModal():'';
   else if(M==='add')inner=mAdd();
   if(!inner){V.modal=null;el.innerHTML='';return}
   el.innerHTML=`<div class="ov" data-a="ovl"><div class="panel" role="dialog" aria-modal="true" aria-labelledby="mt">${inner}</div></div>`;
@@ -766,8 +783,8 @@ function readManual(){
   return{id:'m'+Date.now(),start:ts,mode:g('x-mode'),ranked:false,win:g('x-res')==='win',dur:Math.round(dur*60),hero,players:pls};
 }
 function wipe(kind){
-  if(kind==='notes'){S.reviews={};S.pnotes={};toast('Оценки и заметки удалены.')}
-  else if(kind==='history'){S.matches=[];S.reviews={};S.pnotes={};S.avatars={};S.demo=false;toast('История матчей удалена.')}
+  if(kind==='notes'){S.reviews={};S.pnotes={};S.tags={};S.heroNotes={};S.snooze={};toast('Оценки, заметки и теги удалены.')}
+  else if(kind==='history'){S.matches=[];S.reviews={};S.pnotes={};S.tags={};S.heroNotes={};S.snooze={};S.avatars={};S.demo=false;toast('История матчей удалена.')}
   else if(kind==='all'){
     if(SRV){fetch('/api/account',{method:'DELETE',headers:{'X-DM':'1'}}).finally(()=>location.reload());clearTimeout(svT);SRV=null;S=fresh();try{localStorage.removeItem(LS)}catch(e){}V.confirm=null;V.sync={st:'idle',msg:''};toast('Все данные удалены.');paint();return}
     S=fresh();try{localStorage.removeItem(LS)}catch(e){}V.sync={st:'idle',msg:''};toast('Все данные удалены.')}
@@ -811,7 +828,7 @@ document.addEventListener('click',e=>{
     case'cancel':V.confirm=null;if(V.modal)paintModal();else paintMain();break;
     case'doDel':wipe(d.k);break;
     case'wipePlayer':{
-      Object.keys(S.reviews).forEach(k=>{if(k.endsWith('|'+d.sid))delete S.reviews[k]});delete S.pnotes[d.sid];save();V.confirm=null;paintMain();toast('Оценки и заметки об игроке удалены.');break}
+      DMSocial.removePlayerData(S,d.sid);save();V.confirm=null;paintMain();toast('Оценки, заметки и теги об игроке удалены.');break}
     case'delMatch':{
       S.matches=S.matches.filter(m=>m.id!==d.id);Object.keys(S.reviews).forEach(k=>{if(k.startsWith(d.id+'|'))delete S.reviews[k]});save();V.modal=null;V.confirm=null;paintModal();paint();toast('Матч удалён.');break}
     case'repClear':{['dotamate.rep.v1','dotamate.profile.v1'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});toast('Локальные данные репутации удалены.');break}
@@ -833,8 +850,8 @@ document.addEventListener('click',e=>{
       const ta=document.getElementById('bk');if(!ta.value){V.bk=JSON.stringify(S);ta.value=V.bk}
       navigator.clipboard.writeText(ta.value).then(()=>setMsg('bk-msg','Скопировано.'),()=>{ta.focus();ta.select();setMsg('bk-msg','Текст выделен. Скопируйте его вручную.')});break}
     case'bkRestore':{
-      try{const j=JSON.parse(document.getElementById('bk').value);if(!j||j.v!==1||!Array.isArray(j.matches))throw 0;S=migrate(Object.assign(fresh(),j));save();V.bk='';paint();toast('Данные восстановлены.')}
-      catch(err){setMsg('bk-msg','Это не похоже на резервную копию Dota Mate.')}
+      try{const data=DMSocial.parseImport(document.getElementById('bk').value);S=migrate(DMSocial.replaceWith(S,data));save();V.bk='';paint();toast('Данные восстановлены.')}
+      catch(err){setMsg('bk-msg',err.message||'Это не похоже на резервную копию Dota Mate.')}
       break}
   }
 });
@@ -893,6 +910,9 @@ async function runAv(){
 let avT=null;
 new MutationObserver(()=>{clearTimeout(avT);avT=setTimeout(scanAvatars,300)}).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&t.closest&&t.closest('[data-av]'))t.remove()},true);
+if(window.DMSocialUI)DMSocialUI.init({V,esc,ico,av,pl,fd,ago,
+  S:()=>S,setS:x=>{S=x},save,toast,paint,paintMain,openModal,closeModal,go,migrate,pIndex,sorted,mById,rkey,
+  closeBtn,heroNames:()=>HERO_NAMES,refreshList:()=>{const l=$('#plist');if(l)l.innerHTML=plistHtml()}});
 paint();
 if(window.DMProfile)DMProfile.init({esc,ico,
   base:()=>SERVER?'/api/od':'https://api.opendota.com/api',

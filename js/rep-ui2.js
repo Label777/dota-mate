@@ -341,7 +341,7 @@
   UI.settingsBlock = function () {
     var st = S.srv;
     if (!st) { X.communityOn().then(function () { var el = document.getElementById('rp-settings'); if (el) el.innerHTML = UI.settingsBlock(true); }); }
-    var s = st ? (st.available ? 'Серверная часть сообщества работает.' + (st.user ? ' Вы вошли как ' + (st.user.moderator ? 'модератор' : 'пользователь') + '.' : ' Вы не вошли.') : 'Сообщество недоступно: ' + (st.reason || 'сервер не отвечает') + '.') : 'Проверяю…';
+    var s = st ? (st.available ? 'Серверная часть сообщества работает.' + (st.user ? ' Вы вошли как ' + (st.user.moderator ? 'модератор' : 'пользователь') + '.' : ' Вы не вошли.') : 'Сообщество недоступно: ' + String(st.reason || 'сервер не отвечает').replace(/\.$/, '') + '.') : 'Проверяю…';
     var inner = '<h3>Репутация и сообщество</h3><p class="sm">' + e(s) + '</p><p class="sm">Локально в браузере хранятся: последние поиски, личный список наблюдения (если вы не вошли) и кэш данных OpenDota.</p>' +
       '<div class="actions"><button class="btn" type="button" data-a="repClear">Очистить локальные данные репутации</button></div>';
     return arguments[0] === true ? inner : '<section class="card" id="rp-settings">' + inner + '</section>';

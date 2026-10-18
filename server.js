@@ -399,6 +399,9 @@ async function handle(req, res) {
       try { st = JSON.parse(await readBody(req)); } catch (e) { return json(res, e.code === 413 ? 413 : 400, { error: 'bad body' }); }
       if (!st || typeof st !== 'object' || st.v !== 1 || !Array.isArray(st.matches) || st.matches.length > 5000 ||
           typeof st.reviews !== 'object' || typeof st.pnotes !== 'object') return json(res, 400, { error: 'bad state' });
+      for (const k of ['tags', 'heroNotes', 'snooze']) {
+        if (st[k] !== undefined && (st[k] === null || typeof st[k] !== 'object' || Array.isArray(st[k]))) return json(res, 400, { error: 'bad state' });
+      }
       st.demo = false;
       st.me = Object.assign({}, st.me, { acc: s.acc });
       const u = readUser(s.acc);

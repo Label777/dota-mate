@@ -93,3 +93,18 @@ test('слишком большое тело запроса отклоняетс
   const r = await call('POST', '/api/c/reports', { cookie: c, body: Object.assign({}, rep, { description: 'я'.repeat(30000) }) });
   assert.equal(r.status, 413);
 });
+
+test('состояние аккаунта: теги и заметки по героям сохраняются, неверная форма отвергается', async () => {
+  const c = await cookieFor('4004');
+  const st = { v: 1, me: { acc: '4004' }, matches: [], reviews: {}, pnotes: {}, tags: { 1: ['party', 'c:Бегун'] }, heroNotes: { 1: { Pudge: 'фидит' } }, snooze: { 1: 1900000000 } };
+  assert.equal((await call('PUT', '/api/state', { cookie: c, body: st })).status, 200);
+  const got = (await (await call('GET', '/api/state', { cookie: c })).json()).state;
+  assert.deepEqual(got.tags, { 1: ['party', 'c:Бегун'] });
+  assert.deepEqual(got.heroNotes, { 1: { Pudge: 'фидит' } });
+  for (const bad of [{ tags: [] }, { tags: null }, { tags: 'x' }, { heroNotes: [] }, { snooze: 5 }]) {
+    assert.equal((await call('PUT', '/api/state', { cookie: c, body: Object.assign({}, st, bad) })).status, 400, JSON.stringify(bad));
+  }
+  assert.equal((await call('PUT', '/api/state', { cookie: c, body: { v: 1, matches: [], reviews: {}, pnotes: {} } })).status, 200, 'старое состояние без новых полей принимается');
+  const other = await cookieFor('5005');
+  assert.deepEqual((await (await call('GET', '/api/state', { cookie: other })).json()).state, null, 'чужие данные недоступны');
+});
