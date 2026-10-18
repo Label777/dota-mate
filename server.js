@@ -343,6 +343,25 @@ async function handle(req, res) {
     } catch (e) { return json(res, 502, { error: 'upstream unreachable' }); }
   }
 
+  /* Ассистент (ИИ): только для вошедших, с лимитами. Без ANTHROPIC_API_KEY отключён, сайт показывает встроенную справку. */
+  if (p === '/api/assistant/status' && method === 'GET') {
+    return json(res, 200, { available: assistant.enabled, login: !!session(req) });
+  }
+  if (p === '/api/assistant' && method === 'POST') {
+    if (!sameSiteOk(req)) return json(res, 403, { error: 'forbidden' });
+    if (!assistant.enabled) return json(res, 501, { error: 'unavailable', message: 'Ассистент не настроен на этом сервере.' });
+    const sa = session(req);
+    if (!sa) return json(res, 401, { error: 'auth', message: 'Войдите через Steam, чтобы писать ассистенту.' });
+    if (!/^application\/json/.test(req.headers['content-type'] || '')) return json(res, 415, { error: 'json only' });
+    if (limited(sa.acc + ':ai', 20) || limited('global:ai', 300)) return json(res, 429, { error: 'rate_limit', message: 'Слишком много сообщений. Подождите несколько минут.' }, { 'Retry-After': '120' });
+    let b;
+    try { b = JSON.parse(await readBody(req, 32 * 1024)); } catch (e) { return json(res, e.code === 413 ? 413 : 400, { error: 'bad body' }); }
+    const msgs = require('./server/assistant.js').sanitize(b && b.messages);
+    if (!msgs) return json(res, 400, { error: 'validation', message: 'Напишите сообщение.' });
+    try { return json(res, 200, { reply: await assistant.ask(msgs, { page: b.page }) }); }
+    catch (e) { return json(res, e.code === 'rate' ? 429 : 502, { error: 'upstream', message: 'Ассистент сейчас недоступен. Попробуйте позже.' }); }
+  }
+
   /* Сообщество: жалобы, модерация, обжалования, список наблюдения. Все проверки выполняются в server/community.js. */
   if (p.startsWith('/api/c/') || p === '/api/c') {
     const s0 = session(req);
@@ -396,6 +415,13 @@ async function handle(req, res) {
   }
   return send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
 }
+
+/* ---------- ассистент ---------- */
+const assistant = require('./server/assistant.js').create({
+  key: process.env.ANTHROPIC_API_KEY || '', base: (process.env.ANTHROPIC_BASE || 'https://api.anthropic.com').replace(/\/$/, ''),
+  model: process.env.ASSISTANT_MODEL || 'claude-sonnet-5-5',
+  prompt: (() => { try { return fs.readFileSync(path.join(__dirname, 'server', 'assistant-prompt.txt'), 'utf8'); } catch (e) { return ''; } })()
+});
 
 /* ---------- сообщество (SQLite) ---------- */
 let community = null, communityError = '';

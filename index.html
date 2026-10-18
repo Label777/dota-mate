@@ -7,7 +7,7 @@
 <title>Dota Mate</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Philosopher:wght@400;700&family=Source+Sans+3:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: sticky top bar (bottom tab bar on phones), one content column with a two-column dashboard.
    Deliberately a single dark look: graphite surfaces, muted red accent, gold only for ratings. */
@@ -16,7 +16,7 @@
   --fg:#e8e6e1; --fg-2:#aeb4bf; --mute:#7d8592;
   --red:#a8323a; --red-hi:#d95c63; --red-soft:rgba(168,50,58,.16);
   --win:#58a67d; --win-soft:rgba(88,166,125,.14); --gold:#cfa95a;
-  --f-disp:'Oswald','Arial Narrow',Impact,sans-serif;
+  --f-disp:'Philosopher',Georgia,serif;
   --f-body:'Source Sans 3','Segoe UI',system-ui,-apple-system,sans-serif;
   --f-mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
   color-scheme:dark;
@@ -233,6 +233,7 @@ img.av{object-fit:cover}
 </style>
 <link rel="stylesheet" href="css/profile.css">
 <link rel="stylesheet" href="css/rep.css">
+<link rel="stylesheet" href="css/theme.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -256,6 +257,7 @@ img.av{object-fit:cover}
 <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-rune" viewBox="0 0 24 24"><path d="M12 2.5 20 8v8l-8 5.5L4 16V8z"/><path d="M12 7v10M8.5 10.5 12 8.5l3.5 2"/></symbol>
 <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
 </defs></svg>
 
@@ -272,6 +274,7 @@ img.av{object-fit:cover}
 <script src="js/community.js"></script>
 <script src="js/rep-ui.js"></script>
 <script src="js/rep-ui2.js"></script>
+<script src="js/assistant.js"></script>
 <script>
 (function(){
 'use strict';
@@ -899,6 +902,7 @@ if(window.DMProfile)DMProfile.init({esc,ico,
   toast:m=>toast(m),
   onOpen:acc=>{const h='#/profile/'+acc;if(location.hash!==h)location.hash=h},
   copy:t=>navigator.clipboard.writeText(t).then(()=>toast('Скопировано.'),()=>toast('Не удалось скопировать. Выделите текст вручную.'))});
+if(window.DMAssist)DMAssist.init({esc,ico,server:()=>SERVER,loggedIn:()=>!!SRV,page:()=>V.page});
 if(window.DMRepUI)DMRepUI.init({esc,ico,
   base:()=>SERVER?'/api/od':'https://api.opendota.com/api',
   server:()=>SERVER,
