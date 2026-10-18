@@ -116,8 +116,15 @@ main{padding-top:24px;padding-bottom:56px;display:flex;flex-direction:column;gap
 
 /* player rows */
 .plist{display:flex;flex-direction:column;gap:10px}
-.prow{display:grid;grid-template-columns:40px minmax(0,1fr) auto 20px;gap:14px;align-items:center;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.prow{display:flex;align-items:stretch;width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.prow-main{flex:1;min-width:0;display:grid;grid-template-columns:40px minmax(0,1fr) auto 20px;gap:14px;align-items:center;text-align:left;background:none;border:0;padding:12px 14px;color:inherit}
+.prow.has-prof .prow-main{grid-template-columns:40px minmax(0,1fr) auto}
+.prow-prof{flex:none;display:flex;align-items:center;gap:6px;padding:0 14px;background:rgba(201,164,92,.06);border:0;border-left:1px solid var(--line);color:var(--bronze-hi);font-weight:600;font-size:.88rem}
+.prow-prof:hover{background:var(--bronze-soft)}
+.prow-prof .ic{width:16px;height:16px}
 .prow:hover{border-color:#434b58;background:#20242c}
+.prow-main:focus-visible,.prow-prof:focus-visible{outline-offset:-3px}
+@media (max-width:560px){.arow{grid-template-columns:40px minmax(0,1fr)}.arow>.arow-act,.arow>.sm{grid-column:2;justify-content:flex-start}.prow-prof span{display:none}.prow-prof{padding:0 12px}}
 .pname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stars{display:inline-flex;gap:1px;vertical-align:middle}
 .stars .ic{width:14px;height:14px;color:#454c58}
@@ -160,6 +167,7 @@ input::placeholder,textarea::placeholder{color:#5f6672}
 .panel-b{padding:16px 18px 20px;display:flex;flex-direction:column;gap:16px}
 .arow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .arow:first-child{border-top:0}
+.arow-act{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .erow{display:flex;justify-content:space-between;gap:12px;padding:6px 0;color:var(--fg-2);border-top:1px solid var(--line)}
 .erow:first-child{border-top:0}
 .tag{display:inline-block;font-size:.76rem;border-radius:6px;padding:1px 8px;background:var(--red-soft);color:#f0a0a4}
@@ -491,9 +499,10 @@ function mrow(m){
 }
 const sxRec=(e,r)=>window.DMSocialUI?DMSocialUI.recTxt(e,r):'';
 function prow(e){
-  return`<button class="prow" data-a="openPlayer" data-id="${esc(e.sid)}">${av(e.name,'md',e.sid)}
+  const prof=isNum(e.sid)?`<button class="prow-prof" data-a="openProfile" data-id="${esc(e.sid)}" data-tip="Полный профиль игрока: герои, динамика, позиции (данные OpenDota)" aria-label="Открыть профиль игрока ${esc(e.name)}">${ico('user')}<span>Профиль</span>${ico('chev')}</button>`:'';
+  return`<div class="prow${prof?' has-prof':''}"><button class="prow-main" data-a="openPlayer" data-id="${esc(e.sid)}">${av(e.name,'md',e.sid)}
     <span style="min-width:0;display:flex;flex-direction:column"><span class="pname">${esc(e.name)}</span><small>${[e.withN?`вместе: ${e.withN}${sxRec(e,'ally')}`:'',e.vsN?`против: ${e.vsN}${sxRec(e,'enemy')}`:''].filter(Boolean).join(' · ')} · последний раз: ${esc(ago(e.last))}</small>${window.DMSocialUI?DMSocialUI.rowExtra(e):''}</span>
-    <span class="prcol"><span class="avg">${e.avg!=null?stars(e.avg)+e.avg.toFixed(1):'<small>без оценки</small>'}</span>${window.DMPerfUI?DMPerfUI.badge(e):''}</span><span class="ch" style="color:var(--mute)">${ico('chev')}</span></button>`;
+    <span class="prcol"><span class="avg">${e.avg!=null?stars(e.avg)+e.avg.toFixed(1):'<small>без оценки</small>'}</span>${window.DMPerfUI?DMPerfUI.badge(e):''}</span>${prof?'':`<span class="ch" style="color:var(--mute)">${ico('chev')}</span>`}</button>${prof}</div>`;
 }
 function emptyMatches(){
   return`<div class="empty">${ico('list')}<b>Пока нет ни одного матча</b><p>Добавьте матч по ссылке на OpenDota или Dotabuff, либо введите его вручную.</p><div class="actions" style="justify-content:center"><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button><button class="btn" data-a="loadDemo">Показать демо-данные</button></div></div>`;
@@ -683,7 +692,7 @@ function mMatch(m){
     const n=p.sid?prior(p.sid,m):0,r=p.sid&&S.reviews[rkey(m.id,p.sid)];
     return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
         <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${window.DMPerfUI?`<div class="pf-line">${DMPerfUI.matchRowExtra(m,m.players.indexOf(p))}</div>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}${window.DMSocialUI?DMSocialUI.rowBadges(p):''}</div>
-        ${p.sid?`<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):`<p class="sm">${empty}</p>`;
+        ${p.sid?`<div class="arow-act">${isNum(p.sid)?`<button class="btn sm2" data-a="openProfile" data-id="${esc(p.sid)}" data-tip="Полный профиль игрока: герои, динамика, позиции (данные OpenDota)" aria-label="Открыть профиль игрока ${esc(p.name)}">${ico('user')}Профиль</button>`:''}<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button></div>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):`<p class="sm">${empty}</p>`;
   return`<div class="panel-h"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span><h3 id="mt">${esc(m.hero)}</h3></div><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></div>${closeBtn()}</div>
   <div class="panel-b">
     ${window.DMSocialUI?DMSocialUI.matchTop(m):''}
