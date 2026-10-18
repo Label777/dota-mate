@@ -55,7 +55,7 @@ small,.sm{font-size:.84rem;color:var(--mute)}
 
 /* bottom nav (phones) */
 #nav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#nav .row{display:grid;grid-template-columns:repeat(7,1fr)}
+#nav .row{display:grid;grid-template-columns:repeat(5,1fr)}
 #nav .tab{flex-direction:column;gap:2px;font-size:.72rem;border-radius:0;padding:9px 4px 8px}
 #nav .tab .ic{width:1.35em;height:1.35em}
 #nav .tab[aria-current=page]{box-shadow:inset 0 2px 0 var(--red)}
@@ -235,6 +235,9 @@ img.av{object-fit:cover}
 <link rel="stylesheet" href="css/rep.css">
 <link rel="stylesheet" href="css/social.css">
 <link rel="stylesheet" href="css/draft.css">
+<link rel="stylesheet" href="css/perf.css">
+<link rel="stylesheet" href="css/tips.css">
+<link rel="stylesheet" href="css/home.css">
 <link rel="stylesheet" href="css/theme.css">
 </head>
 <body>
@@ -259,6 +262,7 @@ img.av{object-fit:cover}
 <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
 <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
 <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-rune" viewBox="0 0 24 24"><path d="M12 2.5 20 8v8l-8 5.5L4 16V8z"/><path d="M12 7v10M8.5 10.5 12 8.5l3.5 2"/></symbol>
 <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
 </defs></svg>
@@ -280,6 +284,10 @@ img.av{object-fit:cover}
 <script src="js/social-ui.js"></script>
 <script src="js/draft.js"></script>
 <script src="js/draft-ui.js"></script>
+<script src="js/perf.js"></script>
+<script src="js/perf-ui.js"></script>
+<script src="js/tips.js"></script>
+<script src="js/quick.js"></script>
 <script src="js/assistant.js"></script>
 <script>
 (function(){
@@ -306,6 +314,7 @@ const stars=n=>`<span class="stars" role="img" aria-label="Оценка ${n} и�
 const steam64=acc=>(BigInt(acc)+OFF).toString();
 const isNum=s=>/^\d+$/.test(String(s));
 
+let HID=null;
 const HEROES={1:'Anti-Mage',2:'Axe',3:'Bane',4:'Bloodseeker',5:'Crystal Maiden',6:'Drow Ranger',7:'Earthshaker',8:'Juggernaut',9:'Mirana',10:'Morphling',11:'Shadow Fiend',12:'Phantom Lancer',13:'Puck',14:'Pudge',15:'Razor',16:'Sand King',17:'Storm Spirit',18:'Sven',19:'Tiny',20:'Vengeful Spirit',21:'Windranger',22:'Zeus',23:'Kunkka',25:'Lina',26:'Lion',27:'Shadow Shaman',28:'Slardar',29:'Tidehunter',30:'Witch Doctor',31:'Lich',32:'Riki',33:'Enigma',34:'Tinker',35:'Sniper',36:'Necrophos',37:'Warlock',38:'Beastmaster',39:'Queen of Pain',40:'Venomancer',41:'Faceless Void',42:'Wraith King',43:'Death Prophet',44:'Phantom Assassin',45:'Pugna',46:'Templar Assassin',47:'Viper',48:'Luna',49:'Dragon Knight',50:'Dazzle',51:'Clockwerk',52:'Leshrac',53:"Nature's Prophet",54:'Lifestealer',55:'Dark Seer',56:'Clinkz',57:'Omniknight',58:'Enchantress',59:'Huskar',60:'Night Stalker',61:'Broodmother',62:'Bounty Hunter',63:'Weaver',64:'Jakiro',65:'Batrider',66:'Chen',67:'Spectre',68:'Ancient Apparition',69:'Doom',70:'Ursa',71:'Spirit Breaker',72:'Gyrocopter',73:'Alchemist',74:'Invoker',75:'Silencer',76:'Outworld Destroyer',77:'Lycan',78:'Brewmaster',79:'Shadow Demon',80:'Lone Druid',81:'Chaos Knight',82:'Meepo',83:'Treant Protector',84:'Ogre Magi',85:'Undying',86:'Rubick',87:'Disruptor',88:'Nyx Assassin',89:'Naga Siren',90:'Keeper of the Light',91:'Io',92:'Visage',93:'Slark',94:'Medusa',95:'Troll Warlord',96:'Centaur Warrunner',97:'Magnus',98:'Timbersaw',99:'Bristleback',100:'Tusk',101:'Skywrath Mage',102:'Abaddon',103:'Elder Titan',104:'Legion Commander',105:'Techies',106:'Ember Spirit',107:'Earth Spirit',108:'Underlord',109:'Terrorblade',110:'Phoenix',111:'Oracle',112:'Winter Wyvern',113:'Arc Warden',114:'Monkey King',119:'Dark Willow',120:'Pangolier',121:'Grimstroke',123:'Hoodwink',126:'Void Spirit',128:'Snapfire',129:'Mars',131:'Ringmaster',135:'Dawnbreaker',136:'Marci',137:'Primal Beast',138:'Muerta',145:'Kez',155:'Largo'};
 const HERO_NAMES=Object.values(HEROES).sort();
 const MODES={1:'All Pick',2:'Captains Mode',3:'Random Draft',4:'Single Draft',5:'All Random',12:'Least Played',16:'Captains Draft',18:'Ability Draft',22:'All Pick',23:'Turbo'};
@@ -354,7 +363,7 @@ function migrate(st){if(window.DMSocial)DMSocial.ensure(st);for(const m of st.ma
 let S=migrate(load()||demoData());
 if(!load())save();
 
-const V={page:'dash',pid:null,f:{res:'all',mode:'all',range:'all'},q:'',sort:'count',dsort:'recent',role:'all',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
+const V={more:false,page:'dash',pid:null,f:{res:'all',mode:'all',range:'all'},q:'',sort:'count',dsort:'recent',role:'all',modal:null,draft:null,confirm:null,sync:{st:'idle',msg:''},tab:'link',toast:null,bk:''};
 
 /* ---------- data helpers ---------- */
 const rkey=(mid,sid)=>mid+'|'+sid;
@@ -375,6 +384,7 @@ function pIndex(){
     e.vsN=e.count-e.withN;
     const rs=e.list.map(x=>S.reviews[rkey(x.m.id,e.sid)]).filter(r=>r&&r.rating);
     e.rated=rs.length;e.avg=rs.length?rs.reduce((a,r)=>a+r.rating,0)/rs.length:null;
+    e.auto=window.DMPerfUI?DMPerfUI.aggFor(e):null;
   }
   return map;
 }
@@ -410,6 +420,7 @@ function fromOD(j){
   if(!me)throw new Error('Вас нет среди игроков этого матча. Проверьте Steam ID в настройках.');
   const mine=me.player_slot<128;
   const players=j.players.map(p=>({sid:p.account_id!=null?String(p.account_id):null,name:p.personaname||p.name||'Скрытый игрок',hero:HEROES[p.hero_id]||('Герой #'+p.hero_id),ally:(p.player_slot<128)===mine,me:p===me}));
+  if(window.DMPerfUI)DMPerfUI.ingest(j);
   return{id:String(j.match_id),start:j.start_time,mode:MODES[j.game_mode]||('Режим '+j.game_mode),ranked:j.lobby_type===7,win:!!j.radiant_win===mine,dur:j.duration,hero:HEROES[me.hero_id]||('Герой #'+me.hero_id),players};
 }
 function importJson(txt){
@@ -428,9 +439,16 @@ function paintToast(){
 }
 
 /* ---------- views ---------- */
-const NAV=[['dash','home','Главная'],['matches','list','Матчи'],['players','users','Игроки'],['me','user','Профиль'],['draft','rune','Драфт'],['rep','shield','Репутация'],['settings','sliders','Настройки']];
+const NAV=[['dash','home','Главная',1],['matches','list','Матчи',1],['players','users','Игроки',1],['draft','rune','Драфт',1],['me','user','Профиль'],['rep','shield','Репутация'],['settings','sliders','Настройки']];
 const cur=()=>V.page==='player'?'players':V.page;
-function navBtns(){return NAV.map(n=>`<button class="tab" data-a="go" data-p="${n[0]}" ${cur()===n[0]?'aria-current="page"':''}>${ico(n[1])}<span>${n[2]}</span></button>`).join('')}
+const navBtn=n=>`<button class="tab" data-a="go" data-p="${n[0]}" aria-label="${n[2]}" ${cur()===n[0]?'aria-current="page"':''}>${ico(n[1])}<span>${n[2]}</span></button>`;
+function navBtns(){return NAV.map(navBtn).join('')}
+/* Телефон: четыре главных раздела и «Ещё» со всем остальным. */
+function mobNav(){
+  const rest=NAV.filter(n=>!n[3]),inRest=rest.some(n=>n[0]===cur());
+  return`<div class="row">${NAV.filter(n=>n[3]).map(navBtn).join('')}<button class="tab" data-a="more" aria-expanded="${!!V.more}" aria-haspopup="true" ${inRest?'aria-current="page"':''}>${ico('dots')}<span>Ещё</span></button></div>
+  ${V.more?`<div class="more" role="menu" aria-label="Другие разделы">${rest.map(n=>`<button class="more-i ${cur()===n[0]?'on':''}" role="menuitem" data-a="go" data-p="${n[0]}">${ico(n[1])}<span>${n[2]}</span></button>`).join('')}<button class="more-i" role="menuitem" data-a="qk">${ico('search')}<span>Быстрый поиск</span></button></div>`:''}`;
+}
 function meBlock(){
   const face=SRV&&SRV.avatar?`<img class="av" src="${esc(SRV.avatar)}" alt="" width="32" height="32" referrerpolicy="no-referrer">`:av(S.me.name,'',S.me.acc||'me');
   let act='';
@@ -446,8 +464,10 @@ function paintHdr(){
   $('#hdr').innerHTML=`<header class="top"><div class="top-in wrap gut">
     <button class="brand" data-a="go" data-p="dash" aria-label="Dota Mate, главная"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2l12 14-12 14L4 16z" fill="#a8323a"/><path d="M16 8l6.5 8L16 24l-6.5-8z" fill="#13151a"/><path d="M16 12.5l3 3.5-3 3.5-3-3.5z" fill="#e8e6e1"/></svg>Dota Mate</button>
     <nav class="tabs" aria-label="Разделы">${navBtns()}</nav><span class="grow"></span>
+    <button class="srch" data-a="qk" aria-label="Быстрый поиск">${ico('search')}<span>Поиск</span><kbd>Ctrl K</kbd></button>
     ${meBlock()}</div></header>`;
-  $('#nav').innerHTML=`<div class="row">${navBtns()}</div>`;
+  $('#nav').innerHTML=mobNav();
+  document.body.classList.toggle('more-open',!!V.more);
 }
 
 function demoBanner(){
@@ -473,23 +493,44 @@ const sxRec=(e,r)=>window.DMSocialUI?DMSocialUI.recTxt(e,r):'';
 function prow(e){
   return`<button class="prow" data-a="openPlayer" data-id="${esc(e.sid)}">${av(e.name,'md',e.sid)}
     <span style="min-width:0;display:flex;flex-direction:column"><span class="pname">${esc(e.name)}</span><small>${[e.withN?`вместе: ${e.withN}${sxRec(e,'ally')}`:'',e.vsN?`против: ${e.vsN}${sxRec(e,'enemy')}`:''].filter(Boolean).join(' · ')} · последний раз: ${esc(ago(e.last))}</small>${window.DMSocialUI?DMSocialUI.rowExtra(e):''}</span>
-    <span class="avg">${e.avg!=null?stars(e.avg)+e.avg.toFixed(1):'<small>без оценки</small>'}</span><span class="ch" style="color:var(--mute)">${ico('chev')}</span></button>`;
+    <span class="prcol"><span class="avg">${e.avg!=null?stars(e.avg)+e.avg.toFixed(1):'<small>без оценки</small>'}</span>${window.DMPerfUI?DMPerfUI.badge(e):''}</span><span class="ch" style="color:var(--mute)">${ico('chev')}</span></button>`;
 }
 function emptyMatches(){
   return`<div class="empty">${ico('list')}<b>Пока нет ни одного матча</b><p>Добавьте матч по ссылке на OpenDota или Dotabuff, либо введите его вручную.</p><div class="actions" style="justify-content:center"><button class="btn primary" data-a="add">${ico('plus')}Добавить матч</button><button class="btn" data-a="loadDemo">Показать демо-данные</button></div></div>`;
 }
 
+const greet=()=>{const h=new Date().getHours();return h<5?'Доброй ночи':h<12?'Доброе утро':h<18?'Добрый день':'Добрый вечер'};
+function homeNote(ms,total){
+  const m=ms[0];
+  if(!m)return'Добавьте первый матч, и здесь появятся знакомые игроки, оценки и подсказки.';
+  return`Последний матч: ${m.win?'победа':'поражение'} на ${esc(m.hero)}, ${esc(ago(m.start))}.${total?` Знакомых игроков: ${total}.`:''}`;
+}
 function vDash(){
-  const ms=sorted(),idx=pIndex(),known=Object.values(idx).sort(cmpP(V.dsort)).slice(0,6);
+  const ms=sorted(),idx=pIndex(),list=Object.values(idx),known=list.slice().sort(cmpP(V.dsort)).slice(0,6);
   const loading=V.sync.st==='loading';
-  const total=Object.keys(idx).length,rated=Object.keys(S.reviews).length;
-  return`<div class="pagehead"><div><h1>Панель управления</h1><p>Запоминайте тех, с кем играли: оценки и заметки видны только вам.</p></div></div>
-  ${demoBanner()}
-  <section class="card stack" aria-label="Синхронизация">
-    <div class="sec-h" style="margin:0"><h3>Синхронизация матчей</h3>${syncStatus()}</div>
-    <div class="actions"><button class="btn primary" data-a="sync" ${loading?'disabled':''}>${ico('refresh')}Синхронизировать матчи</button><button class="btn" data-a="add">${ico('plus')}Добавить матч</button></div>
-    <div class="statline"><span><b>${ms.length}</b>${pl(ms.length,'матч','матча','матчей')}</span><span><b>${total}</b>${pl(total,'знакомый игрок','знакомых игрока','знакомых игроков')}</span><span><b>${rated}</b>${pl(rated,'оценка','оценки','оценок')} и заметок</span></div>
+  const total=list.length,rated=Object.keys(S.reviews).length,unrated=list.filter(e=>!e.rated).length;
+  const recent=ms.slice(0,20),w=recent.filter(m=>m.win).length,wr=recent.length?Math.round(w/recent.length*100):null;
+  const name=S.me.name&&S.me.name!=='Вы'?S.me.name:(SRV&&SRV.name)||'';
+  const tiles=[
+    ['draft','rune','Драфт','Выбор героев в реальном времени и подсказки против врагов',''],
+    ['players','users','Игроки',total?`${total} ${pl(total,'знакомый','знакомых','знакомых')}, оценки, теги, пати`:'Теги, оценки и пати из ваших матчей',unrated?`${unrated} без оценки`:''],
+    ['matches','list','Матчи',ms.length?`${ms.length} в истории, фильтры по режиму и периоду`:'Пока пусто: добавьте первый матч',''],
+    ['me','user','Профиль игрока','Герои, динамика и позиции любого игрока по Steam ID',''],
+    ['rep','shield','Репутация','Проверка игрока или матча по открытым данным',''],
+    ['settings','sliders','Настройки','Аккаунт, резервная копия, приватность','']];
+  return`<section class="card home-hero" aria-label="Приветствие">
+    <div class="hh-main"><h1>${greet()}${name?', '+esc(name):''}</h1><p>${homeNote(ms,total)}</p>
+      <div class="actions"><button class="btn primary" data-a="sync" ${loading?'disabled':''}>${ico('refresh')}Синхронизировать матчи</button><button class="btn" data-a="add">${ico('plus')}Добавить матч</button>${window.DMSocialUI&&ms.length&&!S.demo?`<button class="btn" data-a="s-rateall" data-mid="${esc(ms[0].id)}">${ico('star')}Оценить игроков</button>`:''}</div></div>
+    <div class="hh-status">${syncStatus()}${window.DMPerfUI?DMPerfUI.statusBox():''}</div>
   </section>
+  ${demoBanner()}
+  <nav class="tiles" aria-label="Разделы сайта">${tiles.map(t=>`<button class="tile" data-a="go" data-p="${t[0]}"><span class="tile-ic">${ico(t[1])}</span><span class="tile-t"><b>${t[2]}</b><small>${t[3]}</small></span>${t[4]?`<span class="tile-n">${t[4]}</span>`:''}<span class="ch">${ico('chev')}</span></button>`).join('')}</nav>
+  <div class="kpis" role="list">
+    <div class="kpi" role="listitem" data-tip="Сколько матчей в вашей истории на этом сайте."><b>${ms.length}</b><span>${pl(ms.length,'матч','матча','матчей')}</span></div>
+    <div class="kpi" role="listitem" data-tip="Доля побед в последних 20 матчах вашей истории."><b>${wr==null?'—':wr+'%'}</b><span>${recent.length?`побед в последних ${recent.length}`:'винрейт'}</span></div>
+    <div class="kpi" role="listitem" data-tip="Игроки, с которыми вы играли вместе или друг против друга."><b>${total}</b><span>${pl(total,'знакомый игрок','знакомых игрока','знакомых игроков')}</span></div>
+    <div class="kpi" role="listitem" data-tip="Ваши оценки игрокам в матчах. Видны только вам."><b>${rated}</b><span>${pl(rated,'оценка','оценки','оценок')}</span></div>
+  </div>
   ${window.DMSocialUI?DMSocialUI.dashBlock():''}
   <div class="cols">
     <section><div class="sec-h"><h2>Последние матчи</h2>${ms.length?`<button class="btn ghost sm2" data-a="go" data-p="matches">Все матчи</button>`:''}</div>
@@ -520,8 +561,8 @@ function vMatches(){
   <div class="mlist" id="mlist">${mlistHtml()}</div>`;
 }
 
-const SORTS={recent:'По последней встрече',count:'По числу встреч',rating:'По моей оценке',name:'По имени'};
-const cmpP=s=>(a,b)=>s==='count'?b.count-a.count||b.last-a.last:s==='recent'?b.last-a.last:s==='rating'?((b.avg||0)-(a.avg||0))||b.count-a.count:a.name.localeCompare(b.name,'ru');
+const SORTS={recent:'По последней встрече',count:'По числу встреч',rating:'По моей оценке',name:'По имени',auto:'По оценке по игре'};
+const cmpP=s=>(a,b)=>s==='count'?b.count-a.count||b.last-a.last:s==='recent'?b.last-a.last:s==='rating'?((b.avg||0)-(a.avg||0))||b.count-a.count:s==='auto'?((b.auto&&b.auto.score||0)-(a.auto&&a.auto.score||0))||b.count-a.count:a.name.localeCompare(b.name,'ru');
 function playersFiltered(){
   const idx=Object.values(pIndex());let q=V.q.trim().toLowerCase();
   const acc=parseSteam(V.q);
@@ -540,13 +581,13 @@ function plistHtml(){
 function vPlayers(){
   const sx=window.DMSocialUI;
   const head=`<div class="pagehead"><div><h1>Игроки</h1><p>Игроки, с которыми вы играли вместе или друг против друга. В скобках ваши победы и поражения в этих матчах. Оценки, заметки и теги видны только вам.</p></div></div>
-  ${demoBanner()}`;
+  ${demoBanner()}${window.DMPerfUI?`<div class="pf-top">${DMPerfUI.statusBox()}</div>`:''}`;
   if(sx&&!sx.isAll())return head+sx.view();
   return head+(sx?sx.tabs():'')+`
   <div class="toolbar">
     <div class="searchbox"><label class="sm" for="q" style="position:absolute;left:-9999px">Поиск</label>${ico('search')}<input id="q" type="text" inputmode="search" autocomplete="off" placeholder="Ник, Steam ID или слово из заметки" value="${esc(V.q)}"></div>
     <select id="prole" aria-label="Роль"><option value="all">Все игроки</option><option value="ally" ${V.role==='ally'?'selected':''}>Союзники</option><option value="enemy" ${V.role==='enemy'?'selected':''}>Соперники</option></select>
-    <select id="sort" aria-label="Сортировка"><option value="count" ${V.sort==='count'?'selected':''}>По числу встреч</option><option value="recent" ${V.sort==='recent'?'selected':''}>По последней встрече</option><option value="rating" ${V.sort==='rating'?'selected':''}>По вашей оценке</option><option value="name" ${V.sort==='name'?'selected':''}>По алфавиту</option></select>
+    <select id="sort" aria-label="Сортировка"><option value="count" ${V.sort==='count'?'selected':''}>По числу встреч</option><option value="recent" ${V.sort==='recent'?'selected':''}>По последней встрече</option><option value="rating" ${V.sort==='rating'?'selected':''}>По вашей оценке</option><option value="name" ${V.sort==='name'?'selected':''}>По алфавиту</option><option value="auto" ${V.sort==='auto'?'selected':''}>По оценке по игре</option></select>
   </div>
   ${sx?sx.filterBar():''}
   <div class="plist" id="plist">${plistHtml()}</div>`;
@@ -565,6 +606,7 @@ function vPlayer(){
     ${num?`<div class="links"><button class="linkbtn" data-a="openProfile" data-id="${esc(e.sid)}">${ico('user')}Статистика игрока</button><a href="https://steamcommunity.com/profiles/${steam64(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Профиль Steam</a><a href="https://www.opendota.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}OpenDota</a><a href="https://www.dotabuff.com/players/${esc(e.sid)}" target="_blank" rel="noopener noreferrer">${ico('ext')}Dotabuff</a></div>`:''}
     <div class="field"><label for="pnote">Общая заметка об игроке (видите только вы)</label><textarea id="pnote" data-sid="${esc(e.sid)}" placeholder="Например: играет на саппорте, любит голосовой чат">${esc(note)}</textarea></div>
   </section>
+  ${window.DMPerfUI?DMPerfUI.playerBlock(e):''}
   ${window.DMSocialUI?DMSocialUI.playerBlocks(e):''}
   <section><div class="sec-h"><h2>История встреч</h2></div><div class="hist">${e.list.map(x=>{
     const r=S.reviews[rkey(x.m.id,e.sid)];const k='r:'+rkey(x.m.id,e.sid);
@@ -610,6 +652,7 @@ function vSettings(){
   </section>
   ${window.DMRepUI?DMRepUI.settingsBlock():''}
   ${window.DMSocialUI?DMSocialUI.settingsBlock():''}
+  ${window.DMPerfUI?DMPerfUI.settingsBlock():''}
   <section class="card stack"><h3>Копия текстом</h3>
     <p class="sm">${SRV?'Данные хранятся на сервере.':'Данные живут в этом браузере.'} Скопируйте копию и сохраните её в заметках, чтобы перенести на другое устройство.</p>
     <div class="actions"><button class="btn" data-a="bkShow">Показать копию</button><button class="btn" data-a="bkCopy">${ico('copy')}Скопировать</button><button class="btn" data-a="bkRestore">Восстановить из текста</button></div>
@@ -639,7 +682,7 @@ function mMatch(m){
   const rows=(l,empty)=>l.length?l.map(p=>{
     const n=p.sid?prior(p.sid,m):0,r=p.sid&&S.reviews[rkey(m.id,p.sid)];
     return`<div class="arow">${av(p.name,'md',p.sid)}<div style="min-width:0"><div>${p.sid?`<button class="linkbtn" data-a="openPlayer" data-id="${esc(p.sid)}">${esc(p.name)}</button>`:`<span>${esc(p.name)}</span>`} ${n>0?`<span class="tag">встречались: ${n}</span>`:''}</div>
-        <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}${window.DMSocialUI?DMSocialUI.rowBadges(p):''}</div>
+        <small>${esc(p.hero)}${r&&r.rating?' · ':''}</small>${r&&r.rating?`<span class="avg">${stars(r.rating)}</span>`:''}${window.DMPerfUI?`<div class="pf-line">${DMPerfUI.matchRowExtra(m,m.players.indexOf(p))}</div>`:''}${r&&r.note?`<div class="sm" style="margin-top:2px;overflow-wrap:anywhere">${esc(r.note)}</div>`:''}${window.DMSocialUI?DMSocialUI.rowBadges(p):''}</div>
         ${p.sid?`<button class="btn sm2" data-a="review" data-mid="${esc(m.id)}" data-sid="${esc(p.sid)}">${ico(r?'edit':'star')}${r?'Изменить':'Оценить'}</button>`:`<span class="sm" title="Игрок скрыл профиль">ID скрыт</span>`}</div>`}).join(''):`<p class="sm">${empty}</p>`;
   return`<div class="panel-h"><div style="min-width:0"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="res ${m.win?'win':'loss'}">${m.win?'Победа':'Поражение'}</span><h3 id="mt">${esc(m.hero)}</h3></div><small>${esc(m.mode)}${m.ranked?' · рейтинг':''} · ${fd(m.start)} · ${fdur(m.dur)}</small></div>${closeBtn()}</div>
   <div class="panel-b">
@@ -697,6 +740,7 @@ function paintModal(){
   if(M==='match'){const m=mById(V.mid);inner=m?mMatch(m):''}
   else if(M==='review')inner=mReview();
   else if(M==='rateall')inner=window.DMSocialUI?DMSocialUI.rateAllModal():'';
+  else if(M==='pcard')inner=window.DMPerfUI?DMPerfUI.cardModal():'';
   else if(M==='add')inner=mAdd();
   if(!inner){V.modal=null;el.innerHTML='';return}
   el.innerHTML=`<div class="ov" data-a="ovl"><div class="panel" role="dialog" aria-modal="true" aria-labelledby="mt">${inner}</div></div>`;
@@ -706,7 +750,7 @@ function closeModal(){V.modal=null;V.draft=null;V.confirm=null;paintModal();pain
 
 /* ---------- actions ---------- */
 function setHash(h){if(location.hash===h||(!h&&!location.hash))return;try{history.replaceState(null,'',h||location.pathname+location.search)}catch(e){}}
-function go(p,id){V.page=p;V.pid=id||null;V.modal=null;V.confirm=null;
+function go(p,id){V.more=false;V.page=p;V.pid=id||null;V.modal=null;V.confirm=null;
   if(p==='rep')setHash(window.DMRepUI?DMRepUI.hash():'');
   else if(p==='draft')setHash('#/draft');
   else if(p==='me')setHash(window.DMProfile&&DMProfile.current()?'#/profile/'+DMProfile.current():'');
@@ -767,6 +811,7 @@ async function doSync(){
     V.sync={st:'error',msg:e.message==='RATE'?'Лимит запросов OpenDota исчерпан. Попробуйте позже.':'Не удалось связаться с OpenDota. Добавьте матч по ссылке: это работает без прямого подключения.'};
   }
   paintMain();paintHdr();
+  if(window.DMPerfUI)DMPerfUI.scan(false);
 }
 function setMsg(id,txt){const el=document.getElementById(id);if(el)el.textContent=txt}
 function readManual(){
@@ -803,11 +848,14 @@ function wipe(kind){
 }
 
 document.addEventListener('click',e=>{
+  if(V.more&&!e.target.closest('#nav')){V.more=false;paintHdr()}
   const t=e.target.closest('[data-a]');if(!t)return;
   const a=t.dataset.a,d=t.dataset;
   if(a==='ovl'){if(e.target===t)closeModal();return}
   switch(a){
     case'go':go(d.p);break;
+    case'more':V.more=!V.more;paintHdr();break;
+    case'qk':V.more=false;paintHdr();if(window.DMQuick)DMQuick.open();break;
     case'goSettings':go('settings');break;
     case'logout':fetch('/auth/logout',{method:'POST',headers:{'X-DM':'1'}}).finally(()=>location.reload());break;
     case'openPlayer':go('player',d.id);break;
@@ -924,6 +972,24 @@ document.addEventListener('error',e=>{const t=e.target;if(t&&t.tagName==='IMG'&&
 if(window.DMSocialUI)DMSocialUI.init({V,esc,ico,av,pl,fd,ago,
   S:()=>S,setS:x=>{S=x},save,toast,paint,paintMain,openModal,closeModal,go,migrate,pIndex,sorted,mById,rkey,
   closeBtn,heroNames:()=>HERO_NAMES,refreshList:()=>{const l=$('#plist');if(l)l.innerHTML=plistHtml()}});
+if(window.DMQuick)DMQuick.init({esc,ico,fd,parse:parseSteam,pages:()=>NAV,players:()=>Object.values(pIndex()),matches:()=>sorted(),
+  run:x=>{
+    if(x.kind==='page')go(x.id);
+    else if(x.kind==='player')go('player',x.id);
+    else if(x.kind==='match'){openModal('match',{mid:x.id})}
+    else if(x.kind==='profile'){V.page='me';V.pid=null;V.modal=null;V.confirm=null;paint();window.scrollTo(0,0);if(window.DMProfile)DMProfile.open(x.id)}
+    else if(x.id==='sync'){go('dash');doSync()}
+    else if(x.id==='add'){V.tab='link';openModal('add')}
+    else if(x.id==='rateall'){const m=sorted()[0];if(!m){toast('Сначала добавьте матч.');return}const b=document.createElement('button');b.dataset.a='s-rateall';b.dataset.mid=m.id;b.hidden=true;document.body.appendChild(b);b.click();b.remove()}
+    else if(x.id==='settings')go('settings')}});
+if(window.DMPerfUI)DMPerfUI.init({V:()=>V,esc,ico,stars,pl,fd,av,
+  base:()=>SERVER?'/api/od':'https://api.opendota.com/api',server:()=>SERVER,
+  meAcc:()=>S&&S.me&&S.me.acc&&isNum(S.me.acc)?String(S.me.acc):(SRV&&SRV.acc?String(SRV.acc):''),
+  matches:()=>S.matches,matchById:id=>mById(id),toast:m=>toast(m),
+  heroId:name=>{if(!HID){HID={};for(const k of Object.keys(HEROES))HID[HEROES[k]]=Number(k)}const m=/^Герой #(\d+)$/.exec(String(name));return m?Number(m[1]):HID[name]||null},
+  refresh:force=>{const a=document.activeElement;if(!force&&a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
+    if(['dash','matches','players','player','settings'].includes(V.page)){paintMain();if(V.modal==='match'||V.modal==='pcard')paintModal()}else if(V.modal==='match'||V.modal==='pcard')paintModal()},
+  openCard:(mid,i)=>openModal('pcard',{mid,pcard:{mid,i}})});
 paint();
 if(window.DMProfile)DMProfile.init({esc,ico,
   base:()=>SERVER?'/api/od':'https://api.opendota.com/api',

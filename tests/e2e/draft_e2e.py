@@ -227,7 +227,7 @@ def run():
             pg.click('[data-a=d-reset]'); pg.wait_for_selector('.dr-slot.empty')
             ov0 = pg.evaluate("document.documentElement.scrollWidth-document.documentElement.clientWidth")
             check('мобильная ширина 390: пустая доска без горизонтальной прокрутки', ov0 <= 0, ov0)
-            check('на мобильной нижняя навигация показывает 7 вкладок', pg.locator('#nav .tab').count() == 7)
+            check('на мобильной нижняя навигация показывает 5 вкладок', pg.locator('#nav .tab').count() == 5)
             tops = pg.evaluate("()=>[...document.querySelectorAll('#nav .tab')].map(t=>Math.round(t.getBoundingClientRect().top))")
             check('нижняя навигация в один ряд', len(set(tops)) == 1, tops)
             pg.click('[data-a=d-conn]'); ov = pg.evaluate("document.documentElement.scrollWidth-document.documentElement.clientWidth")

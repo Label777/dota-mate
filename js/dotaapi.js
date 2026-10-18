@@ -28,7 +28,7 @@
 
   var DIRECT_BASE = 'https://api.opendota.com/api';
   var EXTRA_FIELDS = ['gold_per_min', 'xp_per_min', 'last_hits', 'denies', 'lane_role'];
-  var TTL = { heroes: 7 * 864e5, player: 36e5, wl: 6e5, matches: 6e5, ratings: 36e5, detail: 864e5, peers: 18e5, matchups: 216e5, pheroes: 18e5 };
+  var TTL = { heroes: 7 * 864e5, player: 36e5, wl: 6e5, matches: 6e5, ratings: 36e5, detail: 864e5, peers: 18e5, matchups: 216e5, pheroes: 18e5, bench: 864e5 };
 
   function ApiError(code, message, extra) {
     this.name = 'ApiError';
@@ -242,6 +242,11 @@
       getPlayerHeroes: function (acc, c) {
         acc = checkAcc(acc);
         return cached('pheroes:' + acc, TTL.pheroes, '/players/' + acc + '/heroes', Object.assign({ persist: false }, c || {})).then(arr);
+      },
+      /** Бенчмарки героя OpenDota: как в публичных матчах играют на этом герое (процентили по золоту, опыту, урону…). Только в памяти. */
+      getBenchmarks: function (hero, c) {
+        if (!/^\d{1,4}$/.test(String(hero))) throw new ApiError('invalid', 'Некорректный номер героя.');
+        return cached('bench:' + hero, TTL.bench, '/benchmarks?hero_id=' + hero, Object.assign({ persist: false }, c || {}));
       },
       getRatings: function (acc, c) { acc = checkAcc(acc); return cached('ratings:' + acc, TTL.ratings, '/players/' + acc + '/ratings', c).then(arr); },
       getMatchDetail: function (id, c) {

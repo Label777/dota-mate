@@ -105,8 +105,6 @@ button.dr-rm:hover{background:rgba(201,164,92,.07)}
   .dr-work{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:760px){
-  #nav .tab{padding-left:0;padding-right:0;min-width:0}
-  #nav .tab span{font-size:.62rem;max-width:100%;overflow:hidden;text-overflow:ellipsis}
   .dr-board{grid-template-columns:minmax(0,1fr)}
   .dr-head-in{grid-template-columns:minmax(0,1fr)}
   .dr-turnbox{align-items:flex-start}

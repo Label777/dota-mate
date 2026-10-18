@@ -25,7 +25,7 @@ function detail(id) {
   const i = id - 7000000001;
   const accs = [1001, 2002, 3003, 4004, 5005, null, null, null, null, null];
   const players = accs.map((a, k) => ({ account_id: a, personaname: a ? 'Player ' + a : undefined, hero_id: HEROES[k % HEROES.length][0], player_slot: k < 5 ? k : 128 + k - 5, isRadiant: k < 5,
-    kills: 4, deaths: a === 2002 ? 22 : 4, assists: 6, gold_per_min: 400 + k * 10, xp_per_min: 450, last_hits: 120, leaver_status: 0, lane_role: 1 + (k % 3) }));
+    kills: 4 + (k % 3) * 3, deaths: a === 2002 ? 22 : 4, assists: 6, gold_per_min: 300 + k * 60, xp_per_min: 450, last_hits: 120, hero_damage: 9000 + k * 4000, hero_healing: k === 4 ? 3000 : 0, tower_damage: k * 500, leaver_status: 0, lane_role: 1 + (k % 3) }));
   return { match_id: id, start_time: NOW - Math.max(0, i) * 6 * 3600 - 1800, duration: 2400, radiant_win: true, game_mode: 22, players };
 }
 
@@ -35,6 +35,11 @@ function create() {
     const send = (o, code) => { res.statusCode = code || 200; res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(o)); };
     let m;
     if (p === '/heroes') return send(HEROES.map((h) => ({ id: h[0], name: 'npc_dota_hero_' + h[1], localized_name: h[2], primary_attr: ATTR[h[0]] || 'str', roles: ROLES[h[0]] || ['Support'] })));
+    if (p === '/benchmarks') {
+      const hid = Number(u.searchParams.get('hero_id')) || 0, mk = (base) => [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99].map((q, i) => ({ percentile: q, value: Math.round(base * (0.55 + i * 0.09)) }));
+      const sup = [26, 14].includes(hid);
+      return send({ hero_id: hid, result: { gold_per_min: mk(sup ? 300 : 450), xp_per_min: mk(sup ? 380 : 500), kills_per_min: mk(1).map((x, i) => ({ percentile: x.percentile, value: Math.round((0.1 + i * 0.06) * 100) / 100 })), hero_damage_per_min: mk(sup ? 300 : 600), hero_healing_per_min: mk(sup ? 60 : 5), last_hits_per_min: mk(5), secret_field: 1 } });
+    }
     if ((m = /^\/heroes\/(\d+)\/matchups$/.exec(p))) {
       const me = Number(m[1]);
       return send(HEROES.filter((h) => h[0] !== me).map((h) => ({ hero_id: h[0], games_played: 400 + h[0], wins: 150 + ((me * 7 + h[0] * 13) % 120), extra: 'лишнее поле' })));

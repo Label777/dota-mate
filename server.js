@@ -235,6 +235,16 @@ async function proxyOD(req, res, url, who) {
   } else if ((m = /^\/api\/od\/players\/(\d{1,10})\/heroes$/.exec(pn))) {
     target = `${OD}/players/${m[1]}/heroes`; ttl = 1800000;
     shape = (a) => (Array.isArray(a) ? a.slice(0, 400).map((r) => ({ hero_id: r.hero_id, games: r.games, win: r.win, last_played: r.last_played })) : []);
+  } else if (pn === '/api/od/benchmarks') {
+    const hid = /^\d{1,4}$/.test(url.searchParams.get('hero_id') || '') ? url.searchParams.get('hero_id') : '';
+    if (!hid) return json(res, 400, { error: 'hero_id' });
+    target = `${OD}/benchmarks?hero_id=${hid}`; ttl = 21600000;
+    shape = (j) => {
+      const keep = ['gold_per_min', 'xp_per_min', 'kills_per_min', 'last_hits_per_min', 'hero_damage_per_min', 'hero_healing_per_min', 'tower_damage'], out = {};
+      const r = (j && j.result) || {};
+      for (const k of keep) if (Array.isArray(r[k])) out[k] = r[k].slice(0, 30).map((x) => ({ percentile: x.percentile, value: x.value }));
+      return { hero_id: j && j.hero_id, result: out };
+    };
   } else if ((m = /^\/api\/od\/matches\/(\d{6,13})$/.exec(pn))) {
     target = `${OD}/matches/${m[1]}`; ttl = 600000;
   } else return json(res, 404, { error: 'not found' });
