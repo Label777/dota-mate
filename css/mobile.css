@@ -1,0 +1,59 @@
+/* Мобильная версия: крупные поля и зоны нажатия, компактные фильтры, читаемый мелкий текст.
+   Подключается последним и действует только на узких экранах и сенсорных устройствах. */
+@media (max-width:759px){
+  /* iOS приближает страницу при фокусе в поле со шрифтом меньше 16px */
+  input,select,textarea{font-size:16px!important}
+  .as-form textarea{font-size:16px!important}
+
+  /* зоны нажатия не меньше 44 px */
+  .btn,.btn.sm2,.dt-f,button.chip,.srch,.brand,.iconbtn,.sbtn,.dot,.cat .dot,.as-item,.as-chip{min-height:44px}
+  .btn.sm2{padding:8px 14px;font-size:.9rem}
+  .iconbtn{width:44px;height:44px}
+  .srch{min-width:44px}
+  .dt-f,button.chip{display:inline-flex;align-items:center;padding-top:6px;padding-bottom:6px}
+  .dsr-chips .chip{min-height:44px}
+  .brand{display:inline-flex;align-items:center}
+  .dot{min-width:44px}
+  .linkbtn{display:inline-flex;align-items:center;min-height:44px;padding:0}
+  .links a,.links .linkbtn{display:inline-flex;align-items:center;min-height:44px}
+  summary{min-height:44px;display:flex;align-items:center;gap:6px}
+  .arow-act .btn{flex:1 1 auto}
+  .sx-pill{min-height:40px}
+  .stepper button{min-width:44px;min-height:44px}
+  .rp-mcell a{display:inline-flex;align-items:center;min-height:44px}
+
+  /* кнопки действий в шапке страницы: на всю ширину, две в ряд */
+  .pagehead>.btn{width:100%}
+  .pagehead>.actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pagehead>.actions>.btn:first-child{grid-column:1/-1}
+  .pagehead>.actions>.btn:nth-child(2):last-child{grid-column:1/-1}
+  .dh-status,.pf-stat{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+  /* нижнее меню и мелкий текст */
+  #nav .tab{font-size:.8rem}
+  .rq,.tag,.sx-n,.dr-me,.dr-pers,.dr-hn,.im-chip,.pf-chip small,.chip{font-size:.78rem}
+
+  /* фильтры матчей в две колонки, а не в целый экран */
+  .filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px!important}
+  .filters .field:last-child:nth-child(odd){grid-column:1/-1}
+  .filters.me-f{display:grid}
+  .filters.me-f .sel{min-width:0;width:100%}
+  .filters.me-f .btn{grid-column:1/-1}
+
+  /* помощник не перекрывает текст при чтении: уезжает вниз при прокрутке и возвращается при прокрутке вверх */
+  #as-root{transition:transform .2s ease,opacity .2s ease}
+  body.fab-away #as-root{transform:translateY(calc(100% + 96px));opacity:0;pointer-events:none}
+
+  /* окна с учётом адресной строки мобильного браузера */
+  .ov{height:100dvh}
+  .qk{max-height:min(70dvh,560px)}
+  .as-panel{height:min(78dvh,640px)}
+}
+@media (pointer:coarse){
+  /* наведения нет: убираем залипающую подсветку после касания */
+  .btn:hover,.mrow:hover,.prow:hover{transition:none}
+}
+@media (max-width:360px){
+  h1{font-size:1.35rem}
+  .pagehead{gap:10px}
+}

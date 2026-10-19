@@ -416,7 +416,7 @@
       chips += '<button type="button" class="chip" data-pa="open" data-acc="' + e(x.acc) + '" title="Steam ID ' + e(x.acc) + '">' + pic(x.avatar, x.name) + e(x.name || x.acc) + (i === 0 && s.last && s.last.acc === x.acc ? '<span class="sm">&nbsp;последний</span>' : '') + '</button>';
     });
     return '<section class="card me-search"><form id="me-form" novalidate><label for="me-in">Ник, Steam ID, SteamID64 или ссылка на профиль</label>' +
-      '<div class="me-row"><input id="me-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ник, 7656119… или steamcommunity.com/profiles/…" value="' + e(P.input) + '"' + (P.formErr ? ' aria-invalid="true" aria-describedby="me-ferr"' : '') + '>' +
+      '<div class="me-row"><input id="me-in" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ник, Steam ID или ссылка" value="' + e(P.input) + '"' + (P.formErr ? ' aria-invalid="true" aria-describedby="me-ferr"' : '') + '>' +
       '<button class="btn primary" type="submit"' + (P.phase === 'finding' ? ' disabled' : '') + '>' + ico('search') + 'Найти игрока</button></div>' +
       (P.formErr ? '<div class="banner soft me-err" id="me-ferr" role="alert">' + ico('alert') + '<p>' + e(P.formErr) + '</p></div>' : '<p class="sm hint">Данные берутся у OpenDota из публичных профилей. Ник ищется только среди открытых профилей и даёт варианты, а не точный ответ; надёжнее Steam ID. Пароль Steam не нужен.</p>') +
       '</form>' + (chips ? '<div class="me-quick"><span class="lbl">Быстро открыть:</span>' + chips + '</div>' : '') + '</section>';

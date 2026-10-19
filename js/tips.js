@@ -210,7 +210,9 @@
     if (cur && to && cur.contains(to)) return;
     hide();
   });
+  const coarse = () => !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
   document.addEventListener('focusin', (ev) => {
+    if (coarse() && /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName)) return;   // на телефоне подсказка при фокусе в поле закрывает текст под ним
     let vis = true; try { vis = ev.target.matches(':focus-visible'); } catch (e) { /* старый браузер: показываем */ }
     if (!vis) return;
     const hit = find(ev.target); if (hit) { clearTimeout(timer); show(hit); }
@@ -221,5 +223,18 @@
   window.addEventListener('scroll', hide, true);
   window.addEventListener('resize', hide);
 
-  window.DMTips = { resolve, find, hide };
+  /* Сенсорные экраны: касание элемента с подсказкой, который сам ничего не делает, показывает подсказку; касание в другом месте её убирает */
+  document.addEventListener('click', (ev) => {
+    if (!coarse()) return;
+    const hit = find(ev.target);
+    if (!hit) return;
+    /* интерактивность проверяем только от точки касания до элемента с подсказкой: само окно или карточка вокруг не считается */
+    const SKIP = 'button,a,input,select,textarea,summary,label,[data-a],[role=button],#dm-tip';
+    for (let n = ev.target; n && n.nodeType === 1; n = n.parentElement) { if (n.matches(SKIP)) return; if (n === hit.el) break; }
+    clearTimeout(timer); show(hit);
+    clearTimeout(touchT); touchT = setTimeout(hide, 6000);
+  });
+  let touchT = null;
+
+  window.DMTips = { resolve, find, hide, show };
 })();
