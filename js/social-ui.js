@@ -55,7 +55,7 @@
     const tagOpts = [['', 'Любой тег'], ['none', 'Без тегов']].concat(d.PRESETS.map((p) => [p.id, p.label]), d.customTags(S()).map((id) => [id, d.tagLabel(id)]));
     const st = [['', 'любая']].concat([1, 2, 3, 4, 5].map((n) => [String(n), String(n)]));
     const sel = (id, label, opts, val) => `<div class="field"><label for="${id}">${label}</label><select id="${id}">${opts.map((o) => `<option value="${esc(o[0])}" ${String(val) === String(o[0]) ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select></div>`;
-    return `<div class="sx-filters">${sel('sx-tag', 'Тег', tagOpts, f.tag)}${sel('sx-rated', 'Оценки', [['all', 'Все игроки'], ['yes', 'Только с оценкой'], ['no', 'Без оценки']], f.rated)}${sel('sx-rmin', 'Средняя оценка от', st, f.rmin)}${sel('sx-rmax', 'до', st, f.rmax)}${filterActive() ? `<button class="btn ghost sm2" data-a="s-fclear">Сбросить</button>` : ''}</div>`;
+    return `<div class="sx-filters">${sel('sx-tag', 'Тег', tagOpts, f.tag)}${sel('sx-rated', 'Оценки', [['all', 'С оценкой и без'], ['yes', 'Только с оценкой'], ['no', 'Без оценки']], f.rated)}${sel('sx-rmin', 'Средняя оценка от', st, f.rmin)}${sel('sx-rmax', 'до', st, f.rmax)}${filterActive() ? `<button class="btn ghost sm2" data-a="s-fclear">Сбросить</button>` : ''}</div>`;
   }
 
   /* ---------- вкладки страницы «Игроки» ---------- */

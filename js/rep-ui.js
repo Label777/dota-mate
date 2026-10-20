@@ -495,7 +495,7 @@
   /* ================= СТРАНИЦА: PARTY SAFETY ================= */
   var PS = { input: '', err: '', rows: [], phase: 'idle', token: 0 };
   register('party', {
-    label: 'Party Safety', title: 'Проверка группы', desc: 'До пяти Steam ID: сводка по каждому игроку. Общего вердикта по группе нет, а частая совместная игра не считается риском.', needsStatus: true,
+    label: 'Проверка пати', title: 'Проверка группы', desc: 'До пяти Steam ID: сводка по каждому игроку. Общего вердикта по группе нет, а частая совместная игра не считается риском.', needsStatus: true,
     form: function () {
       return '<section class="card rp-search"><form data-rpform="party" novalidate><label for="rp-party">Steam ID, SteamID64 или ссылки, до 5 штук (через пробел, запятую или с новой строки)</label><textarea id="rp-party" rows="3" spellcheck="false" placeholder="76561198…, 123456789, …">' + e(PS.input) + '</textarea>' + (PS.err ? '<p class="rp-err" role="alert">' + e(PS.err) + '</p>' : '') + '<div style="margin-top:10px"><button class="btn primary" type="submit"' + (PS.phase === 'loading' ? ' disabled' : '') + '>' + ico('shield') + 'Проверить группу</button></div></form></section>';
     },
@@ -563,11 +563,11 @@
       var tip = (p.personaname || 'Игрок ' + p.account_id) + ': ' + p.with_games + ' ' + pl(p.with_games, 'матч', 'матча', 'матчей') + ' вместе';
       edges += '<line x1="' + cx + '" y1="' + cy + '" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#5a6372" stroke-width="' + w.toFixed(1) + '" opacity=".7"/>';
       var lx = x + (Math.cos(ang) >= 0 ? r + 4 : -r - 4), anchor = Math.cos(ang) >= 0 ? 'start' : 'end';
-      nodes += '<g class="rp-node" data-rp="peer" data-acc="' + e(p.account_id) + '" tabindex="0" role="button" aria-label="' + e(tip) + '"><title>' + e(tip) + '</title><circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) + '" fill="' + (N.sel === String(p.account_id) ? '#d95c63' : '#4a93c6') + '" stroke="#13151a" stroke-width="2"/>' +
+      nodes += '<g class="rp-node" data-rp="peer" data-acc="' + e(p.account_id) + '" tabindex="0" role="button" aria-label="' + e(tip) + '"><title>' + e(tip) + '</title><circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) + '" fill="' + (N.sel === String(p.account_id) ? '#d95c63' : '#4a93c6') + '" stroke="#101820" stroke-width="2"/>' +
         '<text x="' + lx.toFixed(1) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="' + anchor + '" font-size="11" fill="#aeb4bf">' + e(String(p.personaname || p.account_id).slice(0, 14)) + '</text></g>';
     });
     return '<svg class="rp-graph" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="Граф совместной игры: центр — выбранный игрок, вокруг — партнёры по числу общих матчей">' + edges +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="24" fill="#d95c63" stroke="#13151a" stroke-width="2"/><text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="11" fill="#fff">' + e(String(center).slice(0, 8)) + '</text>' + nodes + '</svg>';
+      '<circle cx="' + cx + '" cy="' + cy + '" r="24" fill="#C9A66B" stroke="#101820" stroke-width="2"/><text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="11" font-weight="700" fill="#0B0F14">' + e(String(center).slice(0, 8)) + '</text>' + nodes + '</svg>';
   }
   register('network', {
     label: 'Сеть', title: 'Сеть совместной игры', desc: 'С кем игрок чаще всего играет вместе. Это справочная карта связей; частая совместная игра обычна для друзей и постоянных групп и сама ничего не доказывает.',

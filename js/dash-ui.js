@@ -46,15 +46,43 @@
   }
 
   /* ---------- блоки ---------- */
+  function needAcc() { return !H.myAcc() && !(S().me && S().me.acc); }
   function headerHtml(ms, total) {
-    var loading = H.loading(), m = ms[0];
+    var loading = H.loading(), m = ms[0], noAcc = needAcc();
     var note = !m ? 'Добавьте первый матч или синхронизируйте историю: здесь появятся метрики, динамика и знакомые игроки.' :
       'Последний матч: ' + (m.win ? 'победа' : 'поражение') + ' на ' + m.hero + ', ' + H.ago(m.start) + (total ? '. Знакомых игроков: ' + total + '.' : '.');
+    if (noAcc) note = S().demo ? 'Сейчас показан пример с выдуманными матчами. Подключите аккаунт, и здесь будут ваши игры.' : 'Подключите аккаунт или добавьте матч вручную: здесь появятся метрики, динамика и знакомые игроки.';
+    /* без Steam ID синхронизации не из чего загружать, поэтому главная кнопка на этом экране — подключение аккаунта ниже */
     return '<div class="pagehead"><div><h1>Обзор</h1><p>' + esc(note) + '</p></div><div class="actions">' +
-      '<button class="btn primary" data-a="sync"' + (loading ? ' disabled' : '') + '>' + ico('refresh') + 'Синхронизировать</button>' +
+      (noAcc ? '' : '<button class="btn primary" data-a="sync"' + (loading ? ' disabled' : '') + '>' + ico('refresh') + 'Синхронизировать</button>') +
       '<button class="btn" data-a="add">' + ico('plus') + 'Добавить матч</button>' +
       (window.DMSocialUI && ms.length && !S().demo ? '<button class="btn" data-a="s-rateall" data-mid="' + esc(ms[0].id) + '">' + ico('star') + 'Оценить игроков</button>' : '') +
-      '</div></div><div class="dh-status">' + H.syncStatus() + (window.DMPerfUI ? DMPerfUI.statusBox() : '') + '</div>';
+      '</div></div>' + (noAcc ? '' : '<div class="dh-status">' + H.syncStatus() + (window.DMPerfUI ? DMPerfUI.statusBox() : '') + '</div>');
+  }
+
+  /* Первый экран без аккаунта: что делает сайт, одно главное действие и шаги по порядку. */
+  var OB = { err: '', busy: false };
+  function onboardHtml() {
+    var demo = S().demo;
+    return '<section class="ob" aria-labelledby="ob-h">' +
+      '<div class="ob-main">' +
+        '<h2 id="ob-h">Подключите аккаунт Dota 2</h2>' +
+        '<p class="ob-lead">Dota Mate загружает ваши матчи из открытых данных OpenDota и запоминает игроков, с которыми вы встречались: с кем вы чаще выигрываете, кого лучше избегать, кого позвать в пати. Пароль не нужен, только публичный Steam ID.</p>' +
+        '<form id="ob-f" class="ob-f" novalidate>' +
+          '<label for="ob-id">Steam ID или ссылка на профиль Steam</label>' +
+          '<div class="ob-row"><input id="ob-id" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="Например, 76561198012345678"' + (OB.err ? ' aria-invalid="true" aria-describedby="ob-err"' : ' aria-describedby="ob-note"') + ' data-tip="Числовой Steam ID, ID в Dota 2 или ссылка вида steamcommunity.com/profiles/…">' +
+          '<button class="btn primary" type="submit"' + (OB.busy ? ' disabled' : '') + ' data-tip="Сохранить ID и сразу загрузить последние матчи из OpenDota">' + ico('refresh') + (OB.busy ? 'Подключаю…' : 'Подключить и загрузить матчи') + '</button></div>' +
+          (OB.err ? '<p class="ob-err" id="ob-err" role="alert">' + esc(OB.err) + '</p>' : '') +
+          '<p class="sm" id="ob-note">Если матчей не окажется, включите в Dota 2 пункт «Открытые данные матчей» (Expose Public Match Data): без него OpenDota не видит ваши игры.</p>' +
+        '</form>' +
+        (demo ? '<p class="ob-demo">' + ico('info') + '<span>Ниже пример с выдуманными игроками. Он исчезнет после вашего первого матча.</span><button type="button" class="linkbtn" data-a="clearDemo">Убрать пример</button></p>' : '') +
+      '</div>' +
+      '<ol class="ob-steps" aria-label="Как начать">' +
+        '<li><b>Подключите Steam ID</b><span>Публичный числовой ID или ссылка на профиль. Его можно поменять в настройках.</span></li>' +
+        '<li><b>Загрузите матчи</b><span>Последние игры придут из OpenDota, составы и герои определятся сами. Матч можно добавить и вручную.</span></li>' +
+        '<li><b>Отмечайте игроков</b><span>Оценки, заметки и теги видны только вам. В следующих играх они подскажут, с кем вы уже встречались.</span></li>' +
+      '</ol>' +
+    '</section>';
   }
 
   function searchHtml() {
@@ -236,7 +264,7 @@
     var ms = H.matches(), idx = H.pIndex(), list = Object.keys(idx).map(function (k) { return idx[k]; });
     var empty = !ms.length && !H.loading();
     var trendMeta = ms.length ? 'последние ' + Math.min(ms.length, 30) + ' матчей' : '';
-    return headerHtml(ms, list.length) + H.demoBanner() + searchHtml() +
+    return headerHtml(ms, list.length) + (needAcc() ? onboardHtml() : H.demoBanner()) + searchHtml() +
       (empty ? '' : metricsHtml(ms, list)) +
       (window.DMSocialUI ? DMSocialUI.dashBlock() : '') +
       '<div class="dg dg-main">' +
@@ -273,6 +301,13 @@
   function init(h) {
     H = h;
     document.addEventListener('submit', function (ev) {
+      if (ev.target && ev.target.id === 'ob-f') {
+        ev.preventDefault();
+        var inp = document.getElementById('ob-id'), raw = inp ? inp.value.trim() : '';
+        OB.err = !raw ? 'Введите Steam ID или ссылку на профиль.' : (H.connect ? H.connect(raw) : 'Подключение недоступно.');
+        if (OB.err) { H.paintMain(); var i2 = document.getElementById('ob-id'); if (i2) { i2.value = raw; i2.focus(); } }
+        return;
+      }
       if (!ev.target || ev.target.id !== 'd-search') return;
       ev.preventDefault();
       var v = document.getElementById('d-q').value.trim();

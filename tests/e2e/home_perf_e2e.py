@@ -71,8 +71,11 @@ with sync_playwright() as p:
             pg.wait_for_selector(sel); pg.wait_for_timeout(150)
             ov = overflow(pg); check(f'ширина {w}: «{tab}» без горизонтальной прокрутки', ov <= 0, ov)
     c.close()
+    # подписи у разделов с 1080 px (решение UX-аудита: значки без текста непонятны новому пользователю), уже — только значки
     c, pg, errs = setup(b, w=1100, S=state()); pg.goto(URL); pg.wait_for_selector('.dsr')
-    check('на ширине 1100 вкладки только с иконками, названия в aria-label', not pg.locator('.top .tabs .tab span').first.is_visible() and pg.get_attribute('.top .tabs .tab >> nth=2', 'aria-label') == 'Игроки')
+    check('на ширине 1100 у вкладок видны названия', pg.locator('.top .tabs .tab span').first.is_visible() and overflow(pg) <= 0)
+    c.close(); c, pg, errs = setup(b, w=1024, S=state()); pg.goto(URL); pg.wait_for_selector('.dsr')
+    check('на ширине 1024 вкладки только с иконками, названия в aria-label', not pg.locator('.top .tabs .tab span').first.is_visible() and pg.get_attribute('.top .tabs .tab >> nth=2', 'aria-label') == 'Игроки')
     c.close()
 
     # ---------- телефон: «Ещё» ----------

@@ -193,7 +193,7 @@
           ${s.enough ? `<div>MVP в ${pc(s.mvpShare)} матчей, худший результат в ${pc(s.worstShare)}</div>` : `<div class="sm">${enoughNote(s)}</div>`}</div></div>
       ${marked.length ? `<div class="pf-list">${marked.map(({ it, st }) => {
         const f = forMatch(it.m), res = it.res, w = who(it.m, f, it.ref.i), x = res[st];
-        return `<div class="pf-row"><span class="pf-d"><b>${esc(w.hero)}</b><small>${esc(H.fd(it.m.start))}</small></span>${chip(st, KIND[st][0], tipFor(st, x, w, res), !res.final)}<span class="sm im-why">${esc(x.text)}</span></div>`;
+        return `<div class="pf-row im-prow"><span class="pf-d"><b>${esc(w.hero)}</b><small>${esc(H.fd(it.m.start))}</small></span>${chip(st, KIND[st][0], tipFor(st, x, w, res), !res.final)}<span class="sm im-why">${esc(x.text)}</span></div>`;
       }).join('')}</div>` : '<p class="sm">В сыгранных вместе матчах этот игрок не получал статусов.</p>'}
       <p class="sm">Статус «худший» означает худший статистический результат в матче, а не доказательство саботажа.</p></section>`;
   }
@@ -216,7 +216,7 @@
   function settingsBlock() {
     if (!H) return '';
     const all = Object.values(C.m), cur = all.filter((e) => e.algo === I().ALGO).length, old = all.length - cur;
-    return `<section class="card stack"><h3>MVP и худший игрок матча</h3>
+    return `<section class="card stack"><h2>MVP и худший игрок матча</h2>
       <p class="sm">Сайт сам определяет двух игроков в каждом матче со статистикой: с лучшим и с худшим результатом. Расчёт идёт в этом браузере по цифрам OpenDota, на сервер ничего не уходит. Версия алгоритма: <span class="mono">${esc(I().ALGO)}</span>.</p>
       <p class="sm">Сохранено результатов: ${cur}${old ? `, от прошлых версий: ${old} (при открытии матча они пересчитываются и не смешиваются с новыми)` : ''}.</p>
       <div class="actions"><button class="btn sm2" data-a="im-recalc" data-tip="Удалить сохранённые результаты и посчитать заново по текущей версии алгоритма">${H.ico('refresh')}Пересчитать все матчи</button></div></section>`;
@@ -261,7 +261,7 @@
         <div class="im-txt"><div>Матчей с определёнными статусами: <b>${s.judged}</b> из ${rows.length}${s.prelim ? `, предварительных: ${s.prelim}` : ''}</div>
           ${s.enough ? `<div>MVP в ${pc(s.mvpShare)} матчей, худший результат в ${pc(s.worstShare)}</div>` : `<div class="sm">${enoughNote(s)}</div>`}</div></div>
       ${job}${J.msg ? `<div class="banner soft" style="margin-top:12px" role="status">${H.ico('info')}<p>${esc(J.msg)}</p></div>` : ''}
-      ${marked.length ? `<div class="pf-list" style="margin-top:12px">${marked.map(({ x, st }) => `<div class="pf-row"><span class="pf-d"><b>${esc(hooks.heroName(x.r.hero))}</b><small>${esc(hooks.date(x.r.start))}</small></span>${chip(st, KIND[st][0], x.res[st].text, !x.res.final)}<span class="sm im-why">${esc(x.res[st].text)}</span></div>`).join('')}</div>` : ''}
+      ${marked.length ? `<div class="pf-list" style="margin-top:12px">${marked.map(({ x, st }) => `<div class="pf-row im-prow"><span class="pf-d"><b>${esc(hooks.heroName(x.r.hero))}</b><small>${esc(hooks.date(x.r.start))}</small></span>${chip(st, KIND[st][0], x.res[st].text, !x.res.final)}<span class="sm im-why">${esc(x.res[st].text)}</span></div>`).join('')}</div>` : ''}
       </section>`;
   }
 

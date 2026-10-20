@@ -45,4 +45,14 @@
 .im-why{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
 .im-my{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 var(--s-3)}
 
-@media (max-width:640px){.im-grid{grid-template-columns:1fr}}
+/* строка в карточке игрока: свой макет, а не сетка строк оценки (там колонки по 74–84 px, и пояснение сжималось в узкий столбик) */
+.pf-row.im-prow{grid-template-columns:minmax(120px,190px) auto minmax(0,1fr);grid-template-areas:none;align-items:start}
+.pf-row.im-prow .im-chip{justify-self:start;margin-top:2px}
+.pf-row.im-prow .im-why{color:var(--text-2);line-height:1.5}
+@media (max-width:640px){
+  .im-grid{grid-template-columns:1fr}
+  .pf-row.im-prow{grid-template-columns:minmax(0,1fr) auto}
+  .pf-row.im-prow .pf-d{grid-area:auto}
+  .pf-row.im-prow .im-chip{justify-self:end}
+  .pf-row.im-prow .im-why{grid-column:1/-1}
+}

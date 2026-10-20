@@ -308,6 +308,9 @@ async function handle(req, res) {
     if (!f.startsWith(path.join(__dirname, asset[1]) + path.sep) || !fs.existsSync(f)) return send(res, 404, 'Not found', { 'Content-Type': 'text/plain; charset=utf-8' });
     return send(res, 200, fs.readFileSync(f), { 'Content-Type': (asset[2] === 'js' ? 'text/javascript' : 'text/css') + '; charset=utf-8', 'Cache-Control': 'no-cache' });
   }
+  if (method === 'GET' && (p === '/favicon.svg' || p === '/og.png')) {   // иконка вкладки и превью ссылки
+    return send(res, 200, fs.readFileSync(path.join(__dirname, p)), { 'Content-Type': p === '/og.png' ? 'image/png' : 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' });
+  }
   if (method === 'GET' && /^\/fonts\/inter-(400|500|600|700)\.woff$/.test(p)) {
     return send(res, 200, fs.readFileSync(path.join(__dirname, p)), { 'Content-Type': 'font/woff', 'Cache-Control': 'public, max-age=604800' });
   }

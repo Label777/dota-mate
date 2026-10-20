@@ -29,7 +29,7 @@
 .rp-notes li{margin:3px 0}
 .rp-why{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
 .rp-why summary{cursor:pointer;font-weight:600;color:var(--fg)}
-.rp-why summary:focus-visible{outline:2px solid var(--red-hi);outline-offset:2px}
+.rp-why summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .rp-tbl{width:100%;border-collapse:collapse;font-size:.92rem}
 .rp-tbl th{font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-weight:500}
 .rp-tbl td{padding:9px 10px;border-top:1px solid var(--line);vertical-align:top}
@@ -38,7 +38,7 @@
 .rp-wide{min-width:760px}
 .rp-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .rp-foot{margin:-4px 2px 0}
-.rp-a{color:var(--red-hi);text-decoration:underline}
+.rp-a{color:var(--accent-strong);text-decoration:underline;text-decoration-color:var(--accent-dim);text-underline-offset:3px}
 .rp-err{color:var(--danger-text);font-size:.88rem;margin-top:4px}
 input[aria-invalid=true],textarea[aria-invalid=true],select[aria-invalid=true]{border-color:var(--danger)}
 .rp-two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -71,8 +71,13 @@ input[aria-invalid=true],textarea[aria-invalid=true],select[aria-invalid=true]{b
 .rp-node{cursor:pointer}
 .rp-node:focus-visible circle,.rp-node:hover circle{stroke:#fff}
 .rp-lnk{background:none;border:0;padding:0;color:var(--fg);text-decoration:underline;text-underline-offset:3px;text-align:left}
-.rp-lnk:hover{color:var(--red-hi)}
+.rp-lnk:hover{color:var(--accent-strong)}
 .rp-form{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.rp-fs{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:12px}
+/* без сервера или входа форма видна как образец, но поля честно отключены */
+.rp-fs:disabled :is(input,select,textarea,.rp-check,details){opacity:.5}
+.rp-fs:disabled :is(input,select,textarea,summary){cursor:not-allowed}
+.card>.banner+.sm,.card>.banner+form,.card>.banner+p{margin-top:var(--s-3)}
 .rp-check{display:flex;gap:10px;align-items:flex-start;color:var(--fg-2);font-size:.9rem}
 .rp-check input{margin-top:4px;flex:none}
 .rp-more summary{cursor:pointer;color:var(--fg-2)}

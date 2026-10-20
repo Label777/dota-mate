@@ -42,7 +42,7 @@
     var f = RP.f, er = RP.errs, off = !ready();
     return '<section class="card"><div class="sec-h"><h2>Сообщить о подозрительном эпизоде</h2></div>' + needLogin() +
       '<p class="sm">Жалоба проверяется модератором и не является доказательством. До решения она не публикуется как нарушение. Укажите конкретный матч и что именно произошло. Нельзя жаловаться на игрока только за поражение или плохую статистику.</p>' +
-      '<form data-rpform="reports" novalidate class="rp-form">' +
+      '<form data-rpform="reports" novalidate class="rp-form"><fieldset class="rp-fs"' + (off ? ' disabled' : '') + '>' +
       '<div class="field"><label for="rf-target">Игрок (Steam ID, SteamID64 или ссылка)</label><input id="rf-target" type="text" data-rpin="target" value="' + e(f.target) + '" autocomplete="off"' + (er && er.target ? ' aria-invalid="true" aria-describedby="err-target"' : '') + '>' + fieldErr(er, 'target') + '</div>' +
       '<div class="field"><label for="rf-match">Match ID</label><input id="rf-match" type="text" inputmode="numeric" data-rpin="matchId" value="' + e(f.matchId) + '" autocomplete="off"' + (er && er.matchId ? ' aria-invalid="true" aria-describedby="err-matchId"' : '') + '>' + fieldErr(er, 'matchId') + '<p class="sm">Вы и обвиняемый должны быть участниками этого матча (проверяется по данным OpenDota), матч не старше 60 дней.</p></div>' +
       '<div class="field"><label for="rf-cat">Категория</label><select id="rf-cat" data-rpset="category"' + (er && er.category ? ' aria-invalid="true"' : '') + '><option value="">Выберите…</option>' + Object.keys(R.CATEGORIES).map(function (k) { return '<option value="' + k + '"' + (f.category === k ? ' selected' : '') + '>' + e(R.CATEGORIES[k]) + '</option>'; }).join('') + '</select>' + fieldErr(er, 'category') + '</div>' +
@@ -51,7 +51,7 @@
       '<details class="rp-more"' + (f.more ? ' open' : '') + '><summary>Групповая жалоба: ещё игроки из этого матча</summary><div class="field"><textarea data-rpin="more" rows="2" aria-label="Дополнительные игроки" placeholder="Steam ID через пробел, до 4 дополнительных">' + e(f.more) + '</textarea><p class="sm">На каждого игрока создаётся отдельная жалоба с тем же описанием; каждая проверяется отдельно. Суточный лимит жалоб действует на все.</p></div></details>' +
       '<label class="rp-check"><input type="checkbox" data-rpset="consent"' + (f.consent ? ' checked' : '') + (er && er.consent ? ' aria-invalid="true"' : '') + '> Я подтверждаю, что описал(а) события честно, понимаю, что ложные и массовые жалобы блокируются, а моё имя игроку не раскрывается.</label>' + fieldErr(er, 'consent') +
       (RP.msg ? '<div class="banner ' + (RP.msg.ok ? '' : 'soft') + '" role="status">' + ico(RP.msg.ok ? 'check' : 'alert') + '<div style="flex:1">' + RP.msg.html + '</div></div>' : '') +
-      '<div><button class="btn primary" type="submit"' + (off || RP.busy ? ' disabled' : '') + '>' + (RP.busy ? 'Отправляю…' : 'Отправить жалобу') + '</button></div></form></section>';
+      '<div><button class="btn primary" type="submit"' + (off || RP.busy ? ' disabled' : '') + '>' + (RP.busy ? 'Отправляю…' : 'Отправить жалобу') + '</button></div></fieldset></form></section>';
   }
   function mineHtml() {
     if (!ready()) return '';
@@ -119,12 +119,12 @@
       var f = AP.f, er = AP.errs;
       var opts = (AP.marks && AP.marks.marks || []).map(function (m) { return '<option value="' + m.id + '"' + (String(f.reportId) === String(m.id) ? ' selected' : '') + '>' + e(m.categoryLabel) + ', матч ' + e(m.matchId) + ' (' + e(m.statusLabel) + ')</option>'; }).join('');
       return '<section class="card"><div class="sec-h"><h2>Оспорить отметку</h2></div>' + needLogin() +
-        '<form data-rpform="appeals" novalidate class="rp-form"><div class="field"><label for="ap-id">Номер отметки</label><div class="field-inline"><input id="ap-id" type="text" inputmode="numeric" data-rpin="reportId" value="' + e(f.reportId) + '" placeholder="номер из карточки отметки" style="max-width:220px">' +
+        '<form data-rpform="appeals" novalidate class="rp-form"><fieldset class="rp-fs"' + (!ready() ? ' disabled' : '') + '><div class="field"><label for="ap-id">Номер отметки</label><div class="field-inline"><input id="ap-id" type="text" inputmode="numeric" data-rpin="reportId" value="' + e(f.reportId) + '" placeholder="номер из карточки отметки" style="max-width:220px">' +
         (opts ? '<select class="sel" data-rpset="reportId" aria-label="Мои отметки"><option value="">Мои отметки…</option>' + opts + '</select>' : '') + '</div>' + fieldErr(er, 'reportId') + '</div>' +
         '<div class="field"><label for="ap-text">Что в отметке неверно</label><textarea id="ap-text" data-rpin="text" rows="4" maxlength="1000"' + (er && er.text ? ' aria-invalid="true"' : '') + '>' + e(f.text) + '</textarea>' + fieldErr(er, 'text') + '</div>' +
         '<div class="field"><label for="ap-ev">Материалы (ссылки https, по одной в строке)</label><textarea id="ap-ev" data-rpin="evidence" rows="2">' + e(f.evidence) + '</textarea>' + fieldErr(er, 'evidence') + '</div>' +
         (AP.msg ? '<div class="banner ' + (AP.msg.ok ? '' : 'soft') + '" role="status">' + ico(AP.msg.ok ? 'check' : 'alert') + '<p>' + e(AP.msg.text) + '</p></div>' : '') +
-        '<div><button class="btn primary" type="submit"' + (!ready() || AP.busy ? ' disabled' : '') + '>' + (AP.busy ? 'Отправляю…' : 'Отправить обращение') + '</button></div></form></section>';
+        '<div><button class="btn primary" type="submit"' + (!ready() || AP.busy ? ' disabled' : '') + '>' + (AP.busy ? 'Отправляю…' : 'Отправить обращение') + '</button></div></fieldset></form></section>';
     },
     input: function (k, v) { AP.f[k] = v; },
     set: function (k, v) { AP.f[k] = v; if (k === 'reportId') X.renderForm(); },

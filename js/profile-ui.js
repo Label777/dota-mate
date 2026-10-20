@@ -327,7 +327,7 @@
       else {
         var y = yPos(Math.min(p.v, max), max);
         d += (pen ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); pen = true;
-        if (n <= 40 || i === n - 1) marks += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" fill="' + o.color + '" stroke="#1b1e25" stroke-width="2"/>';
+        if (n <= 40 || i === n - 1) marks += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" fill="' + o.color + '" stroke="#101820" stroke-width="2"/>';
       }
       hit += '<rect class="hit"' + tipAttr(p.tip, x.toFixed(1)) + ' x="' + (x - colW / 2).toFixed(1) + '" y="' + M.t + '" width="' + colW.toFixed(1) + '" height="' + (HT - M.t - M.b) + '"/>';
     });
@@ -388,7 +388,7 @@
     pts.forEach(function (p, i) {
       var x = sx(i, n), y = yPos(p.v - mn, rng);
       d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
-      if (n <= 40 || i === n - 1) marks += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" fill="' + C.win + '" stroke="#1b1e25" stroke-width="2"/>';
+      if (n <= 40 || i === n - 1) marks += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" fill="' + C.win + '" stroke="#101820" stroke-width="2"/>';
       hit += '<rect class="hit"' + tipAttr(dday(p.t) + '\nMMR: ' + p.v, x.toFixed(1)) + ' x="' + (x - colW / 2).toFixed(1) + '" y="' + M.t + '" width="' + colW.toFixed(1) + '" height="' + (HT - M.t - M.b) + '"/>';
     });
     var inner = yGrid(rng, function (v) { return Math.round(v + mn); }, 4) + '<path d="' + d + '" fill="none" stroke="' + C.win + '" stroke-width="2" stroke-linejoin="round"/>' + marks +
@@ -549,7 +549,7 @@
     var extra = xr('Не определена', rest, 'Матч не разобран OpenDota или ещё не проверен: точной позиции нет');
     var rows = [1, 2, 3, 4, 5].map(function (p) {
       var r = ps.rows[p], isBest = ps.best === p, sel = P.cmp.indexOf(p) >= 0;
-      return '<tr class="' + (isBest ? 'best' : '') + (p === 0 ? ' unk' : '') + '"><td>' + (p ? '<b>' + p + '</b> · ' + A.POS_NAMES[p] : 'Не определена') + (isBest ? ' <span class="tag">лучшая</span>' : '') + '</td><td>' + r.n + '</td><td>' + (r.n ? pct(r.winrate) + '<span class="bar2" aria-hidden="true"><i style="width:' + Math.round(r.winrate * 100) + '%"></i></span>' : '—') + '</td><td>' + (r.kdaN ? f1(r.k) + ' / ' + f1(r.d) + ' / ' + f1(r.a) : '—') + '</td><td>' + (r.gpmN ? Math.round(r.gpm) : '—') + '</td><td>' + (r.xpmN ? Math.round(r.xpm) : '—') + '</td><td>' + (p && r.n ? '<button class="btn sm2" type="button" data-pa="cmp" data-p="' + p + '" aria-pressed="' + sel + '"' + (sel ? ' style="border-color:var(--red-hi)"' : '') + '>' + (sel ? 'Выбрана' : 'Сравнить') + '</button>' : '') + '</td></tr>';
+      return '<tr class="' + (isBest ? 'best' : '') + (p === 0 ? ' unk' : '') + '"><td>' + (p ? '<b>' + p + '</b> · ' + A.POS_NAMES[p] : 'Не определена') + (isBest ? ' <span class="tag acc">лучшая</span>' : '') + '</td><td>' + r.n + '</td><td>' + (r.n ? pct(r.winrate) + '<span class="bar2" aria-hidden="true"><i style="width:' + Math.round(r.winrate * 100) + '%"></i></span>' : '—') + '</td><td>' + (r.kdaN ? f1(r.k) + ' / ' + f1(r.d) + ' / ' + f1(r.a) : '—') + '</td><td>' + (r.gpmN ? Math.round(r.gpm) : '—') + '</td><td>' + (r.xpmN ? Math.round(r.xpm) : '—') + '</td><td>' + (p && r.n ? '<button class="btn sm2" type="button" data-pa="cmp" data-p="' + p + '" aria-pressed="' + sel + '"' + (sel ? ' style="border-color:var(--red-hi)"' : '') + '>' + (sel ? 'Выбрана' : 'Сравнить') + '</button>' : '') + '</td></tr>';
     }).join('') + extra;
     var table = '<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Позиция</th><th>Матчей</th><th>Винрейт</th><th>K / D / A</th><th>GPM</th><th>XPM</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     var cmp = '';

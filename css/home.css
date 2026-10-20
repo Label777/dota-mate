@@ -8,10 +8,18 @@
 .srch span{display:none}
 .srch kbd,.qk-in kbd{white-space:nowrap;font:inherit;font-size:.72rem;padding:0 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface-raise);color:var(--text-3)}
 .me .nm{max-width:9ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:1399px){
+/* Подписи у разделов видны с 1080 px: значки без текста новому пользователю непонятны. Уже окна показывают только значки с подсказкой. */
+@media (max-width:1079px){
   .top .tabs .tab span{display:none}
   .top .tabs .tab{padding:8px 11px}
   .top .tabs{margin-left:4px}
+}
+@media (min-width:1080px) and (max-width:1279px){
+  .top .tabs .tab{padding:8px 8px;gap:6px;font-size:.87rem}
+  .top .tabs{margin-left:0;gap:2px}
+  .top .tab[aria-current=page]::after{left:8px;right:8px}
+  .srch kbd{display:none}
+  .me .nm{max-width:7ch}
 }
 body.more-open #as-root{display:none}
 
@@ -145,3 +153,33 @@ body.more-open #as-root{display:none}
   .dt-q{flex:1 1 100%}
 }
 @media (prefers-reduced-motion:reduce){.dsr-in{transition:none}}
+
+/* ---------- первый экран без аккаунта ---------- */
+.ob{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:var(--s-6);align-items:start;
+  background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--accent);border-radius:var(--r-3);padding:var(--s-6)}
+.ob h2{font-size:var(--fs-5);line-height:1.2;font-weight:700;letter-spacing:-.01em;margin:0 0 var(--s-3)}
+.ob-lead{color:var(--text-2);max-width:62ch;line-height:1.55;margin:0 0 var(--s-5)}
+.ob-f label{display:block;font-weight:600;margin-bottom:var(--s-2)}
+.ob-row{display:flex;gap:var(--s-2)}
+.ob-row input{flex:1 1 auto;min-width:0;min-height:44px;font-size:1rem}
+.ob-row .btn{min-height:44px;white-space:nowrap}
+.ob-err{color:var(--danger-text);margin:var(--s-2) 0 0;font-weight:500}
+.ob-f .sm{margin:var(--s-2) 0 0;max-width:68ch}
+.ob-demo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:var(--s-5) 0 0;padding-top:var(--s-4);border-top:1px solid var(--border-soft);color:var(--text-2);font-size:var(--fs-2)}
+.ob-demo .ic{color:var(--warn);flex:none}
+.ob-demo span{flex:1 1 220px}
+/* шаги — настоящая последовательность, поэтому нумерация */
+.ob-steps{list-style:none;margin:0;padding:0;counter-reset:ob;display:grid;gap:var(--s-4)}
+.ob-steps li{counter-increment:ob;display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:var(--s-3);row-gap:2px;position:relative}
+.ob-steps li::before{content:counter(ob);grid-row:1/3;width:28px;height:28px;border-radius:50%;border:1px solid var(--accent-dim);color:var(--accent);
+  display:grid;place-items:center;font-weight:700;font-size:var(--fs-2);background:var(--accent-soft)}
+.ob-steps li:not(:last-child)::after{content:"";position:absolute;left:13.5px;top:32px;bottom:calc(var(--s-4) * -1 + 4px);width:1px;background:var(--border)}
+.ob-steps b{font-weight:600}
+.ob-steps span{color:var(--text-2);font-size:var(--fs-2);line-height:1.5}
+@media (max-width:900px){.ob{grid-template-columns:minmax(0,1fr);gap:var(--s-5);padding:var(--s-5)}}
+@media (max-width:759px){
+  .ob{padding:var(--s-4) var(--s-4) var(--s-5)}
+  .ob h2{font-size:1.3rem}
+  .ob-row{flex-direction:column}
+  .ob-row .btn{width:100%;justify-content:center}
+}

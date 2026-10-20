@@ -63,6 +63,8 @@ main{gap:var(--s-5);padding-top:var(--s-5)}
 .banner .ic{color:var(--accent)}
 .banner.soft{background:var(--danger-soft);border-color:rgba(240,68,82,.35)}
 .banner.soft .ic{color:var(--danger)}
+.banner.meet{background:var(--surface);border-color:var(--border)}
+.banner.meet .ic{color:var(--info)}
 .banner.demo{background:var(--accent-soft);border-color:var(--accent-dim)}
 .empty{border:1px dashed var(--border);background:var(--surface-sunk);color:var(--text-2)}
 .empty .ic{color:var(--text-3)}
@@ -105,7 +107,10 @@ input::placeholder,textarea::placeholder{color:#5B6B7A}
 /* ---------- значки, чипы, статусы ---------- */
 .chip{border-color:var(--border);background:var(--surface-sunk);color:var(--text-2)}
 .chip:hover{border-color:var(--accent-dim);background:var(--surface-raise);color:var(--text)}
-.tag{background:var(--danger-soft);color:#FF8791;border-radius:var(--r-1)}
+/* метки нейтральны: красный только для риска. Соперник — приглушённый красный контур, лучшее значение — золото */
+.tag{background:var(--surface-raise);color:var(--text-2);border:1px solid var(--border-soft);border-radius:var(--r-1)}
+.tag.foe{background:transparent;color:var(--danger-text);border-color:rgba(240,68,82,.35)}
+.tag.acc{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent-dim)}
 .tag.n{background:var(--surface-raise);color:var(--text-2)}
 .rank{background:var(--accent-soft);border:1px solid var(--accent-dim);color:var(--accent-strong);border-radius:var(--r-1)}
 .pill{background:var(--surface-sunk);border-color:var(--border);color:var(--text-2)}
@@ -221,3 +226,8 @@ input::placeholder,textarea::placeholder{color:#5B6B7A}
 
 /* Аватар с классом sm (маленький) не должен наследовать приглушённый цвет вспомогательного текста .sm */
 .av.sm,.av.md,.av.lg{color:var(--text)}
+
+/* ссылка для клавиатуры: видна только в фокусе, ведёт мимо шапки к содержимому */
+.skip{position:fixed;left:12px;top:-60px;z-index:100;background:var(--accent);color:var(--on-accent);font-weight:700;padding:10px 16px;border-radius:var(--r-2);text-decoration:none;transition:top var(--ease)}
+.skip:focus{top:10px}
+#main:focus{outline:none}
